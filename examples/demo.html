@@ -1,0 +1,36 @@
+<html>
+<head>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.13.1/lodash.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.0.0/jszip.min.js"></script>
+	<script type="text/javascript" src="vendor/FileSaver.js"></script>
+	<script type="text/javascript" src="../dist/excelWriter.js"></script>
+	<script type="text/javascript">
+		$(function () {
+			var button = $('<button>Click me!</button>')
+				.click(function () {
+					createWorkbook();
+				});
+
+			$('body').append(button);
+		});
+
+		function createWorkbook()
+		{
+			var imageString = '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';
+			var workbook = excelWriter.createWorkbook();
+
+			workbook.addWorksheet()
+				.setImage({data: imageString, type: 'png'}, {cell: 'D3', rows: 2});
+
+			excelWriter
+				.save(workbook, {type: 'blob'})
+				.then(function (content) {
+					saveAs(content, 'sample.xlsx');
+				});
+		}
+	</script>
+</head>
+<body>
+</body>
+</html>

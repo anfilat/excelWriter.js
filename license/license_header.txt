@@ -1,0 +1,6 @@
+/*
+excelWriter - Javascript module for generating Excel files
+<https://github.com/anfilat/excelWriter.js>
+(c) 2016 Andrey Filatkin
+Dual licenced under the MIT license or GPLv3
+*/

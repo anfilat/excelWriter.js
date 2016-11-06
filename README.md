@@ -1,48 +1,33 @@
-![bounties received](https://www.bountysource.com/badge/team?team_id=59027&style=bounties_received)
-
-No longer maintained
-====================
-
-Sob story of the day. For the first time in months, I had time to sit down and work on this project. So, I did. Tweaked a couple things, added stuff to the 'new' website.. then realized that I'd prefer to be spending time with my family. So, this project is no longer maintained. Thank you to those who sent encouraging emails over the years. This was an interesting project. Goodbye.
-
-excel-builder.js
+excelWriter.js
 ================
 
-A way to build excel files with javascript
+A way to build excel files with javascript.
 
-Documentation at http://excelbuilderjs.com/. This is slightly outdated, but includes a 'cookbook' and some 
-API documentation. New site coming soon with up-to-date documentation, and ability to contribute - see [https://github.com/stephenliberty/excel-builder-site](https://github.com/stephenliberty/excel-builder-site)
+This project is fork of [excel-builder.js](https://github.com/stephenliberty/excel-builder.js). But it was rewrote in jQuery style). I hope that I'll write the documentation in a future)
 
-Installing via NPM
-------------------
+Short example
+---------------
+    var JSZip = require('jszip');
+    var excelWriter = require('excelWriter');
+	var fs = require('fs');
+    
+    var workbook = excelWriter.createWorkbook();
 
-	npm install excel-builder
+   	workbook.addWorksheet()
+   		.setData([
+    		[2541, 'Nullam aliquet mi et nunc tempus rutrum.', 'Dolore anim', {date: 1342977404000}],
+    		[2542, 'Nullam aliquet mi et nunc tempus rutrum.', 'Dolore anim', {date: 1342977405000}]
+   		])
+		.setColumns([
+			{width: 10},
+			{width: 40}
+		]);
+   		
+	excelWriter.saveAsNodeStream(workbook)
+		.pipe(fs.createWriteStream('./excel.xlsx'))
 
-
-Building for web
-----------------
-
-Install Grunt:
-
-	npm install -g grunt-cli
-
-Install dependencies:
-
-	npm install
-
-Build & uglify:
-
-	grunt
 
 Distributables
 ---------------
-excel-builder.compiled.js -> All files in the EB package and all dependencies.
-
-excel-builder.dist.js -> All files in the EB package. Requires lodash and jszip scripts to be loaded on the page.
-
-Contributing
--------------
-
-Originally this project was sort of sponsored by a previous company I worked for. Unfortunately now it has no backing, and my time is very limited while I work on side projects to help make ends meet. If you use bountysource or contribute via paypal (to stephen@liberty-irm.com) to open up bounties on issues, it is very, very likely that I will add features and fix issues sooner than later. 
-
-Otherwise, if you have the ability to contribute yourself, please just do so as normal - I'll review and pull changes as they come in as quickly as I can. 
+excelWriter.js -> Requires lodash and jszip scripts to be loaded on the page.
+excelWriter.min.js -> Minified excelWriter.js.
