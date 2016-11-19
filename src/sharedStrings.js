@@ -6,7 +6,7 @@ var util = require('./util');
 
 function SharedStrings() {
 	this.objectId = _.uniqueId('SharedStrings');
-	this._strings = {};
+	this._strings = Object.create(null);
 	this._stringArray = [];
 }
 

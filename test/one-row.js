@@ -43,7 +43,7 @@ module.exports = function (excel) {
 			height: 30,
 			style: fillFormat,
 			data: [{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
-				'Dolore anim', 1342372604000, {date: 1342977404000}]
+				'__proto__', 1342372604000, {date: 1342977404000}]
 		},
 		{
 			outlineLevel: 1,
