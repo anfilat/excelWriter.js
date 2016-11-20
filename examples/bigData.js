@@ -1,23 +1,60 @@
+/*eslint no-console: "off" */
+/*eslint no-sync: "off"*/
+
+//stress test
+
 'use strict';
 
+var fs = require('fs');
+var path = require('path');
 var _ = require('lodash');
 var loremIpsum = require('lorem-ipsum');
+var excel = require('../src');
+var data;
+var workbook;
+var fileName;
 
-var size = 1000000;
-var data = new Array(size);
+fileName = path.parse(process.argv[1]).name;
+try {
+	fs.statSync('xlsx');
+} catch (e) {
+	fs.mkdirSync('xlsx');
+}
 
-_.times(size, function (i) {
-	data[i] = [
-		1000 + i,
-		_.capitalize(loremIpsum({count: 7, units: 'words'}) + '.'),
-		Math.round(100 + Math.random() * (1000 - 100)),
-		loremIpsum({count: 2, units: 'words'}),
-		Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000)),
-		Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000))
-	];
-});
+console.time('Generate data');
+data = generateData();
+console.timeEnd('Generate data');
 
-module.exports = function (excel) {
+console.log('Memory before - ', process.memoryUsage());
+console.time('time');
+workbook = run(data);
+
+excel.saveAsNodeStream(workbook)
+	.pipe(fs.createWriteStream('xlsx/' + fileName + '.xlsx'))
+	.on('finish', function () {
+		console.timeEnd('time');
+		console.log('Memory after - ', process.memoryUsage());
+		console.log('Excel file written.');
+	});
+
+function generateData() {
+	var size = 1000000;
+	var data = new Array(size);
+
+	_.times(size, function (i) {
+		data[i] = [
+			1000 + i,
+			_.capitalize(loremIpsum({count: 7, units: 'words'}) + '.'),
+			Math.round(100 + Math.random() * (1000 - 100)),
+			loremIpsum({count: 2, units: 'words'}),
+			Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000)),
+			Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000))
+		];
+	});
+	return data;
+}
+
+function run(data) {
 	var workbook = excel.createWorkbook();
 	var header = workbook.addFormat({
 		font: {bold: true, underline: true, color: {theme: 3}},
@@ -87,4 +124,4 @@ module.exports = function (excel) {
 		});
 
 	return workbook;
-};
+}
