@@ -3,8 +3,8 @@
 var _ = require('lodash');
 var toXMLString = require('../XMLString');
 
-function StylePart(styleSheet, exportName, formatName) {
-	this.styleSheet = styleSheet;
+function StylePart(styles, exportName, formatName) {
+	this.styles = styles;
 	this.exportName = exportName;
 	this.formatName = formatName;
 	this.lastName = 1;

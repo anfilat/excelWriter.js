@@ -10,8 +10,8 @@ var toXMLString = require('../XMLString');
 var ALLOWED_PARTS = ['format', 'fill', 'border', 'font'];
 var XLS_NAMES = ['numFmtId', 'fillId', 'borderId', 'fontId'];
 
-function Cells(styleSheet) {
-	StylePart.call(this, styleSheet, 'cellXfs', 'format');
+function Cells(styles) {
+	StylePart.call(this, styles, 'cellXfs', 'format');
 
 	this.init();
 	this.lastId = this.formats.length;
@@ -30,18 +30,18 @@ Cells.prototype.canon = function (format) {
 	var result = {};
 
 	if (format.format) {
-		result.format = this.styleSheet.numberFormats.add(format.format);
+		result.format = this.styles.numberFormats.add(format.format);
 	}
 	if (format.font) {
-		result.font = this.styleSheet.fonts.add(format.font);
+		result.font = this.styles.fonts.add(format.font);
 	}
 	if (format.pattern) {
-		result.fill = this.styleSheet.fills.add(format.pattern, 'pattern');
+		result.fill = this.styles.fills.add(format.pattern, 'pattern');
 	} else if (format.gradient) {
-		result.fill = this.styleSheet.fills.add(format.gradient, 'gradient');
+		result.fill = this.styles.fills.add(format.gradient, 'gradient');
 	}
 	if (format.border) {
-		result.border = this.styleSheet.borders.add(format.border);
+		result.border = this.styles.borders.add(format.border);
 	}
 	result.alignment = alignment.canon(format);
 	result.protection = protection.canon(format);
@@ -49,7 +49,7 @@ Cells.prototype.canon = function (format) {
 };
 
 Cells.prototype.exportFormat = function (format) {
-	var styleSheet = this.styleSheet;
+	var styles = this.styles;
 	var attributes = [];
 	var children = [];
 
@@ -69,16 +69,16 @@ Cells.prototype.exportFormat = function (format) {
 			xlsName = XLS_NAMES[_.indexOf(ALLOWED_PARTS, key)];
 
 			if (key === 'format') {
-				attributes.push([xlsName, styleSheet.numberFormats.getId(value)]);
+				attributes.push([xlsName, styles.numberFormats.getId(value)]);
 				attributes.push(['applyNumberFormat', 'true']);
 			} else if (key === 'fill') {
-				attributes.push([xlsName, styleSheet.fills.getId(value)]);
+				attributes.push([xlsName, styles.fills.getId(value)]);
 				attributes.push(['applyFill', 'true']);
 			} else if (key === 'border') {
-				attributes.push([xlsName, styleSheet.borders.getId(value)]);
+				attributes.push([xlsName, styles.borders.getId(value)]);
 				attributes.push(['applyBorder', 'true']);
 			} else if (key === 'font') {
-				attributes.push([xlsName, styleSheet.fonts.getId(value)]);
+				attributes.push([xlsName, styles.fonts.getId(value)]);
 				attributes.push(['applyFont', 'true']);
 			}
 		}

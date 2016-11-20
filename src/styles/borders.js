@@ -9,8 +9,8 @@ var toXMLString = require('../XMLString');
 var BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.borders.aspx
-function Borders(styleSheet) {
-	StylePart.call(this, styleSheet, 'borders', 'border');
+function Borders(styles) {
+	StylePart.call(this, styles, 'borders', 'border');
 
 	this.init();
 	this.lastId = this.formats.length;

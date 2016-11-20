@@ -175,7 +175,7 @@ function exportTableStyleInfo(common, themeStyle) {
 	var isColumnStripes = false;
 	var isFirstColumn = false;
 	var isLastColumn = false;
-	var format = common.styleSheet.tables.get(themeStyle);
+	var format = common.styles.tables.get(themeStyle);
 
 	if (format) {
 		isRowStripes = format.firstRowStripe || format.secondRowStripe;

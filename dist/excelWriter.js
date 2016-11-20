@@ -58,7 +58,7 @@ function toXMLString(config) {
 module.exports = toXMLString;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./util":27}],3:[function(require,module,exports){
+},{"./util":26}],3:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -158,7 +158,7 @@ Anchor.prototype._exportWithContent = function (content) {
 module.exports = Anchor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27}],4:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],4:[function(require,module,exports){
 'use strict';
 
 var util = require('../util');
@@ -201,7 +201,7 @@ AnchorAbsolute.prototype._exportWithContent = function (content) {
 
 module.exports = AnchorAbsolute;
 
-},{"../XMLString":2,"../util":27}],5:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],5:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -278,14 +278,14 @@ AnchorOneCell.prototype._exportWithContent = function (content) {
 module.exports = AnchorOneCell;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27}],6:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],6:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var Paths = require('./paths');
 var SharedStrings = require('./sharedStrings');
-var StyleSheet = require('./styleSheet');
+var Styles = require('./styles');
 var util = require('./util');
 
 function Common() {
@@ -294,8 +294,8 @@ function Common() {
 	this.sharedStrings = new SharedStrings();
 	this.paths.add(this.sharedStrings, 'sharedStrings.xml');
 
-	this.styleSheet = new StyleSheet();
-	this.paths.add(this.styleSheet, 'styles.xml');
+	this.styles = new Styles();
+	this.paths.add(this.styles, 'styles.xml');
 
 	this.worksheets = [];
 	this.tables = [];
@@ -395,7 +395,7 @@ Common.prototype.addDrawings = function (drawings) {
 module.exports = Common;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./paths":9,"./sharedStrings":12,"./styleSheet":14,"./util":27}],7:[function(require,module,exports){
+},{"./paths":9,"./sharedStrings":12,"./styles":18,"./util":26}],7:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -446,7 +446,7 @@ Drawings.prototype._export = function () {
 module.exports = Drawings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./picture":10,"./relationshipManager":11,"./util":27}],8:[function(require,module,exports){
+},{"./XMLString":2,"./picture":10,"./relationshipManager":11,"./util":26}],8:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -490,7 +490,7 @@ var excelWriter = {
 module.exports = excelWriter;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./workbook":28}],9:[function(require,module,exports){
+},{"./workbook":27}],9:[function(require,module,exports){
 'use strict';
 
 function Paths() {
@@ -618,7 +618,7 @@ Picture.prototype._export = function () {
 
 module.exports = Picture;
 
-},{"./XMLString":2,"./anchor/anchor":3,"./anchor/anchorAbsolute":4,"./anchor/anchorOneCell":5,"./util":27}],11:[function(require,module,exports){
+},{"./XMLString":2,"./anchor/anchor":3,"./anchor/anchorAbsolute":4,"./anchor/anchorOneCell":5,"./util":26}],11:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -685,7 +685,7 @@ RelationshipManager.prototype._export = function () {
 module.exports = RelationshipManager;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":27}],12:[function(require,module,exports){
+},{"./XMLString":2,"./util":26}],12:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -796,272 +796,7 @@ function getXMLEnd() {
 module.exports = SharedStrings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./util":27,"stream":1}],13:[function(require,module,exports){
-(function (global){
-'use strict';
-
-/**
- * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.sheetview.aspx
- */
-var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var util = require('./util');
-var toXMLString = require('./XMLString');
-
-function SheetView(config) {
-	config = config || {};
-	this.pane = null;
-	this.attributes = {
-		defaultGridColor: {
-			value: null,
-			bool: true
-		},
-		colorId: {
-			value: null
-		},
-		rightToLeft: {
-			value: null,
-			bool: true
-		},
-		showFormulas: {
-			value: null,
-			bool: true
-		},
-		showGridLines: {
-			value: null,
-			bool: true
-		},
-		showOutlineSymbols: {
-			value: null,
-			bool: true
-		},
-		showRowColHeaders: {
-			value: null,
-			bool: true
-		},
-		showRuler: {
-			value: null,
-			bool: true
-		},
-		showWhiteSpace: {
-			value: null,
-			bool: true
-		},
-		showZeros: {
-			value: null,
-			bool: true
-		},
-		tabSelected: {
-			value: null,
-			bool: true
-		},
-		topLeftCell: {
-			value: null//A1
-		},
-		view: {
-			value: 'normal'//normal | pageBreakPreview | pageLayout
-		},
-		windowProtection: {
-			value: null,
-			bool: true
-		},
-		zoomScale: {
-			value: null//10-400
-		},
-		zoomScaleNormal: {
-			value: null//10-400
-		},
-		zoomScalePageLayoutView: {
-			value: null//10-400
-		},
-		zoomScaleSheetLayoutView: {
-			value: null//10-400
-		}
-	};
-
-	var self = this;
-
-	_.forEach(config, function (value, name) {
-		if (name === 'freeze') {
-			self.freeze(value.col, value.row, value.cell, value.activePane);
-		} else if (name === 'split') {
-			self.split(value.x, value.y, value.cell, value.activePane);
-		} else if (self.attributes[name]) {
-			self.attributes[name].value = value;
-		}
-	});
-}
-
-SheetView.prototype.setAttribute = function (name, value) {
-	if (this.attributes[name]) {
-		this.attributes[name].value = value;
-	}
-};
-
-/**
- * Add froze pane
- * @param col - column number: 0, 1, 2 ...
- * @param row - row number: 0, 1, 2 ...
- * @param cell? - 'A1' | {c: 1, r: 1}
- * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
- */
-SheetView.prototype.freeze = function (col, row, cell, activePane) {
-	this.pane = {
-		state: 'frozen',
-		xSplit: col,
-		ySplit: row,
-		topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
-		activePane: activePane || 'bottomRight'
-	};
-};
-
-/**
- * Add split pane
- * @param x - Horizontal position of the split, in points; 0 (zero) if none
- * @param y - Vertical position of the split, in points; 0 (zero) if none
- * @param cell? - 'A1' | {c: 1, r: 1}
- * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
- */
-SheetView.prototype.split = function (x, y, cell, activePane) {
-	this.pane = {
-		state: 'split',
-		xSplit: x * 20,
-		ySplit: y * 20,
-		topLeftCell: util.canonCell(cell) || 'A1',
-		activePane: activePane || 'bottomRight'
-	};
-};
-
-SheetView.prototype._export = function () {
-	var attributes = [
-		['workbookViewId', 0]
-	];
-
-	_.forEach(this.attributes, function (attr, name) {
-		var value = attr.value;
-
-		if (value !== null) {
-			if (attr.bool) {
-				value = value ? 'true' : 'false';
-			}
-			attributes.push([name, value]);
-		}
-	});
-
-	return toXMLString({
-		name: 'sheetViews',
-		children: [
-			toXMLString({
-				name: 'sheetView',
-				attributes: attributes,
-				children: [
-					exportPane(this.pane)
-				]
-			})
-		]
-	});
-};
-
-function exportPane(pane) {
-	if (pane) {
-		return toXMLString({
-			name: 'pane',
-			attributes: [
-				['state', pane.state],
-				['xSplit', pane.xSplit],
-				['ySplit', pane.ySplit],
-				['topLeftCell', pane.topLeftCell],
-				['activePane', pane.activePane]
-			]
-		});
-	}
-	return '';
-}
-
-module.exports = SheetView;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":27}],14:[function(require,module,exports){
-(function (global){
-'use strict';
-
-var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var numberFormats = require('./style/numberFormats');
-var fonts = require('./style/fonts');
-var fills = require('./style/fills');
-var borders = require('./style/borders');
-var cells = require('./style/cells');
-var tables = require('./style/tables');
-var tableElements = require('./style/tableElements');
-var toXMLString = require('./XMLString');
-
-function StyleSheet() {
-	this.objectId = _.uniqueId('StyleSheet');
-	this.numberFormats = new numberFormats.NumberFormats(this);
-	this.fonts = new fonts.Fonts(this);
-	this.fills = new fills.Fills(this);
-	this.borders = new borders.Borders(this);
-	this.cells = new cells.Cells(this);
-	this.tableElements = new tableElements.TableElements(this);
-	this.tables = new tables.Tables(this);
-	this.defaultTableStyle = '';
-}
-
-StyleSheet.prototype.addFormat = function (format, name) {
-	return this.cells.add(format, null, name);
-};
-
-StyleSheet.prototype.addFontFormat = function (format, name) {
-	return this.fonts.add(format, null, name);
-};
-
-StyleSheet.prototype.addBorderFormat = function (format, name) {
-	return this.borders.add(format, null, name);
-};
-
-StyleSheet.prototype.addPatternFormat = function (format, name) {
-	return this.fills.add(format, 'pattern', name);
-};
-
-StyleSheet.prototype.addGradientFormat = function (format, name) {
-	return this.fills.add(format, 'gradient', name);
-};
-
-StyleSheet.prototype.addNumberFormat = function (format, name) {
-	return this.numberFormats.add(format, null, name);
-};
-
-StyleSheet.prototype.addTableFormat = function (format, name) {
-	return this.tables.add(format, null, name);
-};
-
-StyleSheet.prototype.addTableElementFormat = function (format, name) {
-	return this.tableElements.add(format, null, name);
-};
-
-StyleSheet.prototype.setDefaultTableStyle = function (name) {
-	this.tables.defaultTableStyle = name;
-};
-
-StyleSheet.prototype._export = function () {
-	return toXMLString({
-		name: 'styleSheet',
-		ns: 'spreadsheetml',
-		children: [
-			this.numberFormats.export(),
-			this.fonts.export(),
-			this.fills.export(),
-			this.borders.export(),
-			this.cells.export(),
-			this.tableElements.export(),
-			this.tables.export()
-		]
-	});
-};
-
-module.exports = StyleSheet;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./style/borders":16,"./style/cells":17,"./style/fills":18,"./style/fonts":19,"./style/numberFormats":20,"./style/tableElements":23,"./style/tables":24}],15:[function(require,module,exports){
+},{"./util":26,"stream":1}],13:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1121,7 +856,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],16:[function(require,module,exports){
+},{"../XMLString":2}],14:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1134,8 +869,8 @@ var toXMLString = require('../XMLString');
 var BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.borders.aspx
-function Borders(styleSheet) {
-	StylePart.call(this, styleSheet, 'borders', 'border');
+function Borders(styles) {
+	StylePart.call(this, styles, 'borders', 'border');
 
 	this.init();
 	this.lastId = this.formats.length;
@@ -1204,7 +939,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],17:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./stylePart":21,"./utils":24}],15:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1218,8 +953,8 @@ var toXMLString = require('../XMLString');
 var ALLOWED_PARTS = ['format', 'fill', 'border', 'font'];
 var XLS_NAMES = ['numFmtId', 'fillId', 'borderId', 'fontId'];
 
-function Cells(styleSheet) {
-	StylePart.call(this, styleSheet, 'cellXfs', 'format');
+function Cells(styles) {
+	StylePart.call(this, styles, 'cellXfs', 'format');
 
 	this.init();
 	this.lastId = this.formats.length;
@@ -1238,18 +973,18 @@ Cells.prototype.canon = function (format) {
 	var result = {};
 
 	if (format.format) {
-		result.format = this.styleSheet.numberFormats.add(format.format);
+		result.format = this.styles.numberFormats.add(format.format);
 	}
 	if (format.font) {
-		result.font = this.styleSheet.fonts.add(format.font);
+		result.font = this.styles.fonts.add(format.font);
 	}
 	if (format.pattern) {
-		result.fill = this.styleSheet.fills.add(format.pattern, 'pattern');
+		result.fill = this.styles.fills.add(format.pattern, 'pattern');
 	} else if (format.gradient) {
-		result.fill = this.styleSheet.fills.add(format.gradient, 'gradient');
+		result.fill = this.styles.fills.add(format.gradient, 'gradient');
 	}
 	if (format.border) {
-		result.border = this.styleSheet.borders.add(format.border);
+		result.border = this.styles.borders.add(format.border);
 	}
 	result.alignment = alignment.canon(format);
 	result.protection = protection.canon(format);
@@ -1257,7 +992,7 @@ Cells.prototype.canon = function (format) {
 };
 
 Cells.prototype.exportFormat = function (format) {
-	var styleSheet = this.styleSheet;
+	var styles = this.styles;
 	var attributes = [];
 	var children = [];
 
@@ -1277,16 +1012,16 @@ Cells.prototype.exportFormat = function (format) {
 			xlsName = XLS_NAMES[_.indexOf(ALLOWED_PARTS, key)];
 
 			if (key === 'format') {
-				attributes.push([xlsName, styleSheet.numberFormats.getId(value)]);
+				attributes.push([xlsName, styles.numberFormats.getId(value)]);
 				attributes.push(['applyNumberFormat', 'true']);
 			} else if (key === 'fill') {
-				attributes.push([xlsName, styleSheet.fills.getId(value)]);
+				attributes.push([xlsName, styles.fills.getId(value)]);
 				attributes.push(['applyFill', 'true']);
 			} else if (key === 'border') {
-				attributes.push([xlsName, styleSheet.borders.getId(value)]);
+				attributes.push([xlsName, styles.borders.getId(value)]);
 				attributes.push(['applyBorder', 'true']);
 			} else if (key === 'font') {
-				attributes.push([xlsName, styleSheet.fonts.getId(value)]);
+				attributes.push([xlsName, styles.fonts.getId(value)]);
 				attributes.push(['applyFont', 'true']);
 			}
 		}
@@ -1304,7 +1039,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./alignment":15,"./protection":21,"./stylePart":22}],18:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./alignment":13,"./protection":20,"./stylePart":21}],16:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1318,8 +1053,8 @@ var PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gr
 	'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp',	'lightGrid', 'lightTrellis'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fills.aspx
-function Fills(styleSheet) {
-	StylePart.call(this, styleSheet, 'fills', 'fill');
+function Fills(styles) {
+	StylePart.call(this, styles, 'fills', 'fill');
 
 	this.init();
 	this.lastId = this.formats.length;
@@ -1458,7 +1193,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./stylePart":22}],19:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./stylePart":21}],17:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1469,8 +1204,8 @@ var formatUtils = require('./utils');
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fonts.aspx
-function Fonts(styleSheet) {
-	StylePart.call(this, styleSheet, 'fonts', 'font');
+function Fonts(styles) {
+	StylePart.call(this, styles, 'fonts', 'font');
 
 	this.init();
 	this.lastId = this.formats.length;
@@ -1615,7 +1350,88 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],20:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./stylePart":21,"./utils":24}],18:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var numberFormats = require('./numberFormats');
+var fonts = require('./fonts');
+var fills = require('./fills');
+var borders = require('./borders');
+var cells = require('./cells');
+var tables = require('./tables');
+var tableElements = require('./tableElements');
+var toXMLString = require('../XMLString');
+
+function Styles() {
+	this.objectId = _.uniqueId('Styles');
+	this.numberFormats = new numberFormats.NumberFormats(this);
+	this.fonts = new fonts.Fonts(this);
+	this.fills = new fills.Fills(this);
+	this.borders = new borders.Borders(this);
+	this.cells = new cells.Cells(this);
+	this.tableElements = new tableElements.TableElements(this);
+	this.tables = new tables.Tables(this);
+	this.defaultTableStyle = '';
+}
+
+Styles.prototype.addFormat = function (format, name) {
+	return this.cells.add(format, null, name);
+};
+
+Styles.prototype.addFontFormat = function (format, name) {
+	return this.fonts.add(format, null, name);
+};
+
+Styles.prototype.addBorderFormat = function (format, name) {
+	return this.borders.add(format, null, name);
+};
+
+Styles.prototype.addPatternFormat = function (format, name) {
+	return this.fills.add(format, 'pattern', name);
+};
+
+Styles.prototype.addGradientFormat = function (format, name) {
+	return this.fills.add(format, 'gradient', name);
+};
+
+Styles.prototype.addNumberFormat = function (format, name) {
+	return this.numberFormats.add(format, null, name);
+};
+
+Styles.prototype.addTableFormat = function (format, name) {
+	return this.tables.add(format, null, name);
+};
+
+Styles.prototype.addTableElementFormat = function (format, name) {
+	return this.tableElements.add(format, null, name);
+};
+
+Styles.prototype.setDefaultTableStyle = function (name) {
+	this.tables.defaultTableStyle = name;
+};
+
+Styles.prototype._export = function () {
+	return toXMLString({
+		name: 'styleSheet',
+		ns: 'spreadsheetml',
+		children: [
+			this.numberFormats.export(),
+			this.fonts.export(),
+			this.fills.export(),
+			this.borders.export(),
+			this.cells.export(),
+			this.tableElements.export(),
+			this.tables.export()
+		]
+	});
+};
+
+module.exports = Styles;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../XMLString":2,"./borders":14,"./cells":15,"./fills":16,"./fonts":17,"./numberFormats":19,"./tableElements":22,"./tables":23}],19:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1630,8 +1446,8 @@ var PREDEFINED = {
 };
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.numberingformats.aspx
-function NumberFormats(styleSheet) {
-	StylePart.call(this, styleSheet, 'numFmts', 'numberFormat');
+function NumberFormats(styles) {
+	StylePart.call(this, styles, 'numFmts', 'numberFormat');
 
 	this.init();
 	this.lastId = 164;
@@ -1673,7 +1489,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./stylePart":22}],21:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./stylePart":21}],20:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1708,15 +1524,15 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],22:[function(require,module,exports){
+},{"../XMLString":2}],21:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var toXMLString = require('../XMLString');
 
-function StylePart(styleSheet, exportName, formatName) {
-	this.styleSheet = styleSheet;
+function StylePart(styles, exportName, formatName) {
+	this.styles = styles;
 	this.exportName = exportName;
 	this.formatName = formatName;
 	this.lastName = 1;
@@ -1830,7 +1646,7 @@ StylePart.prototype.exportFormat = function () {
 module.exports = StylePart;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],23:[function(require,module,exports){
+},{"../XMLString":2}],22:[function(require,module,exports){
 'use strict';
 
 var StylePart = require('./stylePart');
@@ -1843,8 +1659,8 @@ var alignment = require('./alignment');
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.differentialformats.aspx
-function TableElements(styleSheet) {
-	StylePart.call(this, styleSheet, 'dxfs', 'tableElement');
+function TableElements(styles) {
+	StylePart.call(this, styles, 'dxfs', 'tableElement');
 }
 
 util.inherits(TableElements, StylePart);
@@ -1899,7 +1715,7 @@ module.exports = {
 	TableElements: TableElements
 };
 
-},{"../XMLString":2,"../util":27,"./alignment":15,"./borders":16,"./fills":18,"./fonts":19,"./numberFormats":20,"./stylePart":22}],24:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./alignment":13,"./borders":14,"./fills":16,"./fonts":17,"./numberFormats":19,"./stylePart":21}],23:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1915,8 +1731,8 @@ var ELEMENTS = ['wholeTable', 'headerRow', 'totalRow', 'firstColumn', 'lastColum
 var SIZED_ELEMENTS = ['firstRowStripe', 'secondRowStripe', 'firstColumnStripe', 'secondColumnStripe'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyles.aspx
-function Tables(styleSheet) {
-	StylePart.call(this, styleSheet, 'tableStyles', 'table');
+function Tables(styles) {
+	StylePart.call(this, styles, 'tableStyles', 'table');
 
 	this.exportEmpty = false;
 }
@@ -1925,7 +1741,7 @@ util.inherits(Tables, StylePart);
 
 Tables.prototype.canon = function (format) {
 	var result = {};
-	var styleSheet = this.styleSheet;
+	var styles = this.styles;
 
 	_.forEach(format, function (value, key) {
 		if (_.includes(ELEMENTS, key)) {
@@ -1933,12 +1749,12 @@ Tables.prototype.canon = function (format) {
 			var size = null;
 
 			if (value.style) {
-				style = styleSheet.tableElements.add(value.style);
+				style = styles.tableElements.add(value.style);
 				if (value.size > 1 && _.includes(SIZED_ELEMENTS, key)) {
 					size = value.size;
 				}
 			} else {
-				style = styleSheet.tableElements.add(value);
+				style = styles.tableElements.add(value);
 			}
 			result[key] = {
 				style: style,
@@ -1951,14 +1767,14 @@ Tables.prototype.canon = function (format) {
 };
 
 Tables.prototype.exportCollectionExt = function (attributes) {
-	if (this.styleSheet.defaultTableStyle) {
-		attributes.push(['defaultTableStyle', this.styleSheet.defaultTableStyle]);
+	if (this.styles.defaultTableStyle) {
+		attributes.push(['defaultTableStyle', this.styles.defaultTableStyle]);
 	}
 };
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
 Tables.prototype.exportFormat = function (format, styleFormat) {
-	var styleSheet = this.styleSheet;
+	var styles = this.styles;
 	var attributes = [
 		['name', styleFormat.name],
 		['pivot', 0]
@@ -1970,7 +1786,7 @@ Tables.prototype.exportFormat = function (format, styleFormat) {
 		var size = value.size;
 		var attributes = [
 			['type', key],
-			['dxfId', styleSheet.tableElements.getId(style)]
+			['dxfId', styles.tableElements.getId(style)]
 		];
 
 		if (size) {
@@ -1996,7 +1812,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./stylePart":22}],25:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./stylePart":21}],24:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2037,7 +1853,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],26:[function(require,module,exports){
+},{"../XMLString":2}],25:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2216,7 +2032,7 @@ function exportTableStyleInfo(common, themeStyle) {
 	var isColumnStripes = false;
 	var isFirstColumn = false;
 	var isLastColumn = false;
-	var format = common.styleSheet.tables.get(themeStyle);
+	var format = common.styles.tables.get(themeStyle);
 
 	if (format) {
 		isRowStripes = format.firstRowStripe || format.secondRowStripe;
@@ -2240,7 +2056,7 @@ function exportTableStyleInfo(common, themeStyle) {
 module.exports = Table;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":27}],27:[function(require,module,exports){
+},{"./XMLString":2,"./util":26}],26:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2351,7 +2167,7 @@ var util = {
 module.exports = util;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2367,6 +2183,7 @@ function Workbook() {
 
 	this.common = new Common();
 	this.relations = new RelationshipManager(this.common);
+	this.styles = this.common.styles;
 }
 
 Workbook.prototype.addWorksheet = function (config) {
@@ -2383,39 +2200,39 @@ Workbook.prototype.addWorksheet = function (config) {
 };
 
 Workbook.prototype.addFormat = function (format, name) {
-	return this.common.styleSheet.addFormat(format, name);
+	return this.styles.addFormat(format, name);
 };
 
 Workbook.prototype.addFontFormat = function (format, name) {
-	return this.common.styleSheet.addFontFormat(format, name);
+	return this.styles.addFontFormat(format, name);
 };
 
 Workbook.prototype.addBorderFormat = function (format, name) {
-	return this.common.styleSheet.addBorderFormat(format, name);
+	return this.styles.addBorderFormat(format, name);
 };
 
 Workbook.prototype.addPatternFormat = function (format, name) {
-	return this.common.styleSheet.addPatternFormat(format, name);
+	return this.styles.addPatternFormat(format, name);
 };
 
 Workbook.prototype.addGradientFormat = function (format, name) {
-	return this.common.styleSheet.addGradientFormat(format, name);
+	return this.styles.addGradientFormat(format, name);
 };
 
 Workbook.prototype.addNumberFormat = function (format, name) {
-	return this.common.styleSheet.addNumberFormat(format, name);
+	return this.styles.addNumberFormat(format, name);
 };
 
 Workbook.prototype.addTableFormat = function (format, name) {
-	return this.common.styleSheet.addTableFormat(format, name);
+	return this.styles.addTableFormat(format, name);
 };
 
 Workbook.prototype.addTableElementFormat = function (format, name) {
-	return this.common.styleSheet.addTableElementFormat(format, name);
+	return this.styles.addTableElementFormat(format, name);
 };
 
 Workbook.prototype.setDefaultTableStyle = function (name) {
-	this.common.styleSheet.setDefaultTableStyle(name);
+	this.styles.setDefaultTableStyle(name);
 	return this;
 };
 
@@ -2430,7 +2247,7 @@ Workbook.prototype._generateFiles = function (zip, canStream) {
 	exportTables(zip, this.common);
 	exportImages(zip, this.common);
 	exportDrawings(zip, this.common);
-	exportStyles(zip, this.relations, this.common);
+	exportStyles(zip, this.relations, this.styles);
 	exportSharedStrings(zip, canStream, this.relations, this.common);
 	zip.file('[Content_Types].xml', createContentTypes(this.common));
 	zip.file('_rels/.rels', createWorkbookRelationship());
@@ -2584,9 +2401,9 @@ function exportDrawings(zip, common) {
 	});
 }
 
-function exportStyles(zip, relations, common) {
-	relations.addRelation(common.styleSheet, 'stylesheet');
-	zip.file('xl/styles.xml', common.styleSheet._export());
+function exportStyles(zip, relations, styles) {
+	relations.addRelation(styles, 'stylesheet');
+	zip.file('xl/styles.xml', styles._export());
 }
 
 function exportSharedStrings(zip, canStream, relations, common) {
@@ -2705,18 +2522,95 @@ function createWorkbookRelationship() {
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":6,"./relationshipManager":11,"./util":27,"./worksheet":29}],29:[function(require,module,exports){
+},{"./XMLString":2,"./common":6,"./relationshipManager":11,"./util":26,"./worksheet":29}],28:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var util = require('../util');
+var toXMLString = require('../XMLString');
+
+function Hyperlinks(worksheet) {
+	this.relations = worksheet.relations;
+
+	this.hyperlinks = [];
+}
+
+Hyperlinks.prototype.set = function (hyperlink) {
+	hyperlink.objectId = _.uniqueId('hyperlink');
+	this.relations.addRelation({
+		objectId: hyperlink.objectId,
+		target: hyperlink.location,
+		targetMode: hyperlink.targetMode || 'External'
+	}, 'hyperlink');
+	this.hyperlinks.push(hyperlink);
+};
+
+Hyperlinks.prototype.insert = function (colIndex, rowIndex, hyperlink) {
+	var location;
+	var targetMode;
+	var tooltip;
+
+	if (typeof hyperlink === 'string') {
+		location = hyperlink;
+	} else {
+		location = hyperlink.location;
+		targetMode = hyperlink.targetMode;
+		tooltip = hyperlink.tooltip;
+	}
+	this.set({
+		cell: {c: colIndex + 1, r: rowIndex + 1},
+		location: location,
+		targetMode: targetMode,
+		tooltip: tooltip
+	});
+};
+
+Hyperlinks.prototype._export = function () {
+	var relations = this.relations;
+
+	if (this.hyperlinks.length > 0) {
+		var children = _.map(this.hyperlinks, function (hyperlink) {
+			var attributes = [
+				['ref', util.canonCell(hyperlink.cell)],
+				['r:id', relations.getRelationshipId(hyperlink)]
+			];
+
+			if (hyperlink.tooltip) {
+				attributes.push(['tooltip', hyperlink.tooltip]);
+			}
+			return toXMLString({
+				name: 'hyperlink',
+				attributes: attributes
+			});
+		});
+
+		return toXMLString({
+			name: 'hyperlinks',
+			children: children
+		});
+	}
+	return '';
+};
+
+module.exports = Hyperlinks;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../XMLString":2,"../util":26}],29:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var Readable = require('stream').Readable;
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var util = require('./util');
+var util = require('../util');
 var SheetView = require('./sheetView');
-var RelationshipManager = require('./relationshipManager');
-var Table = require('./table');
-var Drawings = require('./drawings');
-var toXMLString = require('./XMLString');
+var Hyperlinks = require('./hyperlinks');
+var MergedCells = require('./mergedCells');
+var Print = require('./print');
+var RelationshipManager = require('../relationshipManager');
+var Table = require('../table');
+var Drawings = require('../drawings');
+var toXMLString = require('../XMLString');
 
 function Worksheet(workbook, config) {
 	config = config || {};
@@ -2728,12 +2622,8 @@ function Worksheet(workbook, config) {
 	this.data = [];
 	this.columns = [];
 	this.rows = [];
-	this.mergedCells = [];
-	this.headers = [];
-	this.footers = [];
 	this.tables = [];
 	this.drawings = null;
-	this.hyperlinks = [];
 
 	this.name = config.name;
 	this.state = config.state || 'visible';
@@ -2741,6 +2631,9 @@ function Worksheet(workbook, config) {
 
 	this.relations = new RelationshipManager(this.common);
 	this.sheetView = new SheetView(config);
+	this.hyperlinks = new Hyperlinks(this);
+	this.mergedCells = new MergedCells(this);
+	this.print = new Print(this);
 }
 
 Worksheet.prototype.end = function () {
@@ -2815,90 +2708,33 @@ Worksheet.prototype.setState = function (state) {
 	return this;
 };
 
-/**
- * Expects an array length of three.
- * @param {Array} headers [left, center, right]
- */
 Worksheet.prototype.setHeader = function (headers) {
-	if (!_.isArray(headers)) {
-		throw 'Invalid argument type - setHeader expects an array of three instructions';
-	}
-	this.headers = headers;
+	this.print.setHeader(headers);
 	return this;
 };
 
-/**
- * Expects an array length of three.
- * @param {Array} footers [left, center, right]
- */
 Worksheet.prototype.setFooter = function (footers) {
-	if (!_.isArray(footers)) {
-		throw 'Invalid argument type - setFooter expects an array of three instructions';
-	}
-	this.footers = footers;
+	this.print.setFooter(footers);
 	return this;
 };
 
-/**
- * Set page details in inches.
-*/
 Worksheet.prototype.setPageMargin = function (margin) {
-	this._margin = _.defaults(margin, {
-		left: 0.7,
-		right: 0.7,
-		top: 0.75,
-		bottom: 0.75,
-		header: 0.3,
-		footer: 0.3
-	});
+	this.print.setPageMargin(margin);
 	return this;
 };
 
-/**
- * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
- *
- * Can be one of 'portrait' or 'landscape'.
- *
- * @param {String} orientation
- */
 Worksheet.prototype.setPageOrientation = function (orientation) {
-	this._orientation = orientation;
+	this.print.setPageOrientation(orientation);
 	return this;
 };
 
-/**
- * Set rows to repeat for print
- *
- * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
- */
 Worksheet.prototype.setPrintTitleTop = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.topFrom = params[0];
-		this._printTitles.topTo = params[1];
-	} else {
-		this._printTitles.topFrom = 0;
-		this._printTitles.topTo = params - 1;
-	}
+	this.print.setPrintTitleTop(params);
 	return this;
 };
 
-/**
- * Set columns to repeat for print
- *
- * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
- */
 Worksheet.prototype.setPrintTitleLeft = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.leftFrom = params[0];
-		this._printTitles.leftTo = params[1];
-	} else {
-		this._printTitles.leftFrom = 0;
-		this._printTitles.leftTo = params - 1;
-	}
+	this.print.setPrintTitleLeft(params);
 	return this;
 };
 
@@ -2960,25 +2796,13 @@ Worksheet.prototype.setData = function (startRow, data) {
 	return this;
 };
 
-/**
- * Merge cells in given range
- *
- * @param cell1 - A1, A2...
- * @param cell2 - A2, A3...
- */
 Worksheet.prototype.mergeCells = function (cell1, cell2) {
-	this.mergedCells.push([cell1, cell2]);
+	this.mergedCells.merge(cell1, cell2);
 	return this;
 };
 
 Worksheet.prototype.setHyperlink = function (hyperlink) {
-	hyperlink.objectId = _.uniqueId('hyperlink');
-	this.relations.addRelation({
-		objectId: hyperlink.objectId,
-		target: hyperlink.location,
-		targetMode: hyperlink.targetMode || 'External'
-	}, 'hyperlink');
-	this.hyperlinks.push(hyperlink);
+	this.hyperlinks.set(hyperlink);
 	return this;
 };
 
@@ -2987,13 +2811,11 @@ Worksheet.prototype.setAttribute = function (name, value) {
 	return this;
 };
 
-//Add froze pane
 Worksheet.prototype.freeze = function (column, row, cell, activePane) {
 	this.sheetView.freeze(column, row, cell, activePane);
 	return this;
 };
 
-//Add split pane
 Worksheet.prototype.split = function (x, y, cell, activePane) {
 	this.sheetView.split(x, y, cell, activePane);
 	return this;
@@ -3092,7 +2914,7 @@ WorksheetStream.prototype._read = function (size) {
 };
 
 function prepareRow(worksheet, rowIndex, timezoneOffset) {
-	var styleSheet = worksheet.common.styleSheet;
+	var styles = worksheet.common.styles;
 	var row = worksheet.rows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
 	var preparedRow = [];
@@ -3120,7 +2942,7 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 		}
 		if (row) {
 			rowStyle = row.style || null;
-			row.style = styleSheet.cells.getId(row.style);
+			row.style = styles.cells.getId(row.style);
 		}
 
 		for (colIndex = 0; colIndex < dataRow.length; colIndex++) {
@@ -3150,7 +2972,7 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 				}
 
 				if (value.hyperlink) {
-					insertHyperlink(worksheet, colIndex, rowIndex, value.hyperlink);
+					worksheet.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
 				}
 				if (value.image) {
 					insertImage(worksheet, colIndex, rowIndex, value.image);
@@ -3159,9 +2981,9 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 					colSpan = (value.colspan || 1) - 1;
 					rowSpan = (value.rowspan || 1) - 1;
 
-					worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
+					worksheet.mergedCells.merge({c: colIndex + 1, r: rowIndex + 1},
 						{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-					insertEmptyCells(worksheet, dataRow, colIndex, rowIndex, colSpan, rowSpan);
+					worksheet.mergedCells.insert(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 				}
 			} else {
 				cellValue = value;
@@ -3199,14 +3021,14 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 					isString = true;
 				}
 			} else if (cellType === 'formula') {
+				cellFormula = _.escape(cellValue);
 				cellValue = null;
-				cellFormula = _.escape(value.value);
 			}
 
 			preparedRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				style: styleSheet.cells.getId(cellStyle),
+				style: styles.cells.getId(cellStyle),
 				isString: isString
 			};
 		}
@@ -3216,26 +3038,6 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 	worksheet.preparedRows[rowIndex] = row;
 
 	return preparedRow;
-}
-
-function insertHyperlink(worksheet, colIndex, rowIndex, hyperlink) {
-	var location;
-	var targetMode;
-	var tooltip;
-
-	if (typeof hyperlink === 'string') {
-		location = hyperlink;
-	} else {
-		location = hyperlink.location;
-		targetMode = hyperlink.targetMode;
-		tooltip = hyperlink.tooltip;
-	}
-	worksheet.setHyperlink({
-		cell: {c: colIndex + 1, r: rowIndex + 1},
-		location: location,
-		targetMode: targetMode,
-		tooltip: tooltip
-	});
 }
 
 function insertImage(worksheet, colIndex, rowIndex, image) {
@@ -3251,40 +3053,6 @@ function insertImage(worksheet, colIndex, rowIndex, image) {
 	}
 }
 
-function insertEmptyCells(worksheet, dataRow, colIndex, rowIndex, colSpan, rowSpan) {
-	var i, j;
-	var row;
-
-	if (colSpan) {
-		for (j = 0; j < colSpan; j++) {
-			dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
-		}
-	}
-	if (rowSpan) {
-		colSpan += 1;
-
-		for (i = 0; i < rowSpan; i++) {
-			//todo: original data changed
-			row = worksheet.data[rowIndex + i + 1];
-
-			if (!row) {
-				row = [];
-				worksheet.data[rowIndex + i + 1] = row;
-			}
-
-			if (row.length > colIndex) {
-				for (j = 0; j < colSpan; j++) {
-					row.splice(colIndex, 0, {style: null, type: 'empty'});
-				}
-			} else {
-				for (j = 0; j < colSpan; j++) {
-					row[colIndex + j] = {style: null, type: 'empty'};
-				}
-			}
-		}
-	}
-}
-
 function exportBeforeRows(worksheet) {
 	return getXMLBegin() +
 		exportDimension(worksheet.maxX, worksheet.maxY) +
@@ -3297,11 +3065,9 @@ function exportAfterRows(worksheet) {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		exportMergeCells(worksheet.mergedCells) +
-		exportHyperlinks(worksheet.relations, worksheet.hyperlinks) +
-		exportPageMargins(worksheet._margin) +
-		exportPageSetup(worksheet._orientation) +
-		exportHeaderFooter(worksheet.headers, worksheet.footers) +
+		worksheet.mergedCells._export() +
+		worksheet.hyperlinks._export() +
+		worksheet.print._export() +
 		exportTables(worksheet.relations, worksheet.tables) +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
@@ -3442,9 +3208,114 @@ function exportColumns(columns) {
 	return '';
 }
 
-function exportMergeCells(mergedCells) {
-	if (mergedCells.length > 0) {
-		var children = _.map(mergedCells, function (mergeCell) {
+function exportTables(relations, tables) {
+	if (tables.length > 0) {
+		var children = _.map(tables, function (table) {
+			return toXMLString({
+				name: 'tablePart',
+				attributes: [
+					['r:id', relations.getRelationshipId(table)]
+				]
+			});
+		});
+
+		return toXMLString({
+			name: 'tableParts',
+			attributes: [
+				['count', tables.length]
+			],
+			children: children
+		});
+	}
+	return '';
+}
+
+function exportDrawings(relations, drawings) {
+	if (drawings) {
+		return toXMLString({
+			name: 'drawing',
+			attributes: [
+				['r:id', relations.getRelationshipId(drawings)]
+			]
+		});
+	}
+	return '';
+}
+
+function getXMLBegin() {
+	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
+		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">';
+}
+
+function getXMLEnd() {
+	return '</worksheet>';
+}
+
+module.exports = Worksheet;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../XMLString":2,"../drawings":7,"../relationshipManager":11,"../table":25,"../util":26,"./hyperlinks":28,"./mergedCells":30,"./print":31,"./sheetView":32,"stream":1}],30:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var util = require('../util');
+var toXMLString = require('../XMLString');
+
+function MergedCells(worksheet) {
+	this.worksheet = worksheet;
+	this.relations = worksheet.relations;
+
+	this.mergedCells = [];
+}
+
+/**
+ * Merge cells in given range
+ *
+ * @param cell1 - A1, A2...
+ * @param cell2 - A2, A3...
+ */
+MergedCells.prototype.merge = function (cell1, cell2) {
+	this.mergedCells.push([cell1, cell2]);
+};
+
+MergedCells.prototype.insert = function (dataRow, colIndex, rowIndex, colSpan, rowSpan) {
+	var i, j;
+	var row;
+
+	if (colSpan) {
+		for (j = 0; j < colSpan; j++) {
+			dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
+		}
+	}
+	if (rowSpan) {
+		colSpan += 1;
+
+		for (i = 0; i < rowSpan; i++) {
+			//todo: original data changed
+			row = this.worksheet.data[rowIndex + i + 1];
+
+			if (!row) {
+				row = [];
+				this.worksheet.data[rowIndex + i + 1] = row;
+			}
+
+			if (row.length > colIndex) {
+				for (j = 0; j < colSpan; j++) {
+					row.splice(colIndex, 0, {style: null, type: 'empty'});
+				}
+			} else {
+				for (j = 0; j < colSpan; j++) {
+					row[colIndex + j] = {style: null, type: 'empty'};
+				}
+			}
+		}
+	}
+};
+
+MergedCells.prototype._export = function () {
+	if (this.mergedCells.length > 0) {
+		var children = _.map(this.mergedCells, function (mergeCell) {
 			return toXMLString({
 				name: 'mergeCell',
 				attributes: [
@@ -3456,38 +3327,117 @@ function exportMergeCells(mergedCells) {
 		return toXMLString({
 			name: 'mergeCells',
 			attributes: [
-				['count', mergedCells.length]
+				['count', this.mergedCells.length]
 			],
 			children: children
 		});
 	}
 	return '';
+};
+
+module.exports = MergedCells;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../XMLString":2,"../util":26}],31:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var toXMLString = require('../XMLString');
+
+function Print(worksheet) {
+	this.relations = worksheet.relations;
+
+	this.headers = [];
+	this.footers = [];
 }
 
-function exportHyperlinks(relations, hyperlinks) {
-	if (hyperlinks.length > 0) {
-		var children = _.map(hyperlinks, function (hyperlink) {
-			var attributes = [
-				['ref', util.canonCell(hyperlink.cell)],
-				['r:id', relations.getRelationshipId(hyperlink)]
-			];
-
-			if (hyperlink.tooltip) {
-				attributes.push(['tooltip', hyperlink.tooltip]);
-			}
-			return toXMLString({
-				name: 'hyperlink',
-				attributes: attributes
-			});
-		});
-
-		return toXMLString({
-			name: 'hyperlinks',
-			children: children
-		});
+/**
+ * Expects an array length of three.
+ * @param {Array} headers [left, center, right]
+ */
+Print.prototype.setHeader = function (headers) {
+	if (!_.isArray(headers)) {
+		throw 'Invalid argument type - setHeader expects an array of three instructions';
 	}
-	return '';
-}
+	this.headers = headers;
+};
+
+/**
+ * Expects an array length of three.
+ * @param {Array} footers [left, center, right]
+ */
+Print.prototype.setFooter = function (footers) {
+	if (!_.isArray(footers)) {
+		throw 'Invalid argument type - setFooter expects an array of three instructions';
+	}
+	this.footers = footers;
+};
+
+/**
+ * Set page details in inches.
+ */
+Print.prototype.setPageMargin = function (margin) {
+	this._margin = _.defaults(margin, {
+		left: 0.7,
+		right: 0.7,
+		top: 0.75,
+		bottom: 0.75,
+		header: 0.3,
+		footer: 0.3
+	});
+};
+
+/**
+ * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
+ *
+ * Can be one of 'portrait' or 'landscape'.
+ *
+ * @param {String} orientation
+ */
+Print.prototype.setPageOrientation = function (orientation) {
+	this._orientation = orientation;
+};
+
+/**
+ * Set rows to repeat for print
+ *
+ * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
+ */
+Print.prototype.setPrintTitleTop = function (params) {
+	this._printTitles = this._printTitles || {};
+
+	if (_.isObject(params)) {
+		this._printTitles.topFrom = params[0];
+		this._printTitles.topTo = params[1];
+	} else {
+		this._printTitles.topFrom = 0;
+		this._printTitles.topTo = params - 1;
+	}
+};
+
+/**
+ * Set columns to repeat for print
+ *
+ * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
+ */
+Print.prototype.setPrintTitleLeft = function (params) {
+	this._printTitles = this._printTitles || {};
+
+	if (_.isObject(params)) {
+		this._printTitles.leftFrom = params[0];
+		this._printTitles.leftTo = params[1];
+	} else {
+		this._printTitles.leftFrom = 0;
+		this._printTitles.leftTo = params - 1;
+	}
+};
+
+Print.prototype._export = function () {
+	return exportPageMargins(this._margin) +
+		exportPageSetup(this._orientation) +
+		exportHeaderFooter(this.headers, this.footers);
+};
 
 function exportPageMargins(margin) {
 	if (margin) {
@@ -3590,51 +3540,192 @@ function compilePageDetailPiece(data) {
 	}
 }
 
-function exportTables(relations, tables) {
-	if (tables.length > 0) {
-		var children = _.map(tables, function (table) {
-			return toXMLString({
-				name: 'tablePart',
-				attributes: [
-					['r:id', relations.getRelationshipId(table)]
-				]
-			});
-		});
+module.exports = Print;
 
-		return toXMLString({
-			name: 'tableParts',
-			attributes: [
-				['count', tables.length]
-			],
-			children: children
-		});
-	}
-	return '';
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../XMLString":2}],32:[function(require,module,exports){
+(function (global){
+'use strict';
+
+/**
+ * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.sheetview.aspx
+ */
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var util = require('../util');
+var toXMLString = require('../XMLString');
+
+function SheetView(config) {
+	config = config || {};
+	this.pane = null;
+	this.attributes = {
+		defaultGridColor: {
+			value: null,
+			bool: true
+		},
+		colorId: {
+			value: null
+		},
+		rightToLeft: {
+			value: null,
+			bool: true
+		},
+		showFormulas: {
+			value: null,
+			bool: true
+		},
+		showGridLines: {
+			value: null,
+			bool: true
+		},
+		showOutlineSymbols: {
+			value: null,
+			bool: true
+		},
+		showRowColHeaders: {
+			value: null,
+			bool: true
+		},
+		showRuler: {
+			value: null,
+			bool: true
+		},
+		showWhiteSpace: {
+			value: null,
+			bool: true
+		},
+		showZeros: {
+			value: null,
+			bool: true
+		},
+		tabSelected: {
+			value: null,
+			bool: true
+		},
+		topLeftCell: {
+			value: null//A1
+		},
+		view: {
+			value: 'normal'//normal | pageBreakPreview | pageLayout
+		},
+		windowProtection: {
+			value: null,
+			bool: true
+		},
+		zoomScale: {
+			value: null//10-400
+		},
+		zoomScaleNormal: {
+			value: null//10-400
+		},
+		zoomScalePageLayoutView: {
+			value: null//10-400
+		},
+		zoomScaleSheetLayoutView: {
+			value: null//10-400
+		}
+	};
+
+	var self = this;
+
+	_.forEach(config, function (value, name) {
+		if (name === 'freeze') {
+			self.freeze(value.col, value.row, value.cell, value.activePane);
+		} else if (name === 'split') {
+			self.split(value.x, value.y, value.cell, value.activePane);
+		} else if (self.attributes[name]) {
+			self.attributes[name].value = value;
+		}
+	});
 }
 
-function exportDrawings(relations, drawings) {
-	if (drawings) {
+SheetView.prototype.setAttribute = function (name, value) {
+	if (this.attributes[name]) {
+		this.attributes[name].value = value;
+	}
+};
+
+/**
+ * Add froze pane
+ * @param col - column number: 0, 1, 2 ...
+ * @param row - row number: 0, 1, 2 ...
+ * @param cell? - 'A1' | {c: 1, r: 1}
+ * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+ */
+SheetView.prototype.freeze = function (col, row, cell, activePane) {
+	this.pane = {
+		state: 'frozen',
+		xSplit: col,
+		ySplit: row,
+		topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
+		activePane: activePane || 'bottomRight'
+	};
+};
+
+/**
+ * Add split pane
+ * @param x - Horizontal position of the split, in points; 0 (zero) if none
+ * @param y - Vertical position of the split, in points; 0 (zero) if none
+ * @param cell? - 'A1' | {c: 1, r: 1}
+ * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+ */
+SheetView.prototype.split = function (x, y, cell, activePane) {
+	this.pane = {
+		state: 'split',
+		xSplit: x * 20,
+		ySplit: y * 20,
+		topLeftCell: util.canonCell(cell) || 'A1',
+		activePane: activePane || 'bottomRight'
+	};
+};
+
+SheetView.prototype._export = function () {
+	var attributes = [
+		['workbookViewId', 0]
+	];
+
+	_.forEach(this.attributes, function (attr, name) {
+		var value = attr.value;
+
+		if (value !== null) {
+			if (attr.bool) {
+				value = value ? 'true' : 'false';
+			}
+			attributes.push([name, value]);
+		}
+	});
+
+	return toXMLString({
+		name: 'sheetViews',
+		children: [
+			toXMLString({
+				name: 'sheetView',
+				attributes: attributes,
+				children: [
+					exportPane(this.pane)
+				]
+			})
+		]
+	});
+};
+
+function exportPane(pane) {
+	if (pane) {
 		return toXMLString({
-			name: 'drawing',
+			name: 'pane',
 			attributes: [
-				['r:id', relations.getRelationshipId(drawings)]
+				['state', pane.state],
+				['xSplit', pane.xSplit],
+				['ySplit', pane.ySplit],
+				['topLeftCell', pane.topLeftCell],
+				['activePane', pane.activePane]
 			]
 		});
 	}
 	return '';
 }
 
-function getXMLBegin() {
-	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
-		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">';
-}
-
-function getXMLEnd() {
-	return '</worksheet>';
-}
-
-module.exports = Worksheet;
+module.exports = SheetView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./drawings":7,"./relationshipManager":11,"./sheetView":13,"./table":26,"./util":27,"stream":1}]},{},[8])(8)
+},{"../XMLString":2,"../util":26}]},{},[8])(8)
 });

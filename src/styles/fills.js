@@ -10,8 +10,8 @@ var PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gr
 	'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp',	'lightGrid', 'lightTrellis'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fills.aspx
-function Fills(styleSheet) {
-	StylePart.call(this, styleSheet, 'fills', 'fill');
+function Fills(styles) {
+	StylePart.call(this, styles, 'fills', 'fill');
 
 	this.init();
 	this.lastId = this.formats.length;

@@ -4,8 +4,8 @@
  * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.sheetview.aspx
  */
 var _ = require('lodash');
-var util = require('./util');
-var toXMLString = require('./XMLString');
+var util = require('../util');
+var toXMLString = require('../XMLString');
 
 function SheetView(config) {
 	config = config || {};

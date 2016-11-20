@@ -1,17 +1,17 @@
 'use strict';
 
 var _ = require('lodash');
-var numberFormats = require('./style/numberFormats');
-var fonts = require('./style/fonts');
-var fills = require('./style/fills');
-var borders = require('./style/borders');
-var cells = require('./style/cells');
-var tables = require('./style/tables');
-var tableElements = require('./style/tableElements');
-var toXMLString = require('./XMLString');
+var numberFormats = require('./numberFormats');
+var fonts = require('./fonts');
+var fills = require('./fills');
+var borders = require('./borders');
+var cells = require('./cells');
+var tables = require('./tables');
+var tableElements = require('./tableElements');
+var toXMLString = require('../XMLString');
 
-function StyleSheet() {
-	this.objectId = _.uniqueId('StyleSheet');
+function Styles() {
+	this.objectId = _.uniqueId('Styles');
 	this.numberFormats = new numberFormats.NumberFormats(this);
 	this.fonts = new fonts.Fonts(this);
 	this.fills = new fills.Fills(this);
@@ -22,43 +22,43 @@ function StyleSheet() {
 	this.defaultTableStyle = '';
 }
 
-StyleSheet.prototype.addFormat = function (format, name) {
+Styles.prototype.addFormat = function (format, name) {
 	return this.cells.add(format, null, name);
 };
 
-StyleSheet.prototype.addFontFormat = function (format, name) {
+Styles.prototype.addFontFormat = function (format, name) {
 	return this.fonts.add(format, null, name);
 };
 
-StyleSheet.prototype.addBorderFormat = function (format, name) {
+Styles.prototype.addBorderFormat = function (format, name) {
 	return this.borders.add(format, null, name);
 };
 
-StyleSheet.prototype.addPatternFormat = function (format, name) {
+Styles.prototype.addPatternFormat = function (format, name) {
 	return this.fills.add(format, 'pattern', name);
 };
 
-StyleSheet.prototype.addGradientFormat = function (format, name) {
+Styles.prototype.addGradientFormat = function (format, name) {
 	return this.fills.add(format, 'gradient', name);
 };
 
-StyleSheet.prototype.addNumberFormat = function (format, name) {
+Styles.prototype.addNumberFormat = function (format, name) {
 	return this.numberFormats.add(format, null, name);
 };
 
-StyleSheet.prototype.addTableFormat = function (format, name) {
+Styles.prototype.addTableFormat = function (format, name) {
 	return this.tables.add(format, null, name);
 };
 
-StyleSheet.prototype.addTableElementFormat = function (format, name) {
+Styles.prototype.addTableElementFormat = function (format, name) {
 	return this.tableElements.add(format, null, name);
 };
 
-StyleSheet.prototype.setDefaultTableStyle = function (name) {
+Styles.prototype.setDefaultTableStyle = function (name) {
 	this.tables.defaultTableStyle = name;
 };
 
-StyleSheet.prototype._export = function () {
+Styles.prototype._export = function () {
 	return toXMLString({
 		name: 'styleSheet',
 		ns: 'spreadsheetml',
@@ -74,4 +74,4 @@ StyleSheet.prototype._export = function () {
 	});
 };
 
-module.exports = StyleSheet;
+module.exports = Styles;

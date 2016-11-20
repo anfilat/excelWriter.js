@@ -12,6 +12,7 @@ function Workbook() {
 
 	this.common = new Common();
 	this.relations = new RelationshipManager(this.common);
+	this.styles = this.common.styles;
 }
 
 Workbook.prototype.addWorksheet = function (config) {
@@ -28,39 +29,39 @@ Workbook.prototype.addWorksheet = function (config) {
 };
 
 Workbook.prototype.addFormat = function (format, name) {
-	return this.common.styleSheet.addFormat(format, name);
+	return this.styles.addFormat(format, name);
 };
 
 Workbook.prototype.addFontFormat = function (format, name) {
-	return this.common.styleSheet.addFontFormat(format, name);
+	return this.styles.addFontFormat(format, name);
 };
 
 Workbook.prototype.addBorderFormat = function (format, name) {
-	return this.common.styleSheet.addBorderFormat(format, name);
+	return this.styles.addBorderFormat(format, name);
 };
 
 Workbook.prototype.addPatternFormat = function (format, name) {
-	return this.common.styleSheet.addPatternFormat(format, name);
+	return this.styles.addPatternFormat(format, name);
 };
 
 Workbook.prototype.addGradientFormat = function (format, name) {
-	return this.common.styleSheet.addGradientFormat(format, name);
+	return this.styles.addGradientFormat(format, name);
 };
 
 Workbook.prototype.addNumberFormat = function (format, name) {
-	return this.common.styleSheet.addNumberFormat(format, name);
+	return this.styles.addNumberFormat(format, name);
 };
 
 Workbook.prototype.addTableFormat = function (format, name) {
-	return this.common.styleSheet.addTableFormat(format, name);
+	return this.styles.addTableFormat(format, name);
 };
 
 Workbook.prototype.addTableElementFormat = function (format, name) {
-	return this.common.styleSheet.addTableElementFormat(format, name);
+	return this.styles.addTableElementFormat(format, name);
 };
 
 Workbook.prototype.setDefaultTableStyle = function (name) {
-	this.common.styleSheet.setDefaultTableStyle(name);
+	this.styles.setDefaultTableStyle(name);
 	return this;
 };
 
@@ -75,7 +76,7 @@ Workbook.prototype._generateFiles = function (zip, canStream) {
 	exportTables(zip, this.common);
 	exportImages(zip, this.common);
 	exportDrawings(zip, this.common);
-	exportStyles(zip, this.relations, this.common);
+	exportStyles(zip, this.relations, this.styles);
 	exportSharedStrings(zip, canStream, this.relations, this.common);
 	zip.file('[Content_Types].xml', createContentTypes(this.common));
 	zip.file('_rels/.rels', createWorkbookRelationship());
@@ -229,9 +230,9 @@ function exportDrawings(zip, common) {
 	});
 }
 
-function exportStyles(zip, relations, common) {
-	relations.addRelation(common.styleSheet, 'stylesheet');
-	zip.file('xl/styles.xml', common.styleSheet._export());
+function exportStyles(zip, relations, styles) {
+	relations.addRelation(styles, 'stylesheet');
+	zip.file('xl/styles.xml', styles._export());
 }
 
 function exportSharedStrings(zip, canStream, relations, common) {

@@ -10,8 +10,8 @@ var alignment = require('./alignment');
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.differentialformats.aspx
-function TableElements(styleSheet) {
-	StylePart.call(this, styleSheet, 'dxfs', 'tableElement');
+function TableElements(styles) {
+	StylePart.call(this, styles, 'dxfs', 'tableElement');
 }
 
 util.inherits(TableElements, StylePart);

@@ -2,12 +2,15 @@
 
 var Readable = require('stream').Readable;
 var _ = require('lodash');
-var util = require('./util');
+var util = require('../util');
 var SheetView = require('./sheetView');
-var RelationshipManager = require('./relationshipManager');
-var Table = require('./table');
-var Drawings = require('./drawings');
-var toXMLString = require('./XMLString');
+var Hyperlinks = require('./hyperlinks');
+var MergedCells = require('./mergedCells');
+var Print = require('./print');
+var RelationshipManager = require('../relationshipManager');
+var Table = require('../table');
+var Drawings = require('../drawings');
+var toXMLString = require('../XMLString');
 
 function Worksheet(workbook, config) {
 	config = config || {};
@@ -19,12 +22,8 @@ function Worksheet(workbook, config) {
 	this.data = [];
 	this.columns = [];
 	this.rows = [];
-	this.mergedCells = [];
-	this.headers = [];
-	this.footers = [];
 	this.tables = [];
 	this.drawings = null;
-	this.hyperlinks = [];
 
 	this.name = config.name;
 	this.state = config.state || 'visible';
@@ -32,6 +31,9 @@ function Worksheet(workbook, config) {
 
 	this.relations = new RelationshipManager(this.common);
 	this.sheetView = new SheetView(config);
+	this.hyperlinks = new Hyperlinks(this);
+	this.mergedCells = new MergedCells(this);
+	this.print = new Print(this);
 }
 
 Worksheet.prototype.end = function () {
@@ -106,90 +108,33 @@ Worksheet.prototype.setState = function (state) {
 	return this;
 };
 
-/**
- * Expects an array length of three.
- * @param {Array} headers [left, center, right]
- */
 Worksheet.prototype.setHeader = function (headers) {
-	if (!_.isArray(headers)) {
-		throw 'Invalid argument type - setHeader expects an array of three instructions';
-	}
-	this.headers = headers;
+	this.print.setHeader(headers);
 	return this;
 };
 
-/**
- * Expects an array length of three.
- * @param {Array} footers [left, center, right]
- */
 Worksheet.prototype.setFooter = function (footers) {
-	if (!_.isArray(footers)) {
-		throw 'Invalid argument type - setFooter expects an array of three instructions';
-	}
-	this.footers = footers;
+	this.print.setFooter(footers);
 	return this;
 };
 
-/**
- * Set page details in inches.
-*/
 Worksheet.prototype.setPageMargin = function (margin) {
-	this._margin = _.defaults(margin, {
-		left: 0.7,
-		right: 0.7,
-		top: 0.75,
-		bottom: 0.75,
-		header: 0.3,
-		footer: 0.3
-	});
+	this.print.setPageMargin(margin);
 	return this;
 };
 
-/**
- * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
- *
- * Can be one of 'portrait' or 'landscape'.
- *
- * @param {String} orientation
- */
 Worksheet.prototype.setPageOrientation = function (orientation) {
-	this._orientation = orientation;
+	this.print.setPageOrientation(orientation);
 	return this;
 };
 
-/**
- * Set rows to repeat for print
- *
- * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
- */
 Worksheet.prototype.setPrintTitleTop = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.topFrom = params[0];
-		this._printTitles.topTo = params[1];
-	} else {
-		this._printTitles.topFrom = 0;
-		this._printTitles.topTo = params - 1;
-	}
+	this.print.setPrintTitleTop(params);
 	return this;
 };
 
-/**
- * Set columns to repeat for print
- *
- * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
- */
 Worksheet.prototype.setPrintTitleLeft = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.leftFrom = params[0];
-		this._printTitles.leftTo = params[1];
-	} else {
-		this._printTitles.leftFrom = 0;
-		this._printTitles.leftTo = params - 1;
-	}
+	this.print.setPrintTitleLeft(params);
 	return this;
 };
 
@@ -251,25 +196,13 @@ Worksheet.prototype.setData = function (startRow, data) {
 	return this;
 };
 
-/**
- * Merge cells in given range
- *
- * @param cell1 - A1, A2...
- * @param cell2 - A2, A3...
- */
 Worksheet.prototype.mergeCells = function (cell1, cell2) {
-	this.mergedCells.push([cell1, cell2]);
+	this.mergedCells.merge(cell1, cell2);
 	return this;
 };
 
 Worksheet.prototype.setHyperlink = function (hyperlink) {
-	hyperlink.objectId = _.uniqueId('hyperlink');
-	this.relations.addRelation({
-		objectId: hyperlink.objectId,
-		target: hyperlink.location,
-		targetMode: hyperlink.targetMode || 'External'
-	}, 'hyperlink');
-	this.hyperlinks.push(hyperlink);
+	this.hyperlinks.set(hyperlink);
 	return this;
 };
 
@@ -278,13 +211,11 @@ Worksheet.prototype.setAttribute = function (name, value) {
 	return this;
 };
 
-//Add froze pane
 Worksheet.prototype.freeze = function (column, row, cell, activePane) {
 	this.sheetView.freeze(column, row, cell, activePane);
 	return this;
 };
 
-//Add split pane
 Worksheet.prototype.split = function (x, y, cell, activePane) {
 	this.sheetView.split(x, y, cell, activePane);
 	return this;
@@ -383,7 +314,7 @@ WorksheetStream.prototype._read = function (size) {
 };
 
 function prepareRow(worksheet, rowIndex, timezoneOffset) {
-	var styleSheet = worksheet.common.styleSheet;
+	var styles = worksheet.common.styles;
 	var row = worksheet.rows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
 	var preparedRow = [];
@@ -411,7 +342,7 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 		}
 		if (row) {
 			rowStyle = row.style || null;
-			row.style = styleSheet.cells.getId(row.style);
+			row.style = styles.cells.getId(row.style);
 		}
 
 		for (colIndex = 0; colIndex < dataRow.length; colIndex++) {
@@ -441,7 +372,7 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 				}
 
 				if (value.hyperlink) {
-					insertHyperlink(worksheet, colIndex, rowIndex, value.hyperlink);
+					worksheet.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
 				}
 				if (value.image) {
 					insertImage(worksheet, colIndex, rowIndex, value.image);
@@ -450,9 +381,9 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 					colSpan = (value.colspan || 1) - 1;
 					rowSpan = (value.rowspan || 1) - 1;
 
-					worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
+					worksheet.mergedCells.merge({c: colIndex + 1, r: rowIndex + 1},
 						{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-					insertEmptyCells(worksheet, dataRow, colIndex, rowIndex, colSpan, rowSpan);
+					worksheet.mergedCells.insert(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 				}
 			} else {
 				cellValue = value;
@@ -490,14 +421,14 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 					isString = true;
 				}
 			} else if (cellType === 'formula') {
+				cellFormula = _.escape(cellValue);
 				cellValue = null;
-				cellFormula = _.escape(value.value);
 			}
 
 			preparedRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				style: styleSheet.cells.getId(cellStyle),
+				style: styles.cells.getId(cellStyle),
 				isString: isString
 			};
 		}
@@ -507,26 +438,6 @@ function prepareRow(worksheet, rowIndex, timezoneOffset) {
 	worksheet.preparedRows[rowIndex] = row;
 
 	return preparedRow;
-}
-
-function insertHyperlink(worksheet, colIndex, rowIndex, hyperlink) {
-	var location;
-	var targetMode;
-	var tooltip;
-
-	if (typeof hyperlink === 'string') {
-		location = hyperlink;
-	} else {
-		location = hyperlink.location;
-		targetMode = hyperlink.targetMode;
-		tooltip = hyperlink.tooltip;
-	}
-	worksheet.setHyperlink({
-		cell: {c: colIndex + 1, r: rowIndex + 1},
-		location: location,
-		targetMode: targetMode,
-		tooltip: tooltip
-	});
 }
 
 function insertImage(worksheet, colIndex, rowIndex, image) {
@@ -542,40 +453,6 @@ function insertImage(worksheet, colIndex, rowIndex, image) {
 	}
 }
 
-function insertEmptyCells(worksheet, dataRow, colIndex, rowIndex, colSpan, rowSpan) {
-	var i, j;
-	var row;
-
-	if (colSpan) {
-		for (j = 0; j < colSpan; j++) {
-			dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
-		}
-	}
-	if (rowSpan) {
-		colSpan += 1;
-
-		for (i = 0; i < rowSpan; i++) {
-			//todo: original data changed
-			row = worksheet.data[rowIndex + i + 1];
-
-			if (!row) {
-				row = [];
-				worksheet.data[rowIndex + i + 1] = row;
-			}
-
-			if (row.length > colIndex) {
-				for (j = 0; j < colSpan; j++) {
-					row.splice(colIndex, 0, {style: null, type: 'empty'});
-				}
-			} else {
-				for (j = 0; j < colSpan; j++) {
-					row[colIndex + j] = {style: null, type: 'empty'};
-				}
-			}
-		}
-	}
-}
-
 function exportBeforeRows(worksheet) {
 	return getXMLBegin() +
 		exportDimension(worksheet.maxX, worksheet.maxY) +
@@ -588,11 +465,9 @@ function exportAfterRows(worksheet) {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		exportMergeCells(worksheet.mergedCells) +
-		exportHyperlinks(worksheet.relations, worksheet.hyperlinks) +
-		exportPageMargins(worksheet._margin) +
-		exportPageSetup(worksheet._orientation) +
-		exportHeaderFooter(worksheet.headers, worksheet.footers) +
+		worksheet.mergedCells._export() +
+		worksheet.hyperlinks._export() +
+		worksheet.print._export() +
 		exportTables(worksheet.relations, worksheet.tables) +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
@@ -731,154 +606,6 @@ function exportColumns(columns) {
 		});
 	}
 	return '';
-}
-
-function exportMergeCells(mergedCells) {
-	if (mergedCells.length > 0) {
-		var children = _.map(mergedCells, function (mergeCell) {
-			return toXMLString({
-				name: 'mergeCell',
-				attributes: [
-					['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]
-				]
-			});
-		});
-
-		return toXMLString({
-			name: 'mergeCells',
-			attributes: [
-				['count', mergedCells.length]
-			],
-			children: children
-		});
-	}
-	return '';
-}
-
-function exportHyperlinks(relations, hyperlinks) {
-	if (hyperlinks.length > 0) {
-		var children = _.map(hyperlinks, function (hyperlink) {
-			var attributes = [
-				['ref', util.canonCell(hyperlink.cell)],
-				['r:id', relations.getRelationshipId(hyperlink)]
-			];
-
-			if (hyperlink.tooltip) {
-				attributes.push(['tooltip', hyperlink.tooltip]);
-			}
-			return toXMLString({
-				name: 'hyperlink',
-				attributes: attributes
-			});
-		});
-
-		return toXMLString({
-			name: 'hyperlinks',
-			children: children
-		});
-	}
-	return '';
-}
-
-function exportPageMargins(margin) {
-	if (margin) {
-		return toXMLString({
-			name: 'pageMargins',
-			attributes: [
-				['top', margin.top],
-				['bottom', margin.bottom],
-				['left', margin.left],
-				['right', margin.right],
-				['header', margin.header],
-				['footer', margin.footer]
-			]
-		});
-	}
-	return '';
-}
-
-function exportPageSetup(orientation) {
-	if (orientation) {
-		return toXMLString({
-			name: 'pageSetup',
-			attributes: [
-				['orientation', orientation]
-			]
-		});
-	}
-	return '';
-}
-
-function exportHeaderFooter(headers, footers) {
-	if (headers.length > 0 || footers.length > 0) {
-		var children = [];
-
-		if (headers.length > 0) {
-			children.push(exportHeader(headers));
-		}
-		if (footers.length > 0) {
-			children.push(exportFooter(footers));
-		}
-
-		return toXMLString({
-			name: 'headerFooter',
-			children: children
-		});
-	}
-	return '';
-}
-
-function exportHeader(headers) {
-	return toXMLString({
-		name: 'oddHeader',
-		value: compilePageDetailPackage(headers)
-	});
-}
-
-function exportFooter(footers) {
-	return toXMLString({
-		name: 'oddFooter',
-		value: compilePageDetailPackage(footers)
-	});
-}
-
-function compilePageDetailPackage(data) {
-	data = data || '';
-
-	return [
-		'&L', compilePageDetailPiece(data[0] || ''),
-		'&C', compilePageDetailPiece(data[1] || ''),
-		'&R', compilePageDetailPiece(data[2] || '')
-	].join('');
-}
-
-function compilePageDetailPiece(data) {
-	if (_.isString(data)) {
-		return '&"-,Regular"'.concat(data);
-	} else if (_.isObject(data) && !_.isArray(data)) {
-		var string = '';
-
-		if (data.font || data.bold) {
-			var weighting = data.bold ? 'Bold' : 'Regular';
-
-			string += '&"' + (data.font || '-') + ',' + weighting + '"';
-		} else {
-			string += '&"-,Regular"';
-		}
-		if (data.underline) {
-			string += '&U';
-		}
-		if (data.fontSize) {
-			string += '&' + data.fontSize;
-		}
-		string += data.text;
-
-		return string;
-	} else if (_.isArray(data)) {
-		return _.reduce(data, function (result, value) {
-			return result.concat(compilePageDetailPiece(value));
-		}, '');
-	}
 }
 
 function exportTables(relations, tables) {

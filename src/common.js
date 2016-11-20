@@ -3,7 +3,7 @@
 var _ = require('lodash');
 var Paths = require('./paths');
 var SharedStrings = require('./sharedStrings');
-var StyleSheet = require('./styleSheet');
+var Styles = require('./styles');
 var util = require('./util');
 
 function Common() {
@@ -12,8 +12,8 @@ function Common() {
 	this.sharedStrings = new SharedStrings();
 	this.paths.add(this.sharedStrings, 'sharedStrings.xml');
 
-	this.styleSheet = new StyleSheet();
-	this.paths.add(this.styleSheet, 'styles.xml');
+	this.styles = new Styles();
+	this.paths.add(this.styles, 'styles.xml');
 
 	this.worksheets = [];
 	this.tables = [];

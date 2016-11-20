@@ -12,8 +12,8 @@ var ELEMENTS = ['wholeTable', 'headerRow', 'totalRow', 'firstColumn', 'lastColum
 var SIZED_ELEMENTS = ['firstRowStripe', 'secondRowStripe', 'firstColumnStripe', 'secondColumnStripe'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyles.aspx
-function Tables(styleSheet) {
-	StylePart.call(this, styleSheet, 'tableStyles', 'table');
+function Tables(styles) {
+	StylePart.call(this, styles, 'tableStyles', 'table');
 
 	this.exportEmpty = false;
 }
@@ -22,7 +22,7 @@ util.inherits(Tables, StylePart);
 
 Tables.prototype.canon = function (format) {
 	var result = {};
-	var styleSheet = this.styleSheet;
+	var styles = this.styles;
 
 	_.forEach(format, function (value, key) {
 		if (_.includes(ELEMENTS, key)) {
@@ -30,12 +30,12 @@ Tables.prototype.canon = function (format) {
 			var size = null;
 
 			if (value.style) {
-				style = styleSheet.tableElements.add(value.style);
+				style = styles.tableElements.add(value.style);
 				if (value.size > 1 && _.includes(SIZED_ELEMENTS, key)) {
 					size = value.size;
 				}
 			} else {
-				style = styleSheet.tableElements.add(value);
+				style = styles.tableElements.add(value);
 			}
 			result[key] = {
 				style: style,
@@ -48,14 +48,14 @@ Tables.prototype.canon = function (format) {
 };
 
 Tables.prototype.exportCollectionExt = function (attributes) {
-	if (this.styleSheet.defaultTableStyle) {
-		attributes.push(['defaultTableStyle', this.styleSheet.defaultTableStyle]);
+	if (this.styles.defaultTableStyle) {
+		attributes.push(['defaultTableStyle', this.styles.defaultTableStyle]);
 	}
 };
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
 Tables.prototype.exportFormat = function (format, styleFormat) {
-	var styleSheet = this.styleSheet;
+	var styles = this.styles;
 	var attributes = [
 		['name', styleFormat.name],
 		['pivot', 0]
@@ -67,7 +67,7 @@ Tables.prototype.exportFormat = function (format, styleFormat) {
 		var size = value.size;
 		var attributes = [
 			['type', key],
-			['dxfId', styleSheet.tableElements.getId(style)]
+			['dxfId', styles.tableElements.getId(style)]
 		];
 
 		if (size) {

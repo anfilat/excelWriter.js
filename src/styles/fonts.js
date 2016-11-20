@@ -7,8 +7,8 @@ var formatUtils = require('./utils');
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fonts.aspx
-function Fonts(styleSheet) {
-	StylePart.call(this, styleSheet, 'fonts', 'font');
+function Fonts(styles) {
+	StylePart.call(this, styles, 'fonts', 'font');
 
 	this.init();
 	this.lastId = this.formats.length;

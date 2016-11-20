@@ -11,8 +11,8 @@ var PREDEFINED = {
 };
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.numberingformats.aspx
-function NumberFormats(styleSheet) {
-	StylePart.call(this, styleSheet, 'numFmts', 'numberFormat');
+function NumberFormats(styles) {
+	StylePart.call(this, styles, 'numFmts', 'numberFormat');
 
 	this.init();
 	this.lastId = 164;
