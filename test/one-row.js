@@ -48,7 +48,7 @@ module.exports = function (excel) {
 		{
 			outlineLevel: 1,
 			data: [{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
-				'Dolore anim', 1342372604000, {date: 1342977404000}]
+				'Dolore anim', 'not date', {date: 1342977404000}]
 		},
 		[{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
 			'Dolore anim', 1342372604000, {time: 1342977404000}],

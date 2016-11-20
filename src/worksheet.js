@@ -302,7 +302,7 @@ Worksheet.prototype._prepare = function () {
 	this.preparedRows = [];
 
 	for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
-		row = prepareRow(this, rowIndex);
+		row = prepareRow(this, rowIndex, this.timezoneOffset);
 
 		if (row) {
 			if (row.length > maxX) {
@@ -333,7 +333,7 @@ Worksheet.prototype._export = function (canStream) {
 		});
 	} else {
 		return exportBeforeRows(this) +
-			exportData(this.preparedData, this.preparedRows, this.timezoneOffset) +
+			exportData(this.preparedData, this.preparedRows) +
 			exportAfterRows(this);
 	}
 };
@@ -363,8 +363,7 @@ WorksheetStream.prototype._read = function (size) {
 		var s = '';
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
-				s += exportRow(worksheet.preparedData[this.index], this.index,
-					worksheet.preparedRows, worksheet.timezoneOffset);
+				s += exportRow(worksheet.preparedData[this.index], this.index, worksheet.preparedRows);
 				worksheet.preparedData[this.index] = null;
 				this.index++;
 			}
@@ -383,7 +382,7 @@ WorksheetStream.prototype._read = function (size) {
 	}
 };
 
-function prepareRow(worksheet, rowIndex) {
+function prepareRow(worksheet, rowIndex, timezoneOffset) {
 	var styleSheet = worksheet.common.styleSheet;
 	var row = worksheet.rows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
@@ -395,8 +394,11 @@ function prepareRow(worksheet, rowIndex) {
 	var cellValue;
 	var cellStyle;
 	var cellType;
+	var cellFormula;
+	var isString;
 	var colSpan;
 	var rowSpan;
+	var date;
 
 	if (dataRow) {
 		if (dataRow.data) {
@@ -420,6 +422,8 @@ function prepareRow(worksheet, rowIndex) {
 				continue;
 			}
 
+			cellFormula = null;
+			isString = false;
 			if (value && typeof value === 'object') {
 				cellStyle = value.style || null;
 				if (value.formula) {
@@ -476,12 +480,25 @@ function prepareRow(worksheet, rowIndex) {
 
 			if (cellType === 'string') {
 				cellValue = worksheet.common.sharedStrings.addString(cellValue);
+				isString = true;
+			} else if (cellType === 'date' || cellType === 'time') {
+				date = 25569.0 + (cellValue - timezoneOffset) / (60 * 60 * 24 * 1000);
+				if (_.isFinite(date)) {
+					cellValue = date;
+				} else {
+					cellValue = worksheet.common.sharedStrings.addString(String(cellValue));
+					isString = true;
+				}
+			} else if (cellType === 'formula') {
+				cellValue = null;
+				cellFormula = _.escape(value.value);
 			}
 
 			preparedRow[colIndex] = {
 				value: cellValue,
+				formula: cellFormula,
 				style: styleSheet.cells.getId(cellStyle),
-				type: cellType
+				isString: isString
 			};
 		}
 	}
@@ -583,19 +600,19 @@ function exportAfterRows(worksheet) {
 		getXMLEnd();
 }
 
-function exportData(data, rows, timezoneOffset) {
+function exportData(data, rows) {
 	var children = '';
 	var dataRow;
 
 	for (var i = 0, len = data.length; i < len; i++) {
 		dataRow = data[i];
-		children += exportRow(dataRow, i, rows, timezoneOffset);
+		children += exportRow(dataRow, i, rows);
 		data[i] = null;
 	}
 	return children;
 }
 
-function exportRow(dataRow, rowIndex, rows, timezoneOffset) {
+function exportRow(dataRow, rowIndex, rows) {
 	var rowLen;
 	var rowChildren = [];
 	var colIndex;
@@ -614,29 +631,19 @@ function exportRow(dataRow, rowIndex, rows, timezoneOffset) {
 			}
 
 			attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
-			if (value.style !== null) {
+			if (value.style) {
 				attrs += ' s="' + value.style + '"';
 			}
+			if (value.isString) {
+				attrs += ' t="s"';
+			}
 
-			switch (value.type) {
-				case 'number':
-					rowChildren[colIndex] = '<c' + attrs + '><v>' + value.value + '</v></c>';
-					break;
-				case 'date':
-				case 'time':
-					rowChildren[colIndex] = '<c' + attrs + '><v>' +
-						(25569.0 + (value.value - timezoneOffset) / (60 * 60 * 24 * 1000)) +
-						'</v></c>';
-					break;
-				case 'formula':
-					rowChildren[colIndex] = '<c' + attrs + '><f>' + _.escape(value.value) + '</f></c>';
-					break;
-				case 'string':
-					rowChildren[colIndex] = '<c' + attrs + ' t="s"><v>' + value.value + '</v></c>';
-					break;
-				case 'empty':
-					rowChildren[colIndex] = '<c' + attrs + '/>';
-					break;
+			if (!_.isNil(value.value)) {
+				rowChildren[colIndex] = '<c' + attrs + '><v>' + value.value + '</v></c>';
+			} else if (!_.isNil(value.formula)) {
+				rowChildren[colIndex] = '<c' + attrs + '><f>' + value.formula + '</f></c>';
+			} else {
+				rowChildren[colIndex] = '<c' + attrs + '/>';
 			}
 		}
 	}
