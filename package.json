@@ -27,10 +27,11 @@
     "eslint": "^3.0.0",
     "browserify": "^13.0.0",
     "browserify-shim": "^3.8.12",
+    "eslintify": "^3.0.0",
     "uglify-js": "~2.7.0"
   },
   "browserify": {
-    "transform": [ "browserify-shim" ]
+    "transform": ["eslintify", "browserify-shim"]
   },
   "browserify-shim": {
     "lodash": "global:_",

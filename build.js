@@ -5,23 +5,12 @@
 'use strict';
 
 var fs = require('fs');
-var execSync = require('child_process').execSync;
 var browserify = require('browserify');
 var uglifyJS = require('uglify-js');
 
 var license = fs.readFileSync('license/license_header.txt', 'utf8');
 
-lint();
 writeBundle(writeMinify);
-
-function lint() {
-	try {
-		execSync('eslint src test examples');
-	} catch (e) {
-		console.log(e.stdout.toString());
-		process.exit(1);
-	}
-}
 
 function writeBundle(next) {
 	browserify('./src/index.js', {standalone: 'excelWriter'})
