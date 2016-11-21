@@ -39,6 +39,7 @@
   },
   "scripts": {
     "lint": "eslint src test examples || exit 0",
+    "test": "node test.js",
     "build": "node build.js || exit 0"
   }
 }
