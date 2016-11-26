@@ -1,14 +1,14 @@
 'use strict';
 
 var _ = require('lodash');
-var SheetView = require('./sheetView');
-var Hyperlinks = require('./hyperlinks');
-var MergedCells = require('./mergedCells');
-var Print = require('./print');
-var Drawing = require('./drawing');
-var Tables = require('./tables');
-var PrepareExport = require('./prepareExport');
-var Export = require('./export');
+var sheetView = require('./sheetView');
+var hyperlinks = require('./hyperlinks');
+var mergedCells = require('./mergedCells');
+var print = require('./print');
+var drawing = require('./drawing');
+var tables = require('./tables');
+var prepareExport = require('./prepareExport');
+var worksheetExport = require('./export');
 var RelationshipManager = require('../relationshipManager');
 
 function Worksheet(workbook, config) {
@@ -16,6 +16,13 @@ function Worksheet(workbook, config) {
 
 	this.workbook = workbook;
 	this.common = workbook.common;
+
+	sheetView.init.call(this, config);
+	hyperlinks.init.call(this);
+	mergedCells.init.call(this);
+	drawing.init.call(this);
+	tables.init.call(this);
+	print.init.call(this);
 
 	this.objectId = this.common.uniqueId('Worksheet');
 	this.data = [];
@@ -25,37 +32,20 @@ function Worksheet(workbook, config) {
 	this.name = config.name;
 	this.state = config.state || 'visible';
 	this.timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
-
 	this.relations = new RelationshipManager(this.common);
-	this.sheetView = new SheetView(config);
-	this.hyperlinks = new Hyperlinks(this);
-	this.mergedCells = new MergedCells(this);
-	this.print = new Print(this);
-	this.drawing = new Drawing(this);
-	this.tables = new Tables(this);
 }
+
+_.assign(Worksheet.prototype, prepareExport);
+_.assign(Worksheet.prototype, worksheetExport);
+_.assign(Worksheet.prototype, sheetView.methods);
+_.assign(Worksheet.prototype, hyperlinks.methods);
+_.assign(Worksheet.prototype, mergedCells.methods);
+_.assign(Worksheet.prototype, drawing.methods);
+_.assign(Worksheet.prototype, tables.methods);
+_.assign(Worksheet.prototype, print.methods);
 
 Worksheet.prototype.end = function () {
 	return this.workbook;
-};
-
-Worksheet.prototype.addTable = function (config) {
-	return this.tables.add(config);
-};
-
-Worksheet.prototype.setImage = function (image, config) {
-	this.drawing.set(image, config, 'anchor');
-	return this;
-};
-
-Worksheet.prototype.setImageOneCell = function (image, config) {
-	this.drawing.set(image, config, 'oneCell');
-	return this;
-};
-
-Worksheet.prototype.setImageAbsolute = function (image, config) {
-	this.drawing.set(image, config, 'absolute');
-	return this;
 };
 
 Worksheet.prototype.setActive = function () {
@@ -82,34 +72,8 @@ Worksheet.prototype.setState = function (state) {
 	return this;
 };
 
-Worksheet.prototype.setHeader = function (headers) {
-	this.print.setHeader(headers);
-	return this;
-};
-
-Worksheet.prototype.setFooter = function (footers) {
-	this.print.setFooter(footers);
-	return this;
-};
-
-Worksheet.prototype.setPageMargin = function (margin) {
-	this.print.setPageMargin(margin);
-	return this;
-};
-
-Worksheet.prototype.setPageOrientation = function (orientation) {
-	this.print.setPageOrientation(orientation);
-	return this;
-};
-
-Worksheet.prototype.setPrintTitleTop = function (params) {
-	this.print.setPrintTitleTop(params);
-	return this;
-};
-
-Worksheet.prototype.setPrintTitleLeft = function (params) {
-	this.print.setPrintTitleLeft(params);
-	return this;
+Worksheet.prototype.getState = function () {
+	return this.state;
 };
 
 Worksheet.prototype.setRows = function (startRow, rows) {
@@ -168,39 +132,6 @@ Worksheet.prototype.setData = function (startRow, data) {
 		self.data[startRow + i] = row;
 	});
 	return this;
-};
-
-Worksheet.prototype.mergeCells = function (cell1, cell2) {
-	this.mergedCells.merge(cell1, cell2);
-	return this;
-};
-
-Worksheet.prototype.setHyperlink = function (hyperlink) {
-	this.hyperlinks.set(hyperlink);
-	return this;
-};
-
-Worksheet.prototype.setAttribute = function (name, value) {
-	this.sheetView.setAttribute(name, value);
-	return this;
-};
-
-Worksheet.prototype.freeze = function (column, row, cell, activePane) {
-	this.sheetView.freeze(column, row, cell, activePane);
-	return this;
-};
-
-Worksheet.prototype.split = function (x, y, cell, activePane) {
-	this.sheetView.split(x, y, cell, activePane);
-	return this;
-};
-
-Worksheet.prototype._prepare = function () {
-	(new PrepareExport(this)).prepare();
-};
-
-Worksheet.prototype._export = function (canStream) {
-	return (new Export(this)).export(canStream);
 };
 
 module.exports = Worksheet;

@@ -4,54 +4,49 @@ var _ = require('lodash');
 var Table = require('../table');
 var toXMLString = require('../XMLString');
 
-function Tables(worksheet) {
-	this.worksheet = worksheet;
-	this.common = worksheet.common;
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._tables = [];
+	},
+	methods: {
+		addTable: function (config) {
+			var table = new Table(this, config);
 
-	this.tables = [];
-}
+			this.common.addTable(table);
+			this.relations.addRelation(table, 'table');
+			this._tables.push(table);
 
-Tables.prototype.add = function (config) {
-	var table = new Table(this.worksheet, config);
+			return table;
+		},
+		_prepareTables: function () {
+			var data = this.data;
 
-	this.common.addTable(table);
-	this.relations.addRelation(table, 'table');
-	this.tables.push(table);
-
-	return table;
-};
-
-Tables.prototype._prepare = function () {
-	var data = this.worksheet.data;
-
-	_.forEach(this.tables, function (table) {
-		table._prepare(data);
-	});
-};
-
-Tables.prototype.export = function () {
-	var relations = this.relations;
-
-	if (this.tables.length > 0) {
-		var children = _.map(this.tables, function (table) {
-			return toXMLString({
-				name: 'tablePart',
-				attributes: [
-					['r:id', relations.getRelationshipId(table)]
-				]
+			_.forEach(this._tables, function (table) {
+				table._prepare(data);
 			});
-		});
+		},
+		_exportTables: function () {
+			var relations = this.relations;
 
-		return toXMLString({
-			name: 'tableParts',
-			attributes: [
-				['count', this.tables.length]
-			],
-			children: children
-		});
+			if (this._tables.length > 0) {
+				var children = _.map(this._tables, function (table) {
+					return toXMLString({
+						name: 'tablePart',
+						attributes: [
+							['r:id', relations.getRelationshipId(table)]
+						]
+					});
+				});
+
+				return toXMLString({
+					name: 'tableParts',
+					attributes: [
+						['count', this._tables.length]
+					],
+					children: children
+				});
+			}
+			return '';
+		}
 	}
-	return '';
 };
-
-module.exports = Tables;

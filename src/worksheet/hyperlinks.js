@@ -4,68 +4,65 @@ var _ = require('lodash');
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-function Hyperlinks(worksheet) {
-	this.common = worksheet.common;
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._hyperlinks = [];
+	},
+	methods: {
+		setHyperlink: function (hyperlink) {
+			hyperlink.objectId = this.common.uniqueId('hyperlink');
+			this.relations.addRelation({
+				objectId: hyperlink.objectId,
+				target: hyperlink.location,
+				targetMode: hyperlink.targetMode || 'External'
+			}, 'hyperlink');
+			this._hyperlinks.push(hyperlink);
+			return this;
+		},
+		_insertHyperlink: function (colIndex, rowIndex, hyperlink) {
+			var location;
+			var targetMode;
+			var tooltip;
 
-	this.hyperlinks = [];
-}
-
-Hyperlinks.prototype.set = function (hyperlink) {
-	hyperlink.objectId = this.common.uniqueId('hyperlink');
-	this.relations.addRelation({
-		objectId: hyperlink.objectId,
-		target: hyperlink.location,
-		targetMode: hyperlink.targetMode || 'External'
-	}, 'hyperlink');
-	this.hyperlinks.push(hyperlink);
-};
-
-Hyperlinks.prototype.insert = function (colIndex, rowIndex, hyperlink) {
-	var location;
-	var targetMode;
-	var tooltip;
-
-	if (typeof hyperlink === 'string') {
-		location = hyperlink;
-	} else {
-		location = hyperlink.location;
-		targetMode = hyperlink.targetMode;
-		tooltip = hyperlink.tooltip;
-	}
-	this.set({
-		cell: {c: colIndex + 1, r: rowIndex + 1},
-		location: location,
-		targetMode: targetMode,
-		tooltip: tooltip
-	});
-};
-
-Hyperlinks.prototype.export = function () {
-	var relations = this.relations;
-
-	if (this.hyperlinks.length > 0) {
-		var children = _.map(this.hyperlinks, function (hyperlink) {
-			var attributes = [
-				['ref', util.canonCell(hyperlink.cell)],
-				['r:id', relations.getRelationshipId(hyperlink)]
-			];
-
-			if (hyperlink.tooltip) {
-				attributes.push(['tooltip', hyperlink.tooltip]);
+			if (typeof hyperlink === 'string') {
+				location = hyperlink;
+			} else {
+				location = hyperlink.location;
+				targetMode = hyperlink.targetMode;
+				tooltip = hyperlink.tooltip;
 			}
-			return toXMLString({
-				name: 'hyperlink',
-				attributes: attributes
+			this.setHyperlink({
+				cell: {c: colIndex + 1, r: rowIndex + 1},
+				location: location,
+				targetMode: targetMode,
+				tooltip: tooltip
 			});
-		});
+		},
+		_exportHyperlinks: function () {
+			var relations = this.relations;
 
-		return toXMLString({
-			name: 'hyperlinks',
-			children: children
-		});
+			if (this._hyperlinks.length > 0) {
+				var children = _.map(this._hyperlinks, function (hyperlink) {
+					var attributes = [
+						['ref', util.canonCell(hyperlink.cell)],
+						['r:id', relations.getRelationshipId(hyperlink)]
+					];
+
+					if (hyperlink.tooltip) {
+						attributes.push(['tooltip', hyperlink.tooltip]);
+					}
+					return toXMLString({
+						name: 'hyperlink',
+						attributes: attributes
+					});
+				});
+
+				return toXMLString({
+					name: 'hyperlinks',
+					children: children
+				});
+			}
+			return '';
+		}
 	}
-	return '';
 };
-
-module.exports = Hyperlinks;

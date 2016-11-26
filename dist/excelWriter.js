@@ -58,7 +58,287 @@ function toXMLString(config) {
 module.exports = toXMLString;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./util":26}],3:[function(require,module,exports){
+},{"./util":27}],3:[function(require,module,exports){
+'use strict';
+
+module.exports = {
+	init: function () {
+		this._images = Object.create(null);
+		this._imageByNames = Object.create(null);
+		this._extensions = Object.create(null);
+	},
+	methods: {
+		addImage: function (data, type, name) {
+			var image = this._images[data];
+
+			if (!image) {
+				type = type || '';
+
+				var contentType;
+				var id = this.uniqueIdSeparated('image').id;
+				var path = 'xl/media/image' + id + '.' + type;
+
+				name = name || 'excelWriter' + id;
+				switch (type.toLowerCase()) {
+					case 'jpeg':
+					case 'jpg':
+						contentType = 'image/jpeg';
+						break;
+					case 'png':
+						contentType = 'image/png';
+						break;
+					case 'gif':
+						contentType = 'image/gif';
+						break;
+					default:
+						contentType = null;
+						break;
+				}
+
+				image = {
+					objectId: 'image' + id,
+					data: data,
+					name: name,
+					contentType: contentType,
+					extension: type,
+					path: path
+				};
+				this.addPath(image, '/' + path);
+				this._images[data] = image;
+				this._imageByNames[name] = image;
+				this._extensions[type] = contentType;
+			} else if (name && !this._imageByNames[name]) {
+				image.name = name;
+				this._imageByNames[name] = image;
+			}
+			return image.name;
+		},
+		getImage: function (name) {
+			return this._imageByNames[name];
+		},
+		getImages: function () {
+			return this._images;
+		},
+		removeImages: function () {
+			this._images = null;
+			this._imageByNames = null;
+		},
+		getExtensions: function () {
+			return this._extensions;
+		}
+	}
+};
+
+},{}],4:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var paths = require('./paths');
+var images = require('./images');
+var SharedStrings = require('./sharedStrings');
+var Styles = require('../styles');
+
+function Common() {
+	paths.init.call(this);
+	images.init.call(this);
+
+	this.idSpaces = Object.create(null);
+
+	this.sharedStrings = new SharedStrings(this);
+	this.addPath(this.sharedStrings, 'sharedStrings.xml');
+
+	this.styles = new Styles(this);
+	this.addPath(this.styles, 'styles.xml');
+
+	this.worksheets = [];
+	this.tables = [];
+	this.drawings = [];
+}
+
+_.assign(Common.prototype, paths.methods);
+_.assign(Common.prototype, images.methods);
+
+Common.prototype.uniqueId = function (space) {
+	if (!this.idSpaces[space]) {
+		this.idSpaces[space] = 1;
+	}
+	return space + this.idSpaces[space]++;
+};
+
+Common.prototype.uniqueIdSeparated = function (space) {
+	if (!this.idSpaces[space]) {
+		this.idSpaces[space] = 1;
+	}
+	return {
+		space: space,
+		id: this.idSpaces[space]++
+	};
+};
+
+Common.prototype.addWorksheet = function (worksheet) {
+	var index = this.worksheets.length + 1;
+	var path = 'worksheets/sheet' + index + '.xml';
+	var relationsPath = 'xl/worksheets/_rels/sheet' + index + '.xml.rels';
+
+	worksheet.path = 'xl/' + path;
+	worksheet.relationsPath = relationsPath;
+	this.worksheets.push(worksheet);
+	this.addPath(worksheet, path);
+};
+
+Common.prototype.getNewWorksheetDefaultName = function () {
+	return 'Sheet ' + (this.worksheets.length + 1);
+};
+
+Common.prototype.setActiveWorksheet = function (worksheet) {
+	this.activeWorksheet = worksheet;
+};
+
+Common.prototype.addTable = function (table) {
+	var index = this.tables.length + 1;
+	var path = 'xl/tables/table' + index + '.xml';
+
+	table.path = path;
+	this.tables.push(table);
+	this.addPath(table, '/' + path);
+};
+
+Common.prototype.addDrawings = function (drawings) {
+	var index = this.drawings.length + 1;
+	var path = 'xl/drawings/drawing' + index + '.xml';
+	var relationsPath = 'xl/drawings/_rels/drawing' + index + '.xml.rels';
+
+	drawings.path = path;
+	drawings.relationsPath = relationsPath;
+	this.drawings.push(drawings);
+	this.addPath(drawings, '/' + path);
+};
+
+module.exports = Common;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../styles":19,"./images":3,"./paths":5,"./sharedStrings":6}],5:[function(require,module,exports){
+'use strict';
+
+module.exports = {
+	init: function () {
+		this._paths = Object.create(null);
+	},
+	methods: {
+		addPath: function (object, path) {
+			this._paths[object.objectId] = path;
+		},
+		getPath: function (object) {
+			return this._paths[object.objectId];
+		}
+	}
+};
+
+},{}],6:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var Readable = require('stream').Readable;
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var util = require('../util');
+
+function SharedStrings(common) {
+	this.objectId = common.uniqueId('SharedStrings');
+	this._strings = Object.create(null);
+	this._stringArray = [];
+}
+
+SharedStrings.prototype.add = function (string) {
+	var stringId = this._strings[string];
+
+	if (stringId === undefined) {
+		stringId = this._stringArray.length;
+
+		this._strings[string] = stringId;
+		this._stringArray[stringId] = string;
+	}
+
+	return stringId;
+};
+
+SharedStrings.prototype.isEmpty = function () {
+	return this._stringArray.length === 0;
+};
+
+SharedStrings.prototype.export = function (canStream) {
+	this._strings = null;
+
+	if (canStream) {
+		return new SharedStringsStream({
+			strings: this._stringArray
+		});
+	} else {
+		var len = this._stringArray.length;
+		var children = _.map(this._stringArray, function (string) {
+			return '<si><t>' + _.escape(string) + '</t></si>';
+		});
+
+		return getXMLBegin(len) + children.join('') + getXMLEnd();
+	}
+};
+
+function SharedStringsStream(options) {
+	Readable.call(this, options);
+
+	this.strings = options.strings;
+	this.status = 0;
+}
+
+util.inherits(SharedStringsStream, Readable || {});
+
+SharedStringsStream.prototype._read = function (size) {
+	var stop = false;
+
+	if (this.status === 0) {
+		stop = !this.push(getXMLBegin(this.strings.length));
+
+		this.status = 1;
+		this.index = 0;
+		this.len = this.strings.length;
+	}
+
+	if (this.status === 1) {
+		var s = '';
+		while (this.index < this.len && !stop) {
+			while (this.index < this.len && s.length < size) {
+				s += '<si><t>' + _.escape(this.strings[this.index]) + '</t></si>';
+				this.strings[this.index] = null;
+				this.index++;
+			}
+			stop = !this.push(s);
+			s = '';
+		}
+
+		if (this.index === this.len) {
+			this.status = 2;
+		}
+	}
+
+	if (this.status === 2) {
+		this.push(getXMLEnd());
+		this.push(null);
+	}
+};
+
+function getXMLBegin(length) {
+	return util.xmlPrefix + '<sst xmlns="' + util.schemas.spreadsheetml +
+		'" count="' + length + '" uniqueCount="' + length + '">';
+}
+
+function getXMLEnd() {
+	return '</sst>';
+}
+
+module.exports = SharedStrings;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../util":27,"stream":1}],7:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -101,7 +381,7 @@ function Anchor(config) {
 	};
 }
 
-Anchor.prototype._exportWithContent = function (content) {
+Anchor.prototype.exportWithContent = function (content) {
 	return toXMLString({
 		name: 'xdr:twoCellAnchor',
 		children: [
@@ -158,7 +438,7 @@ Anchor.prototype._exportWithContent = function (content) {
 module.exports = Anchor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26}],4:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],8:[function(require,module,exports){
 'use strict';
 
 var util = require('../util');
@@ -173,7 +453,7 @@ function AnchorAbsolute(config) {
 	this.height = util.pixelsToEMUs(config.height || 0);
 }
 
-AnchorAbsolute.prototype._exportWithContent = function (content) {
+AnchorAbsolute.prototype.exportWithContent = function (content) {
 	return toXMLString({
 		name: 'xdr:absoluteAnchor',
 		children: [
@@ -201,7 +481,7 @@ AnchorAbsolute.prototype._exportWithContent = function (content) {
 
 module.exports = AnchorAbsolute;
 
-},{"../XMLString":2,"../util":26}],5:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],9:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -235,7 +515,7 @@ function AnchorOneCell(config) {
 	this.height = util.pixelsToEMUs(config.height || 0);
 }
 
-AnchorOneCell.prototype._exportWithContent = function (content) {
+AnchorOneCell.prototype.exportWithContent = function (content) {
 	return toXMLString({
 		name: 'xdr:oneCellAnchor',
 		children: [
@@ -278,144 +558,28 @@ AnchorOneCell.prototype._exportWithContent = function (content) {
 module.exports = AnchorOneCell;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26}],6:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],10:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var Paths = require('./paths');
-var SharedStrings = require('./sharedStrings');
-var Styles = require('./styles');
-var util = require('./util');
-
-function Common() {
-	this.paths = new Paths();
-
-	this.sharedStrings = new SharedStrings();
-	this.paths.add(this.sharedStrings, 'sharedStrings.xml');
-
-	this.styles = new Styles();
-	this.paths.add(this.styles, 'styles.xml');
-
-	this.worksheets = [];
-	this.tables = [];
-	this.images = {};
-	this.imageByNames = {};
-	this.drawings = [];
-}
-
-Common.prototype.addWorksheet = function (worksheet) {
-	var index = this.worksheets.length + 1;
-	var path = 'worksheets/sheet' + index + '.xml';
-	var relationsPath = 'xl/worksheets/_rels/sheet' + index + '.xml.rels';
-
-	worksheet.path = 'xl/' + path;
-	worksheet.relationsPath = relationsPath;
-	this.worksheets.push(worksheet);
-	this.paths.add(worksheet, path);
-};
-
-Common.prototype.getNewWorksheetDefaultName = function () {
-	return 'Sheet ' + (this.worksheets.length + 1);
-};
-
-Common.prototype.setActiveWorksheet = function (worksheet) {
-	this.activeWorksheet = worksheet;
-};
-
-Common.prototype.addTable = function (table) {
-	var index = this.tables.length + 1;
-	var path = 'xl/tables/table' + index + '.xml';
-
-	table.path = path;
-	this.tables.push(table);
-	this.paths.add(table, '/' + path);
-};
-
-Common.prototype.addImage = function (data, type, name) {
-	var image = this.images[data];
-
-	if (!image) {
-		type = type || '';
-
-		var contentType;
-		var id = util.uniqueId('image');
-		var path = 'xl/media/image' + id + '.' + type;
-
-		name = name || '_jsExcelWriter' + id;
-		switch (type.toLowerCase()) {
-			case 'jpeg':
-			case 'jpg':
-				contentType = 'image/jpeg';
-				break;
-			case 'png':
-				contentType = 'image/png';
-				break;
-			case 'gif':
-				contentType = 'image/gif';
-				break;
-			default:
-				contentType = null;
-				break;
-		}
-
-		image = {
-			objectId: _.uniqueId('Image'),
-			data: data,
-			name: name,
-			contentType: contentType,
-			extension: type,
-			path: path
-		};
-		this.paths.add(image, '/' + path);
-		this.images[data] = image;
-		this.imageByNames[name] = image;
-	} else if (name && !this.imageByNames[name]) {
-		image.name = name;
-		this.imageByNames[name] = image;
-	}
-	return image.name;
-};
-
-Common.prototype.getImage = function (name) {
-	return this.imageByNames[name];
-};
-
-Common.prototype.addDrawings = function (drawings) {
-	var index = this.drawings.length + 1;
-	var path = 'xl/drawings/drawing' + index + '.xml';
-	var relationsPath = 'xl/drawings/_rels/drawing' + index + '.xml.rels';
-
-	drawings.path = path;
-	drawings.relationsPath = relationsPath;
-	this.drawings.push(drawings);
-	this.paths.add(drawings, '/' + path);
-};
-
-module.exports = Common;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./paths":9,"./sharedStrings":12,"./styles":18,"./util":26}],7:[function(require,module,exports){
-(function (global){
-'use strict';
-
-var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var util = require('./util');
-var RelationshipManager = require('./relationshipManager');
+var RelationshipManager = require('../relationshipManager');
+var util = require('../util');
+var toXMLString = require('../XMLString');
 var Picture = require('./picture');
-var toXMLString = require('./XMLString');
 
 function Drawings(common) {
-	this.objectId = _.uniqueId('Drawings');
+	this.common = common;
+
+	this.objectId = this.common.uniqueId('Drawings');
 	this.drawings = [];
 	this.relations = new RelationshipManager(common);
-	this.common = common;
 }
 
 Drawings.prototype.addImage = function (name, config, anchorType) {
 	var image = this.common.getImage(name);
 	var imageRelationId = this.relations.addRelation(image, 'image');
-	var picture = new Picture({
+	var picture = new Picture(this.common, {
 		image: image,
 		imageRelationId: imageRelationId,
 		config: config,
@@ -425,14 +589,14 @@ Drawings.prototype.addImage = function (name, config, anchorType) {
 	this.drawings.push(picture);
 };
 
-Drawings.prototype._export = function () {
+Drawings.prototype.export = function () {
 	var attributes = [
 		['xmlns:a', util.schemas.drawing],
 		['xmlns:r', util.schemas.relationships],
 		['xmlns:xdr', util.schemas.spreadsheetDrawing]
 	];
 	var children = _.map(this.drawings, function (picture) {
-		return picture._export();
+		return picture.export();
 	});
 
 	return toXMLString({
@@ -446,78 +610,17 @@ Drawings.prototype._export = function () {
 module.exports = Drawings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./picture":10,"./relationshipManager":11,"./util":26}],8:[function(require,module,exports){
-(function (global){
+},{"../XMLString":2,"../relationshipManager":13,"../util":27,"./picture":11}],11:[function(require,module,exports){
 'use strict';
 
-var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var JSZip = (typeof window !== "undefined" ? window['JSZip'] : typeof global !== "undefined" ? global['JSZip'] : null);
-var Workbook = require('./workbook');
+var util = require('../util');
+var toXMLString = require('../XMLString');
+var Anchor = require('./anchor');
+var AnchorOneCell = require('./anchorOneCell');
+var AnchorAbsolute = require('./anchorAbsolute');
 
-var excelWriter = {
-	createWorkbook: function () {
-		return new Workbook();
-	},
-
-	/**
-	 * Turns a workbook into a downloadable file.
-	 * @param {Workbook} workbook - The workbook that is being converted
-	 * @param {Object?} options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
-	 */
-	save: function (workbook, options) {
-		var zip = new JSZip();
-		var canStream = JSZip.support.nodestream;
-
-		workbook._generateFiles(zip, canStream);
-		return zip.generateAsync(_.defaults(options, {
-			compression: 'DEFLATE',
-			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-			type: 'base64'
-		}));
-	},
-
-	saveAsNodeStream: function (workbook, options) {
-		var zip = new JSZip();
-		var canStream = JSZip.support.nodestream;
-
-		workbook._generateFiles(zip, canStream);
-		return zip.generateNodeStream(_.defaults(options, {
-			compression: 'DEFLATE'
-		}));
-	}
-};
-
-module.exports = excelWriter;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./workbook":27}],9:[function(require,module,exports){
-'use strict';
-
-function Paths() {
-	this.paths = {};
-}
-
-Paths.prototype.add = function (object, path) {
-	this.paths[object.objectId] = path;
-};
-
-Paths.prototype.get = function (object) {
-	return this.paths[object.objectId];
-};
-
-module.exports = Paths;
-
-},{}],10:[function(require,module,exports){
-'use strict';
-
-var Anchor = require('./anchor/anchor');
-var AnchorOneCell = require('./anchor/anchorOneCell');
-var AnchorAbsolute = require('./anchor/anchorAbsolute');
-var util = require('./util');
-var toXMLString = require('./XMLString');
-
-function Picture(config) {
-	this.objectId = util.uniqueId('Picture');
+function Picture(common, config) {
+	this.pictureId = common.uniqueIdSeparated('Picture').id;
 	this.image = config.image;
 	this.imageRelationId = config.imageRelationId;
 	this.createAnchor(config.anchorType, config.config);
@@ -542,7 +645,7 @@ Picture.prototype.createAnchor = function (type, config) {
 	}
 };
 
-Picture.prototype._export = function () {
+Picture.prototype.export = function () {
 	var picture = toXMLString({
 		name: 'xdr:pic',
 		children: [
@@ -552,7 +655,7 @@ Picture.prototype._export = function () {
 					toXMLString({
 						name: 'xdr:cNvPr',
 						attributes: [
-							['id', this.objectId],
+							['id', this.pictureId],
 							['name', this.image.name]
 						]
 					}),
@@ -613,12 +716,56 @@ Picture.prototype._export = function () {
 		]
 	});
 
-	return this.anchor._exportWithContent(picture);
+	return this.anchor.exportWithContent(picture);
 };
 
 module.exports = Picture;
 
-},{"./XMLString":2,"./anchor/anchor":3,"./anchor/anchorAbsolute":4,"./anchor/anchorOneCell":5,"./util":26}],11:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./anchor":7,"./anchorAbsolute":8,"./anchorOneCell":9}],12:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
+var JSZip = (typeof window !== "undefined" ? window['JSZip'] : typeof global !== "undefined" ? global['JSZip'] : null);
+var Workbook = require('./workbook');
+
+var excelWriter = {
+	createWorkbook: function () {
+		return new Workbook();
+	},
+
+	/**
+	 * Turns a workbook into a downloadable file.
+	 * @param {Workbook} workbook - The workbook that is being converted
+	 * @param {Object?} options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
+	 */
+	save: function (workbook, options) {
+		var zip = new JSZip();
+		var canStream = JSZip.support.nodestream;
+
+		workbook._generateFiles(zip, canStream);
+		return zip.generateAsync(_.defaults(options, {
+			compression: 'DEFLATE',
+			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			type: 'base64'
+		}));
+	},
+
+	saveAsNodeStream: function (workbook, options) {
+		var zip = new JSZip();
+		var canStream = JSZip.support.nodestream;
+
+		workbook._generateFiles(zip, canStream);
+		return zip.generateNodeStream(_.defaults(options, {
+			compression: 'DEFLATE'
+		}));
+	}
+};
+
+module.exports = excelWriter;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./workbook":28}],13:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -627,9 +774,10 @@ var util = require('./util');
 var toXMLString = require('./XMLString');
 
 function RelationshipManager(common) {
-	this.relations = {};
+	this.common = common;
+
+	this.relations = Object.create(null);
 	this.lastId = 1;
-	this.paths = common.paths;
 }
 
 RelationshipManager.prototype.addRelation = function (object, type) {
@@ -656,13 +804,13 @@ RelationshipManager.prototype.getRelationshipId = function (object) {
 	return relation ? relation.relationId : null;
 };
 
-RelationshipManager.prototype._export = function () {
-	var paths = this.paths;
+RelationshipManager.prototype.export = function () {
+	var common = this.common;
 	var children = _.map(this.relations, function (relation) {
 		var attributes = [
 			['Id', relation.relationId],
 			['Type', relation.schema],
-			['Target', relation.object.target || paths.get(relation.object)]
+			['Target', relation.object.target || common.getPath(relation.object)]
 		];
 
 		if (relation.object.targetMode) {
@@ -685,118 +833,7 @@ RelationshipManager.prototype._export = function () {
 module.exports = RelationshipManager;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":26}],12:[function(require,module,exports){
-(function (global){
-'use strict';
-
-var Readable = require('stream').Readable;
-var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var util = require('./util');
-
-function SharedStrings() {
-	this.objectId = _.uniqueId('SharedStrings');
-	this._strings = Object.create(null);
-	this._stringArray = [];
-}
-
-/**
- * Adds a string to the shared string file, and returns the ID of the
- * string which can be used to reference it in worksheets.
- *
- * @param string {String}
- * @return int
- */
-SharedStrings.prototype.addString = function (string) {
-	var stringId = this._strings[string];
-
-	if (stringId === undefined) {
-		stringId = this._stringArray.length;
-
-		this._strings[string] = stringId;
-		this._stringArray[stringId] = string;
-	}
-
-	return stringId;
-};
-
-SharedStrings.prototype.isEmpty = function () {
-	return this._stringArray.length === 0;
-};
-
-SharedStrings.prototype._export = function (canStream) {
-	if (canStream) {
-		return new SharedStringsStream({
-			strings: this._stringArray
-		});
-	} else {
-		this._strings = null;
-
-		var len = this._stringArray.length;
-		var children = _.map(this._stringArray, function (string) {
-			return '<si><t>' + _.escape(string) + '</t></si>';
-		});
-
-		return getXMLBegin(len) + children.join('') + getXMLEnd();
-	}
-};
-
-function SharedStringsStream(options) {
-	Readable.call(this, options);
-
-	this.strings = options.strings;
-	this.status = 0;
-}
-
-util.inherits(SharedStringsStream, Readable || {});
-
-SharedStringsStream.prototype._read = function (size) {
-	var stop = false;
-
-	if (this.status === 0) {
-		this._strings = null;
-		stop = !this.push(getXMLBegin(this.strings.length));
-
-		this.status = 1;
-		this.index = 0;
-		this.len = this.strings.length;
-	}
-
-	if (this.status === 1) {
-		var s = '';
-		while (this.index < this.len && !stop) {
-			while (this.index < this.len && s.length < size) {
-				s += '<si><t>' + _.escape(this.strings[this.index]) + '</t></si>';
-				this.strings[this.index] = null;
-				this.index++;
-			}
-			stop = !this.push(s);
-			s = '';
-		}
-
-		if (this.index === this.len) {
-			this.status = 2;
-		}
-	}
-
-	if (this.status === 2) {
-		this.push(getXMLEnd());
-		this.push(null);
-	}
-};
-
-function getXMLBegin(length) {
-	return util.xmlPrefix + '<sst xmlns="' + util.schemas.spreadsheetml +
-		'" count="' + length + '" uniqueCount="' + length + '">';
-}
-
-function getXMLEnd() {
-	return '</sst>';
-}
-
-module.exports = SharedStrings;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./util":26,"stream":1}],13:[function(require,module,exports){
+},{"./XMLString":2,"./util":27}],14:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -856,7 +893,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],14:[function(require,module,exports){
+},{"../XMLString":2}],15:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -939,7 +976,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./stylePart":21,"./utils":24}],15:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],16:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1039,7 +1076,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./alignment":13,"./protection":20,"./stylePart":21}],16:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./alignment":14,"./protection":21,"./stylePart":22}],17:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1193,7 +1230,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./stylePart":21}],17:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./stylePart":22}],18:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1350,11 +1387,9 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./stylePart":21,"./utils":24}],18:[function(require,module,exports){
-(function (global){
+},{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],19:[function(require,module,exports){
 'use strict';
 
-var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var numberFormats = require('./numberFormats');
 var fonts = require('./fonts');
 var fills = require('./fills');
@@ -1364,8 +1399,8 @@ var tables = require('./tables');
 var tableElements = require('./tableElements');
 var toXMLString = require('../XMLString');
 
-function Styles() {
-	this.objectId = _.uniqueId('Styles');
+function Styles(common) {
+	this.objectId = common.uniqueId('Styles');
 	this.numberFormats = new numberFormats.NumberFormats(this);
 	this.fonts = new fonts.Fonts(this);
 	this.fills = new fills.Fills(this);
@@ -1412,7 +1447,7 @@ Styles.prototype.setDefaultTableStyle = function (name) {
 	this.tables.defaultTableStyle = name;
 };
 
-Styles.prototype._export = function () {
+Styles.prototype.export = function () {
 	return toXMLString({
 		name: 'styleSheet',
 		ns: 'spreadsheetml',
@@ -1430,8 +1465,7 @@ Styles.prototype._export = function () {
 
 module.exports = Styles;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./borders":14,"./cells":15,"./fills":16,"./fonts":17,"./numberFormats":19,"./tableElements":22,"./tables":23}],19:[function(require,module,exports){
+},{"../XMLString":2,"./borders":15,"./cells":16,"./fills":17,"./fonts":18,"./numberFormats":20,"./tableElements":23,"./tables":24}],20:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1489,7 +1523,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./stylePart":21}],20:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./stylePart":22}],21:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1524,7 +1558,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],21:[function(require,module,exports){
+},{"../XMLString":2}],22:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1646,7 +1680,7 @@ StylePart.prototype.exportFormat = function () {
 module.exports = StylePart;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],22:[function(require,module,exports){
+},{"../XMLString":2}],23:[function(require,module,exports){
 'use strict';
 
 var StylePart = require('./stylePart');
@@ -1715,7 +1749,7 @@ module.exports = {
 	TableElements: TableElements
 };
 
-},{"../XMLString":2,"../util":26,"./alignment":13,"./borders":14,"./fills":16,"./fonts":17,"./numberFormats":19,"./stylePart":21}],23:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./alignment":14,"./borders":15,"./fills":17,"./fonts":18,"./numberFormats":20,"./stylePart":22}],24:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1812,7 +1846,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./stylePart":21}],24:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"./stylePart":22}],25:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1853,7 +1887,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],25:[function(require,module,exports){
+},{"../XMLString":2}],26:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1864,8 +1898,11 @@ var toXMLString = require('./XMLString');
 function Table(worksheet, config) {
 	this.worksheet = worksheet;
 	this.common = worksheet.common;
-	this.tableId = util.uniqueId('Table');
-	this.objectId = 'Table' + this.tableId;
+
+	var id = this.common.uniqueIdSeparated('Table');
+
+	this.tableId = id.id;
+	this.objectId = id.space + id.id;
 	this.name = this.objectId;
 	this.displayName = this.objectId;
 	this.headerRowBorderDxfId = null;
@@ -2056,12 +2093,11 @@ function exportTableStyleInfo(common, themeStyle) {
 module.exports = Table;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":26}],26:[function(require,module,exports){
+},{"./XMLString":2,"./util":27}],27:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var idSpaces = {};
 var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 var LETTER_REFS = {};
 
@@ -2108,18 +2144,6 @@ function letterToPosition(cell) {
 }
 
 var util = {
-	/**
-	 * Returns a number based on a namespace. So, running with 'Picture' will return 1. Run again, you will get 2. Run with 'Foo', you'll get 1.
-	 * @param {String} space
-	 * @returns {Number}
-	 */
-	uniqueId: function (space) {
-		if (!idSpaces[space]) {
-			idSpaces[space] = 1;
-		}
-		return idSpaces[space]++;
-	},
-
 	inherits: function (ctor, superCtor) {
 		var Obj = function () {};
 		Obj.prototype = superCtor.prototype;
@@ -2167,7 +2191,7 @@ var util = {
 module.exports = util;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2179,11 +2203,11 @@ var Worksheet = require('./worksheet');
 var toXMLString = require('./XMLString');
 
 function Workbook() {
-	this.objectId = _.uniqueId('Workbook');
-
 	this.common = new Common();
-	this.relations = new RelationshipManager(this.common);
 	this.styles = this.common.styles;
+	this.relations = new RelationshipManager(this.common);
+
+	this.objectId = this.common.uniqueId('Workbook');
 }
 
 Workbook.prototype.addWorksheet = function (config) {
@@ -2252,7 +2276,7 @@ Workbook.prototype._generateFiles = function (zip, canStream) {
 	zip.file('[Content_Types].xml', createContentTypes(this.common));
 	zip.file('_rels/.rels', createWorkbookRelationship());
 	zip.file('xl/workbook.xml', this._export());
-	zip.file('xl/_rels/workbook.xml.rels', this.relations._export());
+	zip.file('xl/_rels/workbook.xml.rels', this.relations.export());
 };
 
 Workbook.prototype._export = function () {
@@ -2311,7 +2335,7 @@ function sheetsXML(relations, common) {
 				['name', worksheet.name],
 				['sheetId', index + 1],
 				['r:id', relations.getRelationshipId(worksheet)],
-				['state', worksheet.state]
+				['state', worksheet.getState()]
 			]
 		});
 	});
@@ -2376,7 +2400,7 @@ function prepareWorksheets(common) {
 function exportWorksheets(zip, canStream, common) {
 	_.forEach(common.worksheets, function (worksheet) {
 		zip.file(worksheet.path, worksheet._export(canStream));
-		zip.file(worksheet.relationsPath, worksheet.relations._export());
+		zip.file(worksheet.relationsPath, worksheet.relations.export());
 	});
 }
 
@@ -2387,35 +2411,34 @@ function exportTables(zip, common) {
 }
 
 function exportImages(zip, common) {
-	_.forEach(common.images, function (image) {
+	_.forEach(common.getImages(), function (image) {
 		zip.file(image.path, image.data, {base64: true, binary: true});
 		image.data = null;
 	});
-	common.images = null;
+	common.removeImages();
 }
 
 function exportDrawings(zip, common) {
 	_.forEach(common.drawings, function (drawing) {
-		zip.file(drawing.path, drawing._export());
-		zip.file(drawing.relationsPath, drawing.relations._export());
+		zip.file(drawing.path, drawing.export());
+		zip.file(drawing.relationsPath, drawing.relations.export());
 	});
 }
 
 function exportStyles(zip, relations, styles) {
 	relations.addRelation(styles, 'stylesheet');
-	zip.file('xl/styles.xml', styles._export());
+	zip.file('xl/styles.xml', styles.export());
 }
 
 function exportSharedStrings(zip, canStream, relations, common) {
 	if (!common.sharedStrings.isEmpty()) {
 		relations.addRelation(common.sharedStrings, 'sharedStrings');
-		zip.file('xl/sharedStrings.xml', common.sharedStrings._export(canStream));
+		zip.file('xl/sharedStrings.xml', common.sharedStrings.export(canStream));
 	}
 }
 
 function createContentTypes(common) {
 	var children = [];
-	var extensions = {};
 
 	children.push(toXMLString({
 		name: 'Default',
@@ -2473,10 +2496,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.imageByNames, function (image) {
-		extensions[image.extension] = image.contentType;
-	});
-	_.forEach(extensions, function (contentType, extension) {
+	_.forEach(common.getExtensions(), function (contentType, extension) {
 		children.push(toXMLString({
 			name: 'Default',
 			attributes: [
@@ -2522,7 +2542,7 @@ function createWorkbookRelationship() {
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":6,"./relationshipManager":11,"./util":26,"./worksheet":31}],28:[function(require,module,exports){
+},{"./XMLString":2,"./common":4,"./relationshipManager":13,"./util":27,"./worksheet":32}],29:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2530,61 +2550,67 @@ var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefi
 var Drawings = require('../drawings');
 var toXMLString = require('../XMLString');
 
-function Drawing(worksheet) {
-	this.common = worksheet.common;
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._drawings = null;
+	},
+	methods: {
+		setImage: function (image, config) {
+			return this._setDrawing(image, config, 'anchor');
+		},
+		setImageOneCell: function (image, config) {
+			return this._setDrawing(image, config, 'oneCell');
+		},
+		setImageAbsolute: function (image, config) {
+			return this._setDrawing(image, config, 'absolute');
+		},
+		_setDrawing: function (image, config, anchorType) {
+			var name;
 
-	this.drawings = null;
-}
+			if (!this._drawings) {
+				this._drawings = new Drawings(this.common);
 
-Drawing.prototype.set = function (image, config, anchorType) {
-	var name;
+				this.common.addDrawings(this._drawings);
+				this.relations.addRelation(this._drawings, 'drawingRelationship');
+			}
 
-	if (!this.drawings) {
-		this.drawings = new Drawings(this.common);
+			if (_.isObject(image)) {
+				name = this.common.addImage(image.data, image.type);
+			} else {
+				name = image;
+			}
 
-		this.common.addDrawings(this.drawings);
-		this.relations.addRelation(this.drawings, 'drawingRelationship');
+			this._drawings.addImage(name, config, anchorType);
+			return this;
+		},
+		_insertDrawing: function (colIndex, rowIndex, image) {
+			var config;
+
+			if (typeof image === 'string' || image.data) {
+				this._setDrawing(image, {c: colIndex + 1, r: rowIndex + 1}, 'anchor');
+			} else {
+				config = image.config || {};
+				config.cell = {c: colIndex + 1, r: rowIndex + 1};
+
+				this._setDrawing(image.image, config, 'anchor');
+			}
+		},
+		_exportDrawing: function () {
+			if (this._drawings) {
+				return toXMLString({
+					name: 'drawing',
+					attributes: [
+						['r:id', this.relations.getRelationshipId(this._drawings)]
+					]
+				});
+			}
+			return '';
+		}
 	}
-
-	if (_.isObject(image)) {
-		name = this.common.addImage(image.data, image.type);
-	} else {
-		name = image;
-	}
-
-	this.drawings.addImage(name, config, anchorType);
 };
-
-Drawing.prototype.insert = function (colIndex, rowIndex, image) {
-	var config;
-
-	if (typeof image === 'string' || image.data) {
-		this.set(image, {c: colIndex + 1, r: rowIndex + 1}, 'anchor');
-	} else {
-		config = image.config || {};
-		config.cell = {c: colIndex + 1, r: rowIndex + 1};
-
-		this.set(image.image, config, 'anchor');
-	}
-};
-
-Drawing.prototype._export = function () {
-	if (this.drawings) {
-		return toXMLString({
-			name: 'drawing',
-			attributes: [
-				['r:id', this.relations.getRelationshipId(this.drawings)]
-			]
-		});
-	}
-	return '';
-};
-
-module.exports = Drawing;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../drawings":7}],29:[function(require,module,exports){
+},{"../XMLString":2,"../drawings":10}],30:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2593,27 +2619,23 @@ var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefi
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-function Export(worksheet) {
-	this.worksheet = worksheet;
-}
-
-Export.prototype.export = function (canStream) {
-	if (canStream) {
-		return new WorksheetStream({
-			exporter: this,
-			worksheet: this.worksheet
-		});
-	} else {
-		return this.exportBeforeRows() +
-			this.exportData() +
-			this.exportAfterRows();
+module.exports = {
+	_export: function (canStream) {
+		if (canStream) {
+			return new WorksheetStream({
+				worksheet: this
+			});
+		} else {
+			return exportBeforeRows(this) +
+				exportData(this) +
+				exportAfterRows(this);
+		}
 	}
 };
 
 function WorksheetStream(options) {
 	Readable.call(this, options);
 
-	this.exporter = options.exporter;
 	this.worksheet = options.worksheet;
 	this.status = 0;
 }
@@ -2622,11 +2644,10 @@ util.inherits(WorksheetStream, Readable || {});
 
 WorksheetStream.prototype._read = function (size) {
 	var stop = false;
-	var exporter = this.exporter;
 	var worksheet = this.worksheet;
 
 	if (this.status === 0) {
-		stop = !this.push(exporter.exportBeforeRows());
+		stop = !this.push(exportBeforeRows(worksheet));
 
 		this.status = 1;
 		this.index = 0;
@@ -2635,10 +2656,13 @@ WorksheetStream.prototype._read = function (size) {
 
 	if (this.status === 1) {
 		var s = '';
+		var data = worksheet.preparedData;
+		var preparedRows = worksheet.preparedRows;
+
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
-				s += exporter.exportRow(worksheet.preparedData[this.index], this.index, worksheet.preparedRows);
-				worksheet.preparedData[this.index] = null;
+				s += exportRow(data[this.index], preparedRows[this.index], this.index);
+				data[this.index] = null;
 				this.index++;
 			}
 			stop = !this.push(s);
@@ -2651,51 +2675,46 @@ WorksheetStream.prototype._read = function (size) {
 	}
 
 	if (this.status === 2) {
-		this.push(exporter.exportAfterRows());
+		this.push(exportAfterRows(worksheet));
 		this.push(null);
 	}
 };
 
-Export.prototype.exportBeforeRows = function () {
-	var worksheet = this.worksheet;
-
-	return this.getXMLBegin() +
-		this.exportDimension(worksheet.maxX, worksheet.maxY) +
-		worksheet.sheetView._export() +
-		this.exportColumns(worksheet.columns) +
+function exportBeforeRows(worksheet) {
+	return getXMLBegin() +
+		exportDimension(worksheet.maxX, worksheet.maxY) +
+		worksheet._exportSheetView() +
+		exportColumns(worksheet.columns) +
 		'<sheetData>';
-};
+}
 
-Export.prototype.exportAfterRows = function () {
-	var worksheet = this.worksheet;
-
+function exportAfterRows(worksheet) {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		worksheet.mergedCells._export() +
-		worksheet.hyperlinks._export() +
-		worksheet.print._export() +
-		worksheet.tables._export() +
+		worksheet._exportMergeCells() +
+		worksheet._exportHyperlinks() +
+		worksheet._exportPrint() +
+		worksheet._exportTables() +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
-		worksheet.drawing._export() +
-		this.getXMLEnd();
-};
+		worksheet._exportDrawing() +
+		getXMLEnd();
+}
 
-Export.prototype.exportData = function () {
-	var data = this.worksheet.preparedData;
+function exportData(worksheet) {
+	var data = worksheet.preparedData;
+	var preparedRows = worksheet.preparedRows;
 	var children = '';
-	var dataRow;
 
 	for (var i = 0, len = data.length; i < len; i++) {
-		dataRow = data[i];
-		children += this.exportRow(dataRow, i);
+		children += exportRow(data[i], preparedRows[i], i);
 		data[i] = null;
 	}
 	return children;
-};
+}
 
-Export.prototype.exportRow = function (dataRow, rowIndex) {
+function exportRow(dataRow, row, rowIndex) {
 	var rowLen;
 	var rowChildren = [];
 	var colIndex;
@@ -2731,12 +2750,10 @@ Export.prototype.exportRow = function (dataRow, rowIndex) {
 		}
 	}
 
-	return '<row' + this.getRowAttributes(this.worksheet.preparedRows[rowIndex], rowIndex) + '>' +
-		rowChildren.join('') +
-		'</row>';
-};
+	return '<row' + getRowAttributes(row, rowIndex) + '>' + rowChildren.join('') + '</row>';
+}
 
-Export.prototype.getRowAttributes = function (row, rowIndex) {
+function getRowAttributes(row, rowIndex) {
 	var attributes = ' r="' + (rowIndex + 1) + '"';
 
 	if (row) {
@@ -2753,9 +2770,9 @@ Export.prototype.getRowAttributes = function (row, rowIndex) {
 		}
 	}
 	return attributes;
-};
+}
 
-Export.prototype.exportDimension = function (maxX, maxY) {
+function exportDimension(maxX, maxY) {
 	var attributes = [];
 
 	if (maxX !== 0) {
@@ -2772,9 +2789,9 @@ Export.prototype.exportDimension = function (maxX, maxY) {
 		name: 'dimension',
 		attributes: attributes
 	});
-};
+}
 
-Export.prototype.exportColumns = function (columns) {
+function exportColumns(columns) {
 	if (columns.length) {
 		var children = _.map(columns, function (column, index) {
 			column = column || {};
@@ -2814,21 +2831,19 @@ Export.prototype.exportColumns = function (columns) {
 		});
 	}
 	return '';
-};
+}
 
-Export.prototype.getXMLBegin = function () {
+function getXMLBegin() {
 	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
 		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">';
-};
+}
 
-Export.prototype.getXMLEnd = function () {
+function getXMLEnd() {
 	return '</worksheet>';
-};
-
-module.exports = Export;
+}
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"stream":1}],30:[function(require,module,exports){
+},{"../XMLString":2,"../util":27,"stream":1}],31:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2836,94 +2851,99 @@ var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefi
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-function Hyperlinks(worksheet) {
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._hyperlinks = [];
+	},
+	methods: {
+		setHyperlink: function (hyperlink) {
+			hyperlink.objectId = this.common.uniqueId('hyperlink');
+			this.relations.addRelation({
+				objectId: hyperlink.objectId,
+				target: hyperlink.location,
+				targetMode: hyperlink.targetMode || 'External'
+			}, 'hyperlink');
+			this._hyperlinks.push(hyperlink);
+			return this;
+		},
+		_insertHyperlink: function (colIndex, rowIndex, hyperlink) {
+			var location;
+			var targetMode;
+			var tooltip;
 
-	this.hyperlinks = [];
-}
-
-Hyperlinks.prototype.set = function (hyperlink) {
-	hyperlink.objectId = _.uniqueId('hyperlink');
-	this.relations.addRelation({
-		objectId: hyperlink.objectId,
-		target: hyperlink.location,
-		targetMode: hyperlink.targetMode || 'External'
-	}, 'hyperlink');
-	this.hyperlinks.push(hyperlink);
-};
-
-Hyperlinks.prototype.insert = function (colIndex, rowIndex, hyperlink) {
-	var location;
-	var targetMode;
-	var tooltip;
-
-	if (typeof hyperlink === 'string') {
-		location = hyperlink;
-	} else {
-		location = hyperlink.location;
-		targetMode = hyperlink.targetMode;
-		tooltip = hyperlink.tooltip;
-	}
-	this.set({
-		cell: {c: colIndex + 1, r: rowIndex + 1},
-		location: location,
-		targetMode: targetMode,
-		tooltip: tooltip
-	});
-};
-
-Hyperlinks.prototype._export = function () {
-	var relations = this.relations;
-
-	if (this.hyperlinks.length > 0) {
-		var children = _.map(this.hyperlinks, function (hyperlink) {
-			var attributes = [
-				['ref', util.canonCell(hyperlink.cell)],
-				['r:id', relations.getRelationshipId(hyperlink)]
-			];
-
-			if (hyperlink.tooltip) {
-				attributes.push(['tooltip', hyperlink.tooltip]);
+			if (typeof hyperlink === 'string') {
+				location = hyperlink;
+			} else {
+				location = hyperlink.location;
+				targetMode = hyperlink.targetMode;
+				tooltip = hyperlink.tooltip;
 			}
-			return toXMLString({
-				name: 'hyperlink',
-				attributes: attributes
+			this.setHyperlink({
+				cell: {c: colIndex + 1, r: rowIndex + 1},
+				location: location,
+				targetMode: targetMode,
+				tooltip: tooltip
 			});
-		});
+		},
+		_exportHyperlinks: function () {
+			var relations = this.relations;
 
-		return toXMLString({
-			name: 'hyperlinks',
-			children: children
-		});
+			if (this._hyperlinks.length > 0) {
+				var children = _.map(this._hyperlinks, function (hyperlink) {
+					var attributes = [
+						['ref', util.canonCell(hyperlink.cell)],
+						['r:id', relations.getRelationshipId(hyperlink)]
+					];
+
+					if (hyperlink.tooltip) {
+						attributes.push(['tooltip', hyperlink.tooltip]);
+					}
+					return toXMLString({
+						name: 'hyperlink',
+						attributes: attributes
+					});
+				});
+
+				return toXMLString({
+					name: 'hyperlinks',
+					children: children
+				});
+			}
+			return '';
+		}
 	}
-	return '';
 };
-
-module.exports = Hyperlinks;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26}],31:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],32:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var SheetView = require('./sheetView');
-var Hyperlinks = require('./hyperlinks');
-var MergedCells = require('./mergedCells');
-var Print = require('./print');
-var Drawing = require('./drawing');
-var Tables = require('./tables');
-var PrepareExport = require('./prepareExport');
-var Export = require('./export');
+var sheetView = require('./sheetView');
+var hyperlinks = require('./hyperlinks');
+var mergedCells = require('./mergedCells');
+var print = require('./print');
+var drawing = require('./drawing');
+var tables = require('./tables');
+var prepareExport = require('./prepareExport');
+var worksheetExport = require('./export');
 var RelationshipManager = require('../relationshipManager');
 
 function Worksheet(workbook, config) {
 	config = config || {};
 
-	this.objectId = _.uniqueId('Worksheet');
 	this.workbook = workbook;
 	this.common = workbook.common;
 
+	sheetView.init.call(this, config);
+	hyperlinks.init.call(this);
+	mergedCells.init.call(this);
+	drawing.init.call(this);
+	tables.init.call(this);
+	print.init.call(this);
+
+	this.objectId = this.common.uniqueId('Worksheet');
 	this.data = [];
 	this.columns = [];
 	this.rows = [];
@@ -2931,37 +2951,20 @@ function Worksheet(workbook, config) {
 	this.name = config.name;
 	this.state = config.state || 'visible';
 	this.timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
-
 	this.relations = new RelationshipManager(this.common);
-	this.sheetView = new SheetView(config);
-	this.hyperlinks = new Hyperlinks(this);
-	this.mergedCells = new MergedCells(this);
-	this.print = new Print(this);
-	this.drawing = new Drawing(this);
-	this.tables = new Tables(this);
 }
+
+_.assign(Worksheet.prototype, prepareExport);
+_.assign(Worksheet.prototype, worksheetExport);
+_.assign(Worksheet.prototype, sheetView.methods);
+_.assign(Worksheet.prototype, hyperlinks.methods);
+_.assign(Worksheet.prototype, mergedCells.methods);
+_.assign(Worksheet.prototype, drawing.methods);
+_.assign(Worksheet.prototype, tables.methods);
+_.assign(Worksheet.prototype, print.methods);
 
 Worksheet.prototype.end = function () {
 	return this.workbook;
-};
-
-Worksheet.prototype.addTable = function (config) {
-	return this.tables.add(config);
-};
-
-Worksheet.prototype.setImage = function (image, config) {
-	this.drawing.set(image, config, 'anchor');
-	return this;
-};
-
-Worksheet.prototype.setImageOneCell = function (image, config) {
-	this.drawing.set(image, config, 'oneCell');
-	return this;
-};
-
-Worksheet.prototype.setImageAbsolute = function (image, config) {
-	this.drawing.set(image, config, 'absolute');
-	return this;
 };
 
 Worksheet.prototype.setActive = function () {
@@ -2988,34 +2991,8 @@ Worksheet.prototype.setState = function (state) {
 	return this;
 };
 
-Worksheet.prototype.setHeader = function (headers) {
-	this.print.setHeader(headers);
-	return this;
-};
-
-Worksheet.prototype.setFooter = function (footers) {
-	this.print.setFooter(footers);
-	return this;
-};
-
-Worksheet.prototype.setPageMargin = function (margin) {
-	this.print.setPageMargin(margin);
-	return this;
-};
-
-Worksheet.prototype.setPageOrientation = function (orientation) {
-	this.print.setPageOrientation(orientation);
-	return this;
-};
-
-Worksheet.prototype.setPrintTitleTop = function (params) {
-	this.print.setPrintTitleTop(params);
-	return this;
-};
-
-Worksheet.prototype.setPrintTitleLeft = function (params) {
-	this.print.setPrintTitleLeft(params);
-	return this;
+Worksheet.prototype.getState = function () {
+	return this.state;
 };
 
 Worksheet.prototype.setRows = function (startRow, rows) {
@@ -3076,43 +3053,10 @@ Worksheet.prototype.setData = function (startRow, data) {
 	return this;
 };
 
-Worksheet.prototype.mergeCells = function (cell1, cell2) {
-	this.mergedCells.merge(cell1, cell2);
-	return this;
-};
-
-Worksheet.prototype.setHyperlink = function (hyperlink) {
-	this.hyperlinks.set(hyperlink);
-	return this;
-};
-
-Worksheet.prototype.setAttribute = function (name, value) {
-	this.sheetView.setAttribute(name, value);
-	return this;
-};
-
-Worksheet.prototype.freeze = function (column, row, cell, activePane) {
-	this.sheetView.freeze(column, row, cell, activePane);
-	return this;
-};
-
-Worksheet.prototype.split = function (x, y, cell, activePane) {
-	this.sheetView.split(x, y, cell, activePane);
-	return this;
-};
-
-Worksheet.prototype._prepare = function () {
-	(new PrepareExport(this)).prepare();
-};
-
-Worksheet.prototype._export = function (canStream) {
-	return (new Export(this)).export(canStream);
-};
-
 module.exports = Worksheet;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../relationshipManager":11,"./drawing":28,"./export":29,"./hyperlinks":30,"./mergedCells":32,"./prepareExport":33,"./print":34,"./sheetView":35,"./tables":36}],32:[function(require,module,exports){
+},{"../relationshipManager":13,"./drawing":29,"./export":30,"./hyperlinks":31,"./mergedCells":33,"./prepareExport":34,"./print":35,"./sheetView":36,"./tables":37}],33:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3120,123 +3064,110 @@ var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefi
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-function MergedCells(worksheet) {
-	this.worksheet = worksheet;
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._mergedCells = [];
+	},
+	methods: {
+		mergeCells: function (cell1, cell2) {
+			this._mergedCells.push([cell1, cell2]);
+			return this;
+		},
+		_insertMergeCells: function (dataRow, colIndex, rowIndex, colSpan, rowSpan) {
+			var i, j;
+			var row;
 
-	this.mergedCells = [];
-}
-
-/**
- * Merge cells in given range
- *
- * @param cell1 - A1, A2...
- * @param cell2 - A2, A3...
- */
-MergedCells.prototype.merge = function (cell1, cell2) {
-	this.mergedCells.push([cell1, cell2]);
-};
-
-MergedCells.prototype.insert = function (dataRow, colIndex, rowIndex, colSpan, rowSpan) {
-	var i, j;
-	var row;
-
-	if (colSpan) {
-		for (j = 0; j < colSpan; j++) {
-			dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
-		}
-	}
-	if (rowSpan) {
-		colSpan += 1;
-
-		for (i = 0; i < rowSpan; i++) {
-			//todo: original data changed
-			row = this.worksheet.data[rowIndex + i + 1];
-
-			if (!row) {
-				row = [];
-				this.worksheet.data[rowIndex + i + 1] = row;
-			}
-
-			if (row.length > colIndex) {
+			if (colSpan) {
 				for (j = 0; j < colSpan; j++) {
-					row.splice(colIndex, 0, {style: null, type: 'empty'});
-				}
-			} else {
-				for (j = 0; j < colSpan; j++) {
-					row[colIndex + j] = {style: null, type: 'empty'};
+					dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
 				}
 			}
+			if (rowSpan) {
+				colSpan += 1;
+
+				for (i = 0; i < rowSpan; i++) {
+					//todo: original data changed
+					row = this.data[rowIndex + i + 1];
+
+					if (!row) {
+						row = [];
+						this.data[rowIndex + i + 1] = row;
+					}
+
+					if (row.length > colIndex) {
+						for (j = 0; j < colSpan; j++) {
+							row.splice(colIndex, 0, {style: null, type: 'empty'});
+						}
+					} else {
+						for (j = 0; j < colSpan; j++) {
+							row[colIndex + j] = {style: null, type: 'empty'};
+						}
+					}
+				}
+			}
+		},
+		_exportMergeCells: function () {
+			if (this._mergedCells.length > 0) {
+				var children = _.map(this._mergedCells, function (mergeCell) {
+					return toXMLString({
+						name: 'mergeCell',
+						attributes: [
+							['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]
+						]
+					});
+				});
+
+				return toXMLString({
+					name: 'mergeCells',
+					attributes: [
+						['count', this._mergedCells.length]
+					],
+					children: children
+				});
+			}
+			return '';
 		}
 	}
 };
-
-MergedCells.prototype._export = function () {
-	if (this.mergedCells.length > 0) {
-		var children = _.map(this.mergedCells, function (mergeCell) {
-			return toXMLString({
-				name: 'mergeCell',
-				attributes: [
-					['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]
-				]
-			});
-		});
-
-		return toXMLString({
-			name: 'mergeCells',
-			attributes: [
-				['count', this.mergedCells.length]
-			],
-			children: children
-		});
-	}
-	return '';
-};
-
-module.exports = MergedCells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26}],33:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],34:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 
-function PrepareExport(worksheet) {
-	this.worksheet = worksheet;
-}
+module.exports = {
+	_prepare: function () {
+		var rowIndex;
+		var len;
+		var maxX = 0;
+		var row;
 
-PrepareExport.prototype.prepare = function () {
-	var worksheet = this.worksheet;
-	var rowIndex;
-	var len;
-	var maxX = 0;
-	var row;
+		this._prepareTables();
 
-	worksheet.tables._prepare();
+		this.preparedData = [];
+		this.preparedRows = [];
 
-	worksheet.preparedData = [];
-	worksheet.preparedRows = [];
+		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
+			row = prepareRow(this, rowIndex);
 
-	for (rowIndex = 0, len = worksheet.data.length; rowIndex < len; rowIndex++) {
-		row = this.prepareRow(rowIndex);
-
-		if (row) {
-			if (row.length > maxX) {
-				maxX = row.length;
+			if (row) {
+				if (row.length > maxX) {
+					maxX = row.length;
+				}
 			}
 		}
+
+		this.data = null;
+		this.rows = null;
+
+		this.maxX = maxX;
+		this.maxY = this.preparedData.length;
 	}
-
-	worksheet.data = null;
-	worksheet.rows = null;
-
-	worksheet.maxX = maxX;
-	worksheet.maxY = worksheet.preparedData.length;
 };
 
-PrepareExport.prototype.prepareRow = function (rowIndex) {
-	var worksheet = this.worksheet;
+function prepareRow(worksheet, rowIndex) {
 	var styles = worksheet.common.styles;
 	var row = worksheet.rows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
@@ -3295,18 +3226,18 @@ PrepareExport.prototype.prepareRow = function (rowIndex) {
 				}
 
 				if (value.hyperlink) {
-					worksheet.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
+					worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
 				}
 				if (value.image) {
-					worksheet.drawing.insert(colIndex, rowIndex, value.image);
+					worksheet._insertDrawing(colIndex, rowIndex, value.image);
 				}
 				if (value.colspan || value.rowspan) {
 					colSpan = (value.colspan || 1) - 1;
 					rowSpan = (value.rowspan || 1) - 1;
 
-					worksheet.mergedCells.merge({c: colIndex + 1, r: rowIndex + 1},
+					worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
 						{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-					worksheet.mergedCells.insert(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+					worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 				}
 			} else {
 				cellValue = value;
@@ -3333,14 +3264,14 @@ PrepareExport.prototype.prepareRow = function (rowIndex) {
 			}
 
 			if (cellType === 'string') {
-				cellValue = worksheet.common.sharedStrings.addString(cellValue);
+				cellValue = worksheet.common.sharedStrings.add(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
 				date = 25569.0 + (cellValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
-					cellValue = worksheet.common.sharedStrings.addString(String(cellValue));
+					cellValue = worksheet.common.sharedStrings.add(String(cellValue));
 					isString = true;
 				}
 			} else if (cellType === 'formula') {
@@ -3361,110 +3292,109 @@ PrepareExport.prototype.prepareRow = function (rowIndex) {
 	worksheet.preparedRows[rowIndex] = row;
 
 	return preparedRow;
-};
-
-module.exports = PrepareExport;
+}
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var toXMLString = require('../XMLString');
 
-function Print(worksheet) {
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._headers = [];
+		this._footers = [];
+	},
+	methods: {
+		/**
+		 * Expects an array length of three.
+		 * @param {Array} headers [left, center, right]
+		 */
+		setHeader: function (headers) {
+			if (!_.isArray(headers)) {
+				throw 'Invalid argument type - setHeader expects an array of three instructions';
+			}
+			this._headers = headers;
+			return this;
+		},
+		/**
+		 * Expects an array length of three.
+		 * @param {Array} footers [left, center, right]
+		 */
+		setFooter: function (footers) {
+			if (!_.isArray(footers)) {
+				throw 'Invalid argument type - setFooter expects an array of three instructions';
+			}
+			this._footers = footers;
+			return this;
+		},
+		/**
+		 * Set page details in inches.
+		 */
+		setPageMargin: function (margin) {
+			this._margin = _.defaults(margin, {
+				left: 0.7,
+				right: 0.7,
+				top: 0.75,
+				bottom: 0.75,
+				header: 0.3,
+				footer: 0.3
+			});
+			return this;
+		},
+		/**
+		 * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
+		 *
+		 * Can be one of 'portrait' or 'landscape'.
+		 *
+		 * @param {String} orientation
+		 */
+		setPageOrientation: function (orientation) {
+			this._orientation = orientation;
+			return this;
+		},
+		/**
+		 * Set rows to repeat for print
+		 *
+		 * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
+		 */
+		setPrintTitleTop: function (params) {
+			this._printTitles = this._printTitles || {};
 
-	this.headers = [];
-	this.footers = [];
-}
+			if (_.isObject(params)) {
+				this._printTitles.topFrom = params[0];
+				this._printTitles.topTo = params[1];
+			} else {
+				this._printTitles.topFrom = 0;
+				this._printTitles.topTo = params - 1;
+			}
+			return this;
+		},
+		/**
+		 * Set columns to repeat for print
+		 *
+		 * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
+		 */
+		setPrintTitleLeft: function (params) {
+			this._printTitles = this._printTitles || {};
 
-/**
- * Expects an array length of three.
- * @param {Array} headers [left, center, right]
- */
-Print.prototype.setHeader = function (headers) {
-	if (!_.isArray(headers)) {
-		throw 'Invalid argument type - setHeader expects an array of three instructions';
+			if (_.isObject(params)) {
+				this._printTitles.leftFrom = params[0];
+				this._printTitles.leftTo = params[1];
+			} else {
+				this._printTitles.leftFrom = 0;
+				this._printTitles.leftTo = params - 1;
+			}
+			return this;
+		},
+		_exportPrint: function () {
+			return exportPageMargins(this._margin) +
+				exportPageSetup(this._orientation) +
+				exportHeaderFooter(this._headers, this._footers);
+		}
 	}
-	this.headers = headers;
-};
-
-/**
- * Expects an array length of three.
- * @param {Array} footers [left, center, right]
- */
-Print.prototype.setFooter = function (footers) {
-	if (!_.isArray(footers)) {
-		throw 'Invalid argument type - setFooter expects an array of three instructions';
-	}
-	this.footers = footers;
-};
-
-/**
- * Set page details in inches.
- */
-Print.prototype.setPageMargin = function (margin) {
-	this._margin = _.defaults(margin, {
-		left: 0.7,
-		right: 0.7,
-		top: 0.75,
-		bottom: 0.75,
-		header: 0.3,
-		footer: 0.3
-	});
-};
-
-/**
- * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
- *
- * Can be one of 'portrait' or 'landscape'.
- *
- * @param {String} orientation
- */
-Print.prototype.setPageOrientation = function (orientation) {
-	this._orientation = orientation;
-};
-
-/**
- * Set rows to repeat for print
- *
- * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
- */
-Print.prototype.setPrintTitleTop = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.topFrom = params[0];
-		this._printTitles.topTo = params[1];
-	} else {
-		this._printTitles.topFrom = 0;
-		this._printTitles.topTo = params - 1;
-	}
-};
-
-/**
- * Set columns to repeat for print
- *
- * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
- */
-Print.prototype.setPrintTitleLeft = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.leftFrom = params[0];
-		this._printTitles.leftTo = params[1];
-	} else {
-		this._printTitles.leftFrom = 0;
-		this._printTitles.leftTo = params - 1;
-	}
-};
-
-Print.prototype._export = function () {
-	return exportPageMargins(this._margin) +
-		exportPageSetup(this._orientation) +
-		exportHeaderFooter(this.headers, this.footers);
 };
 
 function exportPageMargins(margin) {
@@ -3568,10 +3498,8 @@ function compilePageDetailPiece(data) {
 	}
 }
 
-module.exports = Print;
-
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],35:[function(require,module,exports){
+},{"../XMLString":2}],36:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3582,158 +3510,160 @@ var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefi
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-function SheetView(config) {
-	config = config || {};
-	this.pane = null;
-	this.attributes = {
-		defaultGridColor: {
-			value: null,
-			bool: true
-		},
-		colorId: {
-			value: null
-		},
-		rightToLeft: {
-			value: null,
-			bool: true
-		},
-		showFormulas: {
-			value: null,
-			bool: true
-		},
-		showGridLines: {
-			value: null,
-			bool: true
-		},
-		showOutlineSymbols: {
-			value: null,
-			bool: true
-		},
-		showRowColHeaders: {
-			value: null,
-			bool: true
-		},
-		showRuler: {
-			value: null,
-			bool: true
-		},
-		showWhiteSpace: {
-			value: null,
-			bool: true
-		},
-		showZeros: {
-			value: null,
-			bool: true
-		},
-		tabSelected: {
-			value: null,
-			bool: true
-		},
-		topLeftCell: {
-			value: null//A1
-		},
-		view: {
-			value: 'normal'//normal | pageBreakPreview | pageLayout
-		},
-		windowProtection: {
-			value: null,
-			bool: true
-		},
-		zoomScale: {
-			value: null//10-400
-		},
-		zoomScaleNormal: {
-			value: null//10-400
-		},
-		zoomScalePageLayoutView: {
-			value: null//10-400
-		},
-		zoomScaleSheetLayoutView: {
-			value: null//10-400
-		}
-	};
-
-	var self = this;
-
-	_.forEach(config, function (value, name) {
-		if (name === 'freeze') {
-			self.freeze(value.col, value.row, value.cell, value.activePane);
-		} else if (name === 'split') {
-			self.split(value.x, value.y, value.cell, value.activePane);
-		} else if (self.attributes[name]) {
-			self.attributes[name].value = value;
-		}
-	});
-}
-
-SheetView.prototype.setAttribute = function (name, value) {
-	if (this.attributes[name]) {
-		this.attributes[name].value = value;
-	}
-};
-
-/**
- * Add froze pane
- * @param col - column number: 0, 1, 2 ...
- * @param row - row number: 0, 1, 2 ...
- * @param cell? - 'A1' | {c: 1, r: 1}
- * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
- */
-SheetView.prototype.freeze = function (col, row, cell, activePane) {
-	this.pane = {
-		state: 'frozen',
-		xSplit: col,
-		ySplit: row,
-		topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
-		activePane: activePane || 'bottomRight'
-	};
-};
-
-/**
- * Add split pane
- * @param x - Horizontal position of the split, in points; 0 (zero) if none
- * @param y - Vertical position of the split, in points; 0 (zero) if none
- * @param cell? - 'A1' | {c: 1, r: 1}
- * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
- */
-SheetView.prototype.split = function (x, y, cell, activePane) {
-	this.pane = {
-		state: 'split',
-		xSplit: x * 20,
-		ySplit: y * 20,
-		topLeftCell: util.canonCell(cell) || 'A1',
-		activePane: activePane || 'bottomRight'
-	};
-};
-
-SheetView.prototype._export = function () {
-	var attributes = [
-		['workbookViewId', 0]
-	];
-
-	_.forEach(this.attributes, function (attr, name) {
-		var value = attr.value;
-
-		if (value !== null) {
-			if (attr.bool) {
-				value = value ? 'true' : 'false';
+module.exports = {
+	init: function (config) {
+		this._pane = null;
+		this._attributes = {
+			defaultGridColor: {
+				value: null,
+				bool: true
+			},
+			colorId: {
+				value: null
+			},
+			rightToLeft: {
+				value: null,
+				bool: true
+			},
+			showFormulas: {
+				value: null,
+				bool: true
+			},
+			showGridLines: {
+				value: null,
+				bool: true
+			},
+			showOutlineSymbols: {
+				value: null,
+				bool: true
+			},
+			showRowColHeaders: {
+				value: null,
+				bool: true
+			},
+			showRuler: {
+				value: null,
+				bool: true
+			},
+			showWhiteSpace: {
+				value: null,
+				bool: true
+			},
+			showZeros: {
+				value: null,
+				bool: true
+			},
+			tabSelected: {
+				value: null,
+				bool: true
+			},
+			topLeftCell: {
+				value: null//A1
+			},
+			view: {
+				value: 'normal'//normal | pageBreakPreview | pageLayout
+			},
+			windowProtection: {
+				value: null,
+				bool: true
+			},
+			zoomScale: {
+				value: null//10-400
+			},
+			zoomScaleNormal: {
+				value: null//10-400
+			},
+			zoomScalePageLayoutView: {
+				value: null//10-400
+			},
+			zoomScaleSheetLayoutView: {
+				value: null//10-400
 			}
-			attributes.push([name, value]);
-		}
-	});
+		};
 
-	return toXMLString({
-		name: 'sheetViews',
-		children: [
-			toXMLString({
-				name: 'sheetView',
-				attributes: attributes,
+		var self = this;
+
+		_.forEach(config, function (value, name) {
+			if (name === 'freeze') {
+				self.freeze(value.col, value.row, value.cell, value.activePane);
+			} else if (name === 'split') {
+				self.split(value.x, value.y, value.cell, value.activePane);
+			} else if (self._attributes[name]) {
+				self._attributes[name].value = value;
+			}
+		});
+	},
+	methods: {
+		setAttribute: function (name, value) {
+			if (this._attributes[name]) {
+				this._attributes[name].value = value;
+			}
+			return this;
+		},
+		/**
+		 * Add froze pane
+		 * @param col - column number: 0, 1, 2 ...
+		 * @param row - row number: 0, 1, 2 ...
+		 * @param cell? - 'A1' | {c: 1, r: 1}
+		 * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+		 */
+		freeze: function (col, row, cell, activePane) {
+			this._pane = {
+				state: 'frozen',
+				xSplit: col,
+				ySplit: row,
+				topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
+				activePane: activePane || 'bottomRight'
+			};
+			return this;
+		},
+		/**
+		 * Add split pane
+		 * @param x - Horizontal position of the split, in points; 0 (zero) if none
+		 * @param y - Vertical position of the split, in points; 0 (zero) if none
+		 * @param cell? - 'A1' | {c: 1, r: 1}
+		 * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+		 */
+		split: function (x, y, cell, activePane) {
+			this._pane = {
+				state: 'split',
+				xSplit: x * 20,
+				ySplit: y * 20,
+				topLeftCell: util.canonCell(cell) || 'A1',
+				activePane: activePane || 'bottomRight'
+			};
+			return this;
+		},
+		_exportSheetView: function () {
+			var attributes = [
+				['workbookViewId', 0]
+			];
+
+			_.forEach(this._attributes, function (attr, name) {
+				var value = attr.value;
+
+				if (value !== null) {
+					if (attr.bool) {
+						value = value ? 'true' : 'false';
+					}
+					attributes.push([name, value]);
+				}
+			});
+
+			return toXMLString({
+				name: 'sheetViews',
 				children: [
-					exportPane(this.pane)
+					toXMLString({
+						name: 'sheetView',
+						attributes: attributes,
+						children: [
+							exportPane(this._pane)
+						]
+					})
 				]
-			})
-		]
-	});
+			});
+		}
+	}
 };
 
 function exportPane(pane) {
@@ -3752,10 +3682,8 @@ function exportPane(pane) {
 	return '';
 }
 
-module.exports = SheetView;
-
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26}],36:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],37:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3763,58 +3691,53 @@ var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefi
 var Table = require('../table');
 var toXMLString = require('../XMLString');
 
-function Tables(worksheet) {
-	this.worksheet = worksheet;
-	this.common = worksheet.common;
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._tables = [];
+	},
+	methods: {
+		addTable: function (config) {
+			var table = new Table(this, config);
 
-	this.tables = [];
-}
+			this.common.addTable(table);
+			this.relations.addRelation(table, 'table');
+			this._tables.push(table);
 
-Tables.prototype.add = function (config) {
-	var table = new Table(this.worksheet, config);
+			return table;
+		},
+		_prepareTables: function () {
+			var data = this.data;
 
-	this.common.addTable(table);
-	this.relations.addRelation(table, 'table');
-	this.tables.push(table);
-
-	return table;
-};
-
-Tables.prototype._prepare = function () {
-	var data = this.worksheet.data;
-
-	_.forEach(this.tables, function (table) {
-		table._prepare(data);
-	});
-};
-
-Tables.prototype._export = function () {
-	var relations = this.relations;
-
-	if (this.tables.length > 0) {
-		var children = _.map(this.tables, function (table) {
-			return toXMLString({
-				name: 'tablePart',
-				attributes: [
-					['r:id', relations.getRelationshipId(table)]
-				]
+			_.forEach(this._tables, function (table) {
+				table._prepare(data);
 			});
-		});
+		},
+		_exportTables: function () {
+			var relations = this.relations;
 
-		return toXMLString({
-			name: 'tableParts',
-			attributes: [
-				['count', this.tables.length]
-			],
-			children: children
-		});
+			if (this._tables.length > 0) {
+				var children = _.map(this._tables, function (table) {
+					return toXMLString({
+						name: 'tablePart',
+						attributes: [
+							['r:id', relations.getRelationshipId(table)]
+						]
+					});
+				});
+
+				return toXMLString({
+					name: 'tableParts',
+					attributes: [
+						['count', this._tables.length]
+					],
+					children: children
+				});
+			}
+			return '';
+		}
 	}
-	return '';
 };
-
-module.exports = Tables;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../table":25}]},{},[8])(8)
+},{"../XMLString":2,"../table":26}]},{},[12])(12)
 });

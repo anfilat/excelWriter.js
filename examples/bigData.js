@@ -10,8 +10,7 @@ var path = require('path');
 var _ = require('lodash');
 var loremIpsum = require('lorem-ipsum');
 var excel = require('../src');
-var data;
-var workbook;
+var testData;
 var fileName;
 
 fileName = path.parse(process.argv[1]).name;
@@ -21,15 +20,14 @@ try {
 	fs.mkdirSync('xlsx');
 }
 
-console.time('Generate data');
-data = generateData();
-console.timeEnd('Generate data');
+console.time('Generate test data');
+testData = generateData();
+console.timeEnd('Generate test data');
 
 console.log('Memory before - ', process.memoryUsage());
 console.time('time');
-workbook = run(data);
 
-excel.saveAsNodeStream(workbook)
+excel.saveAsNodeStream(run(testData))
 	.pipe(fs.createWriteStream('xlsx/' + fileName + '.xlsx'))
 	.on('finish', function () {
 		console.timeEnd('time');
@@ -39,10 +37,10 @@ excel.saveAsNodeStream(workbook)
 
 function generateData() {
 	var size = 1000000;
-	var data = new Array(size);
+	var testData = new Array(size);
 
 	_.times(size, function (i) {
-		data[i] = [
+		testData[i] = [
 			1000 + i,
 			_.capitalize(loremIpsum({count: 7, units: 'words'}) + '.'),
 			Math.round(100 + Math.random() * (1000 - 100)),
@@ -51,10 +49,10 @@ function generateData() {
 			Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000))
 		];
 	});
-	return data;
+	return testData;
 }
 
-function run(data) {
+function run(testData) {
 	var workbook = excel.createWorkbook();
 	var header = workbook.addFormat({
 		font: {bold: true, underline: true, color: {theme: 3}},
@@ -101,7 +99,7 @@ function run(data) {
 			{value: 'Start Date', style: header, type: 'string'},
 			{value: 'End Date', style: header, type: 'string'}
 		]
-	].concat(data);
+	].concat(testData);
 
 	workbook.addWorksheet({name: 'table'})
 		.setHeader([{bold: true, text: 'Generic Report'}, '', ''])

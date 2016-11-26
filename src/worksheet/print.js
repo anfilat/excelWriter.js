@@ -3,98 +3,99 @@
 var _ = require('lodash');
 var toXMLString = require('../XMLString');
 
-function Print(worksheet) {
-	this.relations = worksheet.relations;
+module.exports = {
+	init: function () {
+		this._headers = [];
+		this._footers = [];
+	},
+	methods: {
+		/**
+		 * Expects an array length of three.
+		 * @param {Array} headers [left, center, right]
+		 */
+		setHeader: function (headers) {
+			if (!_.isArray(headers)) {
+				throw 'Invalid argument type - setHeader expects an array of three instructions';
+			}
+			this._headers = headers;
+			return this;
+		},
+		/**
+		 * Expects an array length of three.
+		 * @param {Array} footers [left, center, right]
+		 */
+		setFooter: function (footers) {
+			if (!_.isArray(footers)) {
+				throw 'Invalid argument type - setFooter expects an array of three instructions';
+			}
+			this._footers = footers;
+			return this;
+		},
+		/**
+		 * Set page details in inches.
+		 */
+		setPageMargin: function (margin) {
+			this._margin = _.defaults(margin, {
+				left: 0.7,
+				right: 0.7,
+				top: 0.75,
+				bottom: 0.75,
+				header: 0.3,
+				footer: 0.3
+			});
+			return this;
+		},
+		/**
+		 * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
+		 *
+		 * Can be one of 'portrait' or 'landscape'.
+		 *
+		 * @param {String} orientation
+		 */
+		setPageOrientation: function (orientation) {
+			this._orientation = orientation;
+			return this;
+		},
+		/**
+		 * Set rows to repeat for print
+		 *
+		 * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
+		 */
+		setPrintTitleTop: function (params) {
+			this._printTitles = this._printTitles || {};
 
-	this.headers = [];
-	this.footers = [];
-}
+			if (_.isObject(params)) {
+				this._printTitles.topFrom = params[0];
+				this._printTitles.topTo = params[1];
+			} else {
+				this._printTitles.topFrom = 0;
+				this._printTitles.topTo = params - 1;
+			}
+			return this;
+		},
+		/**
+		 * Set columns to repeat for print
+		 *
+		 * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
+		 */
+		setPrintTitleLeft: function (params) {
+			this._printTitles = this._printTitles || {};
 
-/**
- * Expects an array length of three.
- * @param {Array} headers [left, center, right]
- */
-Print.prototype.setHeader = function (headers) {
-	if (!_.isArray(headers)) {
-		throw 'Invalid argument type - setHeader expects an array of three instructions';
+			if (_.isObject(params)) {
+				this._printTitles.leftFrom = params[0];
+				this._printTitles.leftTo = params[1];
+			} else {
+				this._printTitles.leftFrom = 0;
+				this._printTitles.leftTo = params - 1;
+			}
+			return this;
+		},
+		_exportPrint: function () {
+			return exportPageMargins(this._margin) +
+				exportPageSetup(this._orientation) +
+				exportHeaderFooter(this._headers, this._footers);
+		}
 	}
-	this.headers = headers;
-};
-
-/**
- * Expects an array length of three.
- * @param {Array} footers [left, center, right]
- */
-Print.prototype.setFooter = function (footers) {
-	if (!_.isArray(footers)) {
-		throw 'Invalid argument type - setFooter expects an array of three instructions';
-	}
-	this.footers = footers;
-};
-
-/**
- * Set page details in inches.
- */
-Print.prototype.setPageMargin = function (margin) {
-	this._margin = _.defaults(margin, {
-		left: 0.7,
-		right: 0.7,
-		top: 0.75,
-		bottom: 0.75,
-		header: 0.3,
-		footer: 0.3
-	});
-};
-
-/**
- * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
- *
- * Can be one of 'portrait' or 'landscape'.
- *
- * @param {String} orientation
- */
-Print.prototype.setPageOrientation = function (orientation) {
-	this._orientation = orientation;
-};
-
-/**
- * Set rows to repeat for print
- *
- * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
- */
-Print.prototype.setPrintTitleTop = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.topFrom = params[0];
-		this._printTitles.topTo = params[1];
-	} else {
-		this._printTitles.topFrom = 0;
-		this._printTitles.topTo = params - 1;
-	}
-};
-
-/**
- * Set columns to repeat for print
- *
- * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
- */
-Print.prototype.setPrintTitleLeft = function (params) {
-	this._printTitles = this._printTitles || {};
-
-	if (_.isObject(params)) {
-		this._printTitles.leftFrom = params[0];
-		this._printTitles.leftTo = params[1];
-	} else {
-		this._printTitles.leftFrom = 0;
-		this._printTitles.leftTo = params - 1;
-	}
-};
-
-Print.prototype.export = function () {
-	return exportPageMargins(this._margin) +
-		exportPageSetup(this._orientation) +
-		exportHeaderFooter(this.headers, this.footers);
 };
 
 function exportPageMargins(margin) {
@@ -197,5 +198,3 @@ function compilePageDetailPiece(data) {
 		}, '');
 	}
 }
-
-module.exports = Print;

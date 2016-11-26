@@ -140,7 +140,7 @@ function sheetsXML(relations, common) {
 				['name', worksheet.name],
 				['sheetId', index + 1],
 				['r:id', relations.getRelationshipId(worksheet)],
-				['state', worksheet.state]
+				['state', worksheet.getState()]
 			]
 		});
 	});

@@ -5,27 +5,23 @@ var _ = require('lodash');
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-function Export(worksheet) {
-	this.worksheet = worksheet;
-}
-
-Export.prototype.export = function (canStream) {
-	if (canStream) {
-		return new WorksheetStream({
-			exporter: this,
-			worksheet: this.worksheet
-		});
-	} else {
-		return this.exportBeforeRows() +
-			this.exportData() +
-			this.exportAfterRows();
+module.exports = {
+	_export: function (canStream) {
+		if (canStream) {
+			return new WorksheetStream({
+				worksheet: this
+			});
+		} else {
+			return exportBeforeRows(this) +
+				exportData(this) +
+				exportAfterRows(this);
+		}
 	}
 };
 
 function WorksheetStream(options) {
 	Readable.call(this, options);
 
-	this.exporter = options.exporter;
 	this.worksheet = options.worksheet;
 	this.status = 0;
 }
@@ -34,11 +30,10 @@ util.inherits(WorksheetStream, Readable || {});
 
 WorksheetStream.prototype._read = function (size) {
 	var stop = false;
-	var exporter = this.exporter;
 	var worksheet = this.worksheet;
 
 	if (this.status === 0) {
-		stop = !this.push(exporter.exportBeforeRows());
+		stop = !this.push(exportBeforeRows(worksheet));
 
 		this.status = 1;
 		this.index = 0;
@@ -47,10 +42,13 @@ WorksheetStream.prototype._read = function (size) {
 
 	if (this.status === 1) {
 		var s = '';
+		var data = worksheet.preparedData;
+		var preparedRows = worksheet.preparedRows;
+
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
-				s += exporter.exportRow(worksheet.preparedData[this.index], this.index, worksheet.preparedRows);
-				worksheet.preparedData[this.index] = null;
+				s += exportRow(data[this.index], preparedRows[this.index], this.index);
+				data[this.index] = null;
 				this.index++;
 			}
 			stop = !this.push(s);
@@ -63,51 +61,47 @@ WorksheetStream.prototype._read = function (size) {
 	}
 
 	if (this.status === 2) {
-		this.push(exporter.exportAfterRows());
+		this.push(exportAfterRows(worksheet));
 		this.push(null);
 	}
 };
 
-Export.prototype.exportBeforeRows = function () {
-	var worksheet = this.worksheet;
-
-	return this.getXMLBegin() +
-		this.exportDimension(worksheet.maxX, worksheet.maxY) +
-		worksheet.sheetView.export() +
-		this.exportColumns(worksheet.columns) +
+function exportBeforeRows(worksheet) {
+	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
+		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' +
+		exportDimension(worksheet.maxX, worksheet.maxY) +
+		worksheet._exportSheetView() +
+		exportColumns(worksheet.columns) +
 		'<sheetData>';
-};
+}
 
-Export.prototype.exportAfterRows = function () {
-	var worksheet = this.worksheet;
-
+function exportAfterRows(worksheet) {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		worksheet.mergedCells.export() +
-		worksheet.hyperlinks.export() +
-		worksheet.print.export() +
-		worksheet.tables.export() +
+		worksheet._exportMergeCells() +
+		worksheet._exportHyperlinks() +
+		worksheet._exportPrint() +
+		worksheet._exportTables() +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
-		worksheet.drawing.export() +
-		this.getXMLEnd();
-};
+		worksheet._exportDrawing() +
+		'</worksheet>';
+}
 
-Export.prototype.exportData = function () {
-	var data = this.worksheet.preparedData;
+function exportData(worksheet) {
+	var data = worksheet.preparedData;
+	var preparedRows = worksheet.preparedRows;
 	var children = '';
-	var dataRow;
 
 	for (var i = 0, len = data.length; i < len; i++) {
-		dataRow = data[i];
-		children += this.exportRow(dataRow, i);
+		children += exportRow(data[i], preparedRows[i], i);
 		data[i] = null;
 	}
 	return children;
-};
+}
 
-Export.prototype.exportRow = function (dataRow, rowIndex) {
+function exportRow(dataRow, row, rowIndex) {
 	var rowLen;
 	var rowChildren = [];
 	var colIndex;
@@ -143,12 +137,10 @@ Export.prototype.exportRow = function (dataRow, rowIndex) {
 		}
 	}
 
-	return '<row' + this.getRowAttributes(this.worksheet.preparedRows[rowIndex], rowIndex) + '>' +
-		rowChildren.join('') +
-		'</row>';
-};
+	return '<row' + getRowAttributes(row, rowIndex) + '>' + rowChildren.join('') + '</row>';
+}
 
-Export.prototype.getRowAttributes = function (row, rowIndex) {
+function getRowAttributes(row, rowIndex) {
 	var attributes = ' r="' + (rowIndex + 1) + '"';
 
 	if (row) {
@@ -165,9 +157,9 @@ Export.prototype.getRowAttributes = function (row, rowIndex) {
 		}
 	}
 	return attributes;
-};
+}
 
-Export.prototype.exportDimension = function (maxX, maxY) {
+function exportDimension(maxX, maxY) {
 	var attributes = [];
 
 	if (maxX !== 0) {
@@ -184,9 +176,9 @@ Export.prototype.exportDimension = function (maxX, maxY) {
 		name: 'dimension',
 		attributes: attributes
 	});
-};
+}
 
-Export.prototype.exportColumns = function (columns) {
+function exportColumns(columns) {
 	if (columns.length) {
 		var children = _.map(columns, function (column, index) {
 			column = column || {};
@@ -226,15 +218,4 @@ Export.prototype.exportColumns = function (columns) {
 		});
 	}
 	return '';
-};
-
-Export.prototype.getXMLBegin = function () {
-	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
-		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">';
-};
-
-Export.prototype.getXMLEnd = function () {
-	return '</worksheet>';
-};
-
-module.exports = Export;
+}

@@ -2,41 +2,37 @@
 
 var _ = require('lodash');
 
-function PrepareExport(worksheet) {
-	this.worksheet = worksheet;
-}
+module.exports = {
+	_prepare: function () {
+		var rowIndex;
+		var len;
+		var maxX = 0;
+		var row;
 
-PrepareExport.prototype.prepare = function () {
-	var worksheet = this.worksheet;
-	var rowIndex;
-	var len;
-	var maxX = 0;
-	var row;
+		this._prepareTables();
 
-	worksheet.tables._prepare();
+		this.preparedData = [];
+		this.preparedRows = [];
 
-	worksheet.preparedData = [];
-	worksheet.preparedRows = [];
+		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
+			row = prepareRow(this, rowIndex);
 
-	for (rowIndex = 0, len = worksheet.data.length; rowIndex < len; rowIndex++) {
-		row = this.prepareRow(rowIndex);
-
-		if (row) {
-			if (row.length > maxX) {
-				maxX = row.length;
+			if (row) {
+				if (row.length > maxX) {
+					maxX = row.length;
+				}
 			}
 		}
+
+		this.data = null;
+		this.rows = null;
+
+		this.maxX = maxX;
+		this.maxY = this.preparedData.length;
 	}
-
-	worksheet.data = null;
-	worksheet.rows = null;
-
-	worksheet.maxX = maxX;
-	worksheet.maxY = worksheet.preparedData.length;
 };
 
-PrepareExport.prototype.prepareRow = function (rowIndex) {
-	var worksheet = this.worksheet;
+function prepareRow(worksheet, rowIndex) {
 	var styles = worksheet.common.styles;
 	var row = worksheet.rows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
@@ -95,18 +91,18 @@ PrepareExport.prototype.prepareRow = function (rowIndex) {
 				}
 
 				if (value.hyperlink) {
-					worksheet.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
+					worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
 				}
 				if (value.image) {
-					worksheet.drawing.insert(colIndex, rowIndex, value.image);
+					worksheet._insertDrawing(colIndex, rowIndex, value.image);
 				}
 				if (value.colspan || value.rowspan) {
 					colSpan = (value.colspan || 1) - 1;
 					rowSpan = (value.rowspan || 1) - 1;
 
-					worksheet.mergedCells.merge({c: colIndex + 1, r: rowIndex + 1},
+					worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
 						{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-					worksheet.mergedCells.insert(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+					worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 				}
 			} else {
 				cellValue = value;
@@ -161,6 +157,4 @@ PrepareExport.prototype.prepareRow = function (rowIndex) {
 	worksheet.preparedRows[rowIndex] = row;
 
 	return preparedRow;
-};
-
-module.exports = PrepareExport;
+}
