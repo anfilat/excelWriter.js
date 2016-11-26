@@ -39,7 +39,7 @@ function Anchor(config) {
 	};
 }
 
-Anchor.prototype._exportWithContent = function (content) {
+Anchor.prototype.exportWithContent = function (content) {
 	return toXMLString({
 		name: 'xdr:twoCellAnchor',
 		children: [

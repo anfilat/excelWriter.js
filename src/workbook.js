@@ -8,11 +8,11 @@ var Worksheet = require('./worksheet');
 var toXMLString = require('./XMLString');
 
 function Workbook() {
-	this.objectId = _.uniqueId('Workbook');
-
 	this.common = new Common();
-	this.relations = new RelationshipManager(this.common);
 	this.styles = this.common.styles;
+	this.relations = new RelationshipManager(this.common);
+
+	this.objectId = this.common.uniqueId('Workbook');
 }
 
 Workbook.prototype.addWorksheet = function (config) {
@@ -81,7 +81,7 @@ Workbook.prototype._generateFiles = function (zip, canStream) {
 	zip.file('[Content_Types].xml', createContentTypes(this.common));
 	zip.file('_rels/.rels', createWorkbookRelationship());
 	zip.file('xl/workbook.xml', this._export());
-	zip.file('xl/_rels/workbook.xml.rels', this.relations._export());
+	zip.file('xl/_rels/workbook.xml.rels', this.relations.export());
 };
 
 Workbook.prototype._export = function () {
@@ -205,7 +205,7 @@ function prepareWorksheets(common) {
 function exportWorksheets(zip, canStream, common) {
 	_.forEach(common.worksheets, function (worksheet) {
 		zip.file(worksheet.path, worksheet._export(canStream));
-		zip.file(worksheet.relationsPath, worksheet.relations._export());
+		zip.file(worksheet.relationsPath, worksheet.relations.export());
 	});
 }
 
@@ -216,35 +216,34 @@ function exportTables(zip, common) {
 }
 
 function exportImages(zip, common) {
-	_.forEach(common.images, function (image) {
+	_.forEach(common.getImages(), function (image) {
 		zip.file(image.path, image.data, {base64: true, binary: true});
 		image.data = null;
 	});
-	common.images = null;
+	common.removeImages();
 }
 
 function exportDrawings(zip, common) {
 	_.forEach(common.drawings, function (drawing) {
-		zip.file(drawing.path, drawing._export());
-		zip.file(drawing.relationsPath, drawing.relations._export());
+		zip.file(drawing.path, drawing.export());
+		zip.file(drawing.relationsPath, drawing.relations.export());
 	});
 }
 
 function exportStyles(zip, relations, styles) {
 	relations.addRelation(styles, 'stylesheet');
-	zip.file('xl/styles.xml', styles._export());
+	zip.file('xl/styles.xml', styles.export());
 }
 
 function exportSharedStrings(zip, canStream, relations, common) {
 	if (!common.sharedStrings.isEmpty()) {
 		relations.addRelation(common.sharedStrings, 'sharedStrings');
-		zip.file('xl/sharedStrings.xml', common.sharedStrings._export(canStream));
+		zip.file('xl/sharedStrings.xml', common.sharedStrings.export(canStream));
 	}
 }
 
 function createContentTypes(common) {
 	var children = [];
-	var extensions = {};
 
 	children.push(toXMLString({
 		name: 'Default',
@@ -302,10 +301,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.imageByNames, function (image) {
-		extensions[image.extension] = image.contentType;
-	});
-	_.forEach(extensions, function (contentType, extension) {
+	_.forEach(common.getExtensions(), function (contentType, extension) {
 		children.push(toXMLString({
 			name: 'Default',
 			attributes: [

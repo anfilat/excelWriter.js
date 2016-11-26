@@ -5,9 +5,10 @@ var util = require('./util');
 var toXMLString = require('./XMLString');
 
 function RelationshipManager(common) {
-	this.relations = {};
+	this.common = common;
+
+	this.relations = Object.create(null);
 	this.lastId = 1;
-	this.paths = common.paths;
 }
 
 RelationshipManager.prototype.addRelation = function (object, type) {
@@ -34,13 +35,13 @@ RelationshipManager.prototype.getRelationshipId = function (object) {
 	return relation ? relation.relationId : null;
 };
 
-RelationshipManager.prototype._export = function () {
-	var paths = this.paths;
+RelationshipManager.prototype.export = function () {
+	var common = this.common;
 	var children = _.map(this.relations, function (relation) {
 		var attributes = [
 			['Id', relation.relationId],
 			['Type', relation.schema],
-			['Target', relation.object.target || paths.get(relation.object)]
+			['Target', relation.object.target || common.getPath(relation.object)]
 		];
 
 		if (relation.object.targetMode) {

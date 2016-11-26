@@ -12,7 +12,7 @@ function AnchorAbsolute(config) {
 	this.height = util.pixelsToEMUs(config.height || 0);
 }
 
-AnchorAbsolute.prototype._exportWithContent = function (content) {
+AnchorAbsolute.prototype.exportWithContent = function (content) {
 	return toXMLString({
 		name: 'xdr:absoluteAnchor',
 		children: [

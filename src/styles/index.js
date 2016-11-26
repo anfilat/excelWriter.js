@@ -1,6 +1,5 @@
 'use strict';
 
-var _ = require('lodash');
 var numberFormats = require('./numberFormats');
 var fonts = require('./fonts');
 var fills = require('./fills');
@@ -10,8 +9,8 @@ var tables = require('./tables');
 var tableElements = require('./tableElements');
 var toXMLString = require('../XMLString');
 
-function Styles() {
-	this.objectId = _.uniqueId('Styles');
+function Styles(common) {
+	this.objectId = common.uniqueId('Styles');
 	this.numberFormats = new numberFormats.NumberFormats(this);
 	this.fonts = new fonts.Fonts(this);
 	this.fills = new fills.Fills(this);
@@ -58,7 +57,7 @@ Styles.prototype.setDefaultTableStyle = function (name) {
 	this.tables.defaultTableStyle = name;
 };
 
-Styles.prototype._export = function () {
+Styles.prototype.export = function () {
 	return toXMLString({
 		name: 'styleSheet',
 		ns: 'spreadsheetml',

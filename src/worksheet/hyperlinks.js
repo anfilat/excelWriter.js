@@ -5,13 +5,14 @@ var util = require('../util');
 var toXMLString = require('../XMLString');
 
 function Hyperlinks(worksheet) {
+	this.common = worksheet.common;
 	this.relations = worksheet.relations;
 
 	this.hyperlinks = [];
 }
 
 Hyperlinks.prototype.set = function (hyperlink) {
-	hyperlink.objectId = _.uniqueId('hyperlink');
+	hyperlink.objectId = this.common.uniqueId('hyperlink');
 	this.relations.addRelation({
 		objectId: hyperlink.objectId,
 		target: hyperlink.location,
@@ -40,7 +41,7 @@ Hyperlinks.prototype.insert = function (colIndex, rowIndex, hyperlink) {
 	});
 };
 
-Hyperlinks.prototype._export = function () {
+Hyperlinks.prototype.export = function () {
 	var relations = this.relations;
 
 	if (this.hyperlinks.length > 0) {

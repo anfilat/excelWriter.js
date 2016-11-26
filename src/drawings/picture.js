@@ -1,13 +1,13 @@
 'use strict';
 
-var Anchor = require('./anchor/anchor');
-var AnchorOneCell = require('./anchor/anchorOneCell');
-var AnchorAbsolute = require('./anchor/anchorAbsolute');
-var util = require('./util');
-var toXMLString = require('./XMLString');
+var util = require('../util');
+var toXMLString = require('../XMLString');
+var Anchor = require('./anchor');
+var AnchorOneCell = require('./anchorOneCell');
+var AnchorAbsolute = require('./anchorAbsolute');
 
-function Picture(config) {
-	this.objectId = util.uniqueId('Picture');
+function Picture(common, config) {
+	this.pictureId = common.uniqueIdSeparated('Picture').id;
 	this.image = config.image;
 	this.imageRelationId = config.imageRelationId;
 	this.createAnchor(config.anchorType, config.config);
@@ -32,7 +32,7 @@ Picture.prototype.createAnchor = function (type, config) {
 	}
 };
 
-Picture.prototype._export = function () {
+Picture.prototype.export = function () {
 	var picture = toXMLString({
 		name: 'xdr:pic',
 		children: [
@@ -42,7 +42,7 @@ Picture.prototype._export = function () {
 					toXMLString({
 						name: 'xdr:cNvPr',
 						attributes: [
-							['id', this.objectId],
+							['id', this.pictureId],
 							['name', this.image.name]
 						]
 					}),
@@ -103,7 +103,7 @@ Picture.prototype._export = function () {
 		]
 	});
 
-	return this.anchor._exportWithContent(picture);
+	return this.anchor.exportWithContent(picture);
 };
 
 module.exports = Picture;

@@ -1,7 +1,6 @@
 'use strict';
 
 var _ = require('lodash');
-var idSpaces = {};
 var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 var LETTER_REFS = {};
 
@@ -48,18 +47,6 @@ function letterToPosition(cell) {
 }
 
 var util = {
-	/**
-	 * Returns a number based on a namespace. So, running with 'Picture' will return 1. Run again, you will get 2. Run with 'Foo', you'll get 1.
-	 * @param {String} space
-	 * @returns {Number}
-	 */
-	uniqueId: function (space) {
-		if (!idSpaces[space]) {
-			idSpaces[space] = 1;
-		}
-		return idSpaces[space]++;
-	},
-
 	inherits: function (ctor, superCtor) {
 		var Obj = function () {};
 		Obj.prototype = superCtor.prototype;

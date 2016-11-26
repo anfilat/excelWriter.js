@@ -91,7 +91,7 @@ Print.prototype.setPrintTitleLeft = function (params) {
 	}
 };
 
-Print.prototype._export = function () {
+Print.prototype.export = function () {
 	return exportPageMargins(this._margin) +
 		exportPageSetup(this._orientation) +
 		exportHeaderFooter(this.headers, this.footers);

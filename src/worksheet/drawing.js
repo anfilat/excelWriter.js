@@ -43,7 +43,7 @@ Drawing.prototype.insert = function (colIndex, rowIndex, image) {
 	}
 };
 
-Drawing.prototype._export = function () {
+Drawing.prototype.export = function () {
 	if (this.drawings) {
 		return toXMLString({
 			name: 'drawing',

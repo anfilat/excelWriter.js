@@ -14,10 +14,10 @@ var RelationshipManager = require('../relationshipManager');
 function Worksheet(workbook, config) {
 	config = config || {};
 
-	this.objectId = _.uniqueId('Worksheet');
 	this.workbook = workbook;
 	this.common = workbook.common;
 
+	this.objectId = this.common.uniqueId('Worksheet');
 	this.data = [];
 	this.columns = [];
 	this.rows = [];

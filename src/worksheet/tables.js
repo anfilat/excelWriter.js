@@ -30,7 +30,7 @@ Tables.prototype._prepare = function () {
 	});
 };
 
-Tables.prototype._export = function () {
+Tables.prototype.export = function () {
 	var relations = this.relations;
 
 	if (this.tables.length > 0) {

@@ -131,7 +131,7 @@ SheetView.prototype.split = function (x, y, cell, activePane) {
 	};
 };
 
-SheetView.prototype._export = function () {
+SheetView.prototype.export = function () {
 	var attributes = [
 		['workbookViewId', 0]
 	];

@@ -2,22 +2,15 @@
 
 var Readable = require('stream').Readable;
 var _ = require('lodash');
-var util = require('./util');
+var util = require('../util');
 
-function SharedStrings() {
-	this.objectId = _.uniqueId('SharedStrings');
+function SharedStrings(common) {
+	this.objectId = common.uniqueId('SharedStrings');
 	this._strings = Object.create(null);
 	this._stringArray = [];
 }
 
-/**
- * Adds a string to the shared string file, and returns the ID of the
- * string which can be used to reference it in worksheets.
- *
- * @param string {String}
- * @return int
- */
-SharedStrings.prototype.addString = function (string) {
+SharedStrings.prototype.add = function (string) {
 	var stringId = this._strings[string];
 
 	if (stringId === undefined) {
@@ -34,14 +27,14 @@ SharedStrings.prototype.isEmpty = function () {
 	return this._stringArray.length === 0;
 };
 
-SharedStrings.prototype._export = function (canStream) {
+SharedStrings.prototype.export = function (canStream) {
+	this._strings = null;
+
 	if (canStream) {
 		return new SharedStringsStream({
 			strings: this._stringArray
 		});
 	} else {
-		this._strings = null;
-
 		var len = this._stringArray.length;
 		var children = _.map(this._stringArray, function (string) {
 			return '<si><t>' + _.escape(string) + '</t></si>';
@@ -64,7 +57,6 @@ SharedStringsStream.prototype._read = function (size) {
 	var stop = false;
 
 	if (this.status === 0) {
-		this._strings = null;
 		stop = !this.push(getXMLBegin(this.strings.length));
 
 		this.status = 1;

@@ -30,7 +30,7 @@ function AnchorOneCell(config) {
 	this.height = util.pixelsToEMUs(config.height || 0);
 }
 
-AnchorOneCell.prototype._exportWithContent = function (content) {
+AnchorOneCell.prototype.exportWithContent = function (content) {
 	return toXMLString({
 		name: 'xdr:oneCellAnchor',
 		children: [

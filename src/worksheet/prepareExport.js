@@ -133,14 +133,14 @@ PrepareExport.prototype.prepareRow = function (rowIndex) {
 			}
 
 			if (cellType === 'string') {
-				cellValue = worksheet.common.sharedStrings.addString(cellValue);
+				cellValue = worksheet.common.sharedStrings.add(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
 				date = 25569.0 + (cellValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
-					cellValue = worksheet.common.sharedStrings.addString(String(cellValue));
+					cellValue = worksheet.common.sharedStrings.add(String(cellValue));
 					isString = true;
 				}
 			} else if (cellType === 'formula') {

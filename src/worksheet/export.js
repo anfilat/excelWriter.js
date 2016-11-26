@@ -73,7 +73,7 @@ Export.prototype.exportBeforeRows = function () {
 
 	return this.getXMLBegin() +
 		this.exportDimension(worksheet.maxX, worksheet.maxY) +
-		worksheet.sheetView._export() +
+		worksheet.sheetView.export() +
 		this.exportColumns(worksheet.columns) +
 		'<sheetData>';
 };
@@ -84,13 +84,13 @@ Export.prototype.exportAfterRows = function () {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		worksheet.mergedCells._export() +
-		worksheet.hyperlinks._export() +
-		worksheet.print._export() +
-		worksheet.tables._export() +
+		worksheet.mergedCells.export() +
+		worksheet.hyperlinks.export() +
+		worksheet.print.export() +
+		worksheet.tables.export() +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
-		worksheet.drawing._export() +
+		worksheet.drawing.export() +
 		this.getXMLEnd();
 };
 

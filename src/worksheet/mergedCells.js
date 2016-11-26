@@ -55,7 +55,7 @@ MergedCells.prototype.insert = function (dataRow, colIndex, rowIndex, colSpan, r
 	}
 };
 
-MergedCells.prototype._export = function () {
+MergedCells.prototype.export = function () {
 	if (this.mergedCells.length > 0) {
 		var children = _.map(this.mergedCells, function (mergeCell) {
 			return toXMLString({

@@ -7,8 +7,11 @@ var toXMLString = require('./XMLString');
 function Table(worksheet, config) {
 	this.worksheet = worksheet;
 	this.common = worksheet.common;
-	this.tableId = util.uniqueId('Table');
-	this.objectId = 'Table' + this.tableId;
+
+	var id = this.common.uniqueIdSeparated('Table');
+
+	this.tableId = id.id;
+	this.objectId = id.space + id.id;
 	this.name = this.objectId;
 	this.displayName = this.objectId;
 	this.headerRowBorderDxfId = null;
