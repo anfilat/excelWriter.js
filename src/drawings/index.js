@@ -1,7 +1,7 @@
 'use strict';
 
 var _ = require('lodash');
-var RelationshipManager = require('../relationshipManager');
+var Relations = require('../relations');
 var util = require('../util');
 var toXMLString = require('../XMLString');
 var Picture = require('./picture');
@@ -11,7 +11,7 @@ function Drawings(common) {
 
 	this.objectId = this.common.uniqueId('Drawings');
 	this.drawings = [];
-	this.relations = new RelationshipManager(common);
+	this.relations = new Relations(common);
 }
 
 Drawings.prototype.addImage = function (name, config, anchorType) {

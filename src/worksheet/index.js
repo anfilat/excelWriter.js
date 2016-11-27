@@ -9,7 +9,7 @@ var drawing = require('./drawing');
 var tables = require('./tables');
 var prepareExport = require('./prepareExport');
 var worksheetExport = require('./export');
-var RelationshipManager = require('../relationshipManager');
+var Relations = require('../relations');
 
 function Worksheet(workbook, config) {
 	config = config || {};
@@ -32,7 +32,7 @@ function Worksheet(workbook, config) {
 	this.name = config.name;
 	this.state = config.state || 'visible';
 	this.timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
-	this.relations = new RelationshipManager(this.common);
+	this.relations = new Relations(this.common);
 }
 
 _.assign(Worksheet.prototype, prepareExport);

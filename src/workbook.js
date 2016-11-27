@@ -3,14 +3,14 @@
 var _ = require('lodash');
 var util = require('./util');
 var Common = require('./common');
-var RelationshipManager = require('./relationshipManager');
+var Relations = require('./relations');
 var Worksheet = require('./worksheet');
 var toXMLString = require('./XMLString');
 
 function Workbook() {
 	this.common = new Common();
 	this.styles = this.common.styles;
-	this.relations = new RelationshipManager(this.common);
+	this.relations = new Relations(this.common);
 
 	this.objectId = this.common.uniqueId('Workbook');
 }

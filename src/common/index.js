@@ -43,6 +43,10 @@ Common.prototype.uniqueIdSeparated = function (space) {
 	};
 };
 
+Common.prototype.addString = function (string) {
+	return this.sharedStrings.add(string);
+};
+
 Common.prototype.addWorksheet = function (worksheet) {
 	var index = this.worksheets.length + 1;
 	var path = 'worksheets/sheet' + index + '.xml';

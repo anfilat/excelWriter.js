@@ -33,7 +33,8 @@ module.exports = {
 };
 
 function prepareRow(worksheet, rowIndex) {
-	var styles = worksheet.common.styles;
+	var common = worksheet.common;
+	var styles = common.styles;
 	var row = worksheet.rows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
 	var preparedRow = [];
@@ -129,14 +130,14 @@ function prepareRow(worksheet, rowIndex) {
 			}
 
 			if (cellType === 'string') {
-				cellValue = worksheet.common.sharedStrings.add(cellValue);
+				cellValue = common.addString(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
 				date = 25569.0 + (cellValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
-					cellValue = worksheet.common.sharedStrings.add(String(cellValue));
+					cellValue = common.addString(String(cellValue));
 					isString = true;
 				}
 			} else if (cellType === 'formula') {
