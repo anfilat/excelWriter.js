@@ -39,6 +39,8 @@ Cells.prototype.canon = function (format) {
 		result.fill = this.styles.fills.add(format.pattern, 'pattern');
 	} else if (format.gradient) {
 		result.fill = this.styles.fills.add(format.gradient, 'gradient');
+	} else if (format.fill) {
+		result.fill = this.styles.fills.add(format.fill, format.fillType);
 	}
 	if (format.border) {
 		result.border = this.styles.borders.add(format.border);
@@ -48,16 +50,38 @@ Cells.prototype.canon = function (format) {
 	return result;
 };
 
+Cells.prototype.merge = function (formatTo, formatFrom) {
+	if (formatTo.format || formatFrom.format) {
+		formatTo.format = this.styles.numberFormats.merge(formatTo.format, formatFrom.format);
+	}
+	if (formatTo.font || formatFrom.font) {
+		formatTo.font = this.styles.fonts.merge(formatTo.font, formatFrom.font);
+	}
+	if (formatTo.fill || formatFrom.fill) {
+		formatTo.fill = this.styles.fills.merge(formatTo.fill, formatFrom.fill);
+	}
+	if (formatTo.border || formatFrom.border) {
+		formatTo.border = this.styles.borders.merge(formatTo.border, formatFrom.border);
+	}
+	if (formatTo.alignment || formatFrom.alignment) {
+		formatTo.alignment = alignment.merge(formatTo.alignment, formatFrom.alignment);
+	}
+	if (formatTo.protection || formatFrom.protection) {
+		formatTo.protection = protection.merge(formatTo.protection, formatFrom.protection);
+	}
+	return formatTo;
+};
+
 Cells.prototype.exportFormat = function (format) {
 	var styles = this.styles;
 	var attributes = [];
 	var children = [];
 
-	if (format.alignment && format.alignment.length) {
+	if (format.alignment) {
 		children.push(alignment.export(format.alignment));
 		attributes.push(['applyAlignment', 'true']);
 	}
-	if (format.protection && format.protection.length) {
+	if (format.protection) {
 		children.push(protection.export(format.protection));
 		attributes.push(['applyProtection', 'true']);
 	}

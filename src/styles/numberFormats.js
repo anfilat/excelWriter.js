@@ -24,12 +24,19 @@ NumberFormats.prototype.init = function () {
 	var self = this;
 
 	_.forEach(PREDEFINED, function (formatId, format) {
-		self.formatsByNames[format] = {formatId: formatId};
+		self.formatsByNames[format] = {
+			formatId: formatId,
+			format: format
+		};
 	});
 };
 
 NumberFormats.prototype.canon = canon;
 NumberFormats.prototype.exportFormat = exportFormat;
+
+NumberFormats.prototype._merge = function (formatTo, formatFrom) {
+	return formatFrom || formatTo;
+};
 
 function canon(format) {
 	return format;

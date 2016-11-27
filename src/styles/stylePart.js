@@ -39,7 +39,7 @@ StylePart.prototype.add = function (format, type, name) {
 		return format;
 	}
 
-	canonFormat = this.canon(format, type);
+	canonFormat = this.canon(format, type || format.fillType);
 	if (_.isObject(canonFormat)) {
 		stringFormat = JSON.stringify(canonFormat);
 	} else {
@@ -107,6 +107,10 @@ StylePart.prototype.export = function () {
 
 StylePart.prototype.canon = function (format) {
 	return format;
+};
+
+StylePart.prototype.merge = function (formatTo, formatFrom) {
+	return this.add(this._merge(this.get(formatTo), this.get(formatFrom)));
 };
 
 StylePart.prototype.exportCollectionExt = function () {};

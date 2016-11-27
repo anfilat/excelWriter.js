@@ -29,6 +29,29 @@ Styles.prototype._getId = function (name) {
 	return this.cells.getId(name);
 };
 
+Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {
+	var count = Number(Boolean(columnFormat)) + Number(Boolean(rowFormat)) + Number(Boolean(cellFormat));
+
+	if (count === 0) {
+		return null;
+	} else if (count === 1) {
+		return columnFormat || rowFormat || cellFormat;
+	} else {
+		var format = {};
+
+		if (columnFormat) {
+			format = this.cells.merge(format, this.cells.get(columnFormat));
+		}
+		if (rowFormat) {
+			format = this.cells.merge(format, this.cells.get(rowFormat));
+		}
+		if (cellFormat) {
+			format = this.cells.merge(format, this.cells.get(cellFormat));
+		}
+		return this.cells.add(format);
+	}
+};
+
 Styles.prototype.addFontFormat = function (format, name) {
 	return this.fonts.add(format, null, name);
 };

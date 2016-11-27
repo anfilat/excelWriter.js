@@ -6,26 +6,31 @@ var toXMLString = require('../XMLString');
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.protection.aspx
 
 function canon(format) {
-	var result = [];
+	var result = {};
 
-	if (_.has(format, 'locked') && !format.locked) {
-		result.push(['locked', 0]);
+	if (_.has(format, 'locked')) {
+		result.locked = format.locked ? 1 : 0;
 	}
-	if (format.hidden) {
-		result.push(['hidden', 1]);
+	if (_.has(format, 'hidden')) {
+		result.hidden = format.hidden ? 1 : 0;
 	}
 
-	return result.length ? result : undefined;
+	return _.isEmpty(result) ? null : result;
 }
 
-function exportProtection(attributes) {
+function merge(formatTo, formatFrom) {
+	return _.assign(formatTo, formatFrom);
+}
+
+function exportProtection(format) {
 	return toXMLString({
 		name: 'protection',
-		attributes: attributes
+		attributes: _.toPairs(format)
 	});
 }
 
 module.exports = {
 	canon: canon,
+	merge: merge,
 	export: exportProtection
 };

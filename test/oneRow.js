@@ -23,7 +23,7 @@ module.exports = function (excel) {
 			italic: true,
 			color: 'FFFF0000'
 		},
-		pattern: {type: 'darkHorizontal', color: 'FF008800', backColor: 'FF000088'},
+		pattern: {type: 'darkHorizontal', color: 'FF88FF88', backColor: 'FF8888F0'},
 		locked: false,
 		hidden: true
 	});

@@ -27,6 +27,24 @@ Borders.prototype.init = function () {
 Borders.prototype.canon = canon;
 Borders.prototype.exportFormat = exportFormat;
 
+Borders.prototype._merge = function (formatTo, formatFrom) {
+	formatTo = formatTo || {};
+
+	_.forEach(BORDERS, function (name) {
+		var borderFrom = formatFrom[name];
+
+		if (borderFrom && (borderFrom.style || borderFrom.color)) {
+			formatTo[name] = {
+				style: borderFrom.style,
+				color: borderFrom.color
+			};
+		} else if (!formatTo[name]) {
+			formatTo[name] = {};
+		}
+	});
+	return formatTo;
+};
+
 function canon(format) {
 	var result = {};
 

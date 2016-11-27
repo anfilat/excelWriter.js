@@ -84,13 +84,11 @@ function prepareDataRow(worksheet, rowIndex) {
 	var cellType;
 	var cellFormula;
 	var isString;
-	var colSpan;
-	var rowSpan;
 	var date;
 
 	if (dataRow) {
 		if (!_.isArray(dataRow)) {
-			row = mergeDataRowToRow(row, dataRow);
+			row = mergeDataRowToRow(worksheet, row, dataRow);
 			dataRow = dataRow.data;
 		}
 		if (row) {
@@ -105,10 +103,13 @@ function prepareDataRow(worksheet, rowIndex) {
 				continue;
 			}
 
+			cellStyle = null;
 			cellFormula = null;
 			isString = false;
 			if (value && typeof value === 'object') {
-				cellStyle = value.style || null;
+				if (value.style) {
+					cellStyle = styles.addFormat(value.style);
+				}
 				if (value.formula) {
 					cellValue = value.formula;
 					cellType = 'formula';
@@ -123,33 +124,13 @@ function prepareDataRow(worksheet, rowIndex) {
 					cellType = value.type;
 				}
 
-				if (value.hyperlink) {
-					worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
-				}
-				if (value.image) {
-					worksheet._insertDrawing(colIndex, rowIndex, value.image);
-				}
-				if (value.colspan || value.rowspan) {
-					colSpan = (value.colspan || 1) - 1;
-					rowSpan = (value.rowspan || 1) - 1;
-
-					worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
-						{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-					worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
-				}
+				insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex);
 			} else {
 				cellValue = value;
-				cellStyle = null;
 				cellType = null;
 			}
 
-			if (cellStyle === null) {
-				if (rowStyle !== null) {
-					cellStyle = rowStyle;
-				} else if (column && column.style) {
-					cellStyle = column.style;
-				}
-			}
+			cellStyle = styles._merge(column ? column.style : null, rowStyle, cellStyle);
 
 			if (!cellType) {
 				if (column && column.type) {
@@ -180,7 +161,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			preparedDataRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				styleId: cellStyle ? styles._getId(styles.addFormat(cellStyle)) : null,
+				styleId: cellStyle ? styles._getId(cellStyle) : null,
 				isString: isString
 			};
 		}
@@ -195,11 +176,31 @@ function prepareDataRow(worksheet, rowIndex) {
 	return preparedDataRow;
 }
 
-function mergeDataRowToRow(row, dataRow) {
+function mergeDataRowToRow(worksheet, row, dataRow) {
 	row = row || {};
 	row.height = dataRow.height || row.height;
-	row.style = dataRow.style || row.style;
+	row.style = dataRow.style ? worksheet.common.styles.addFormat(dataRow.style) : row.style;
 	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
 
 	return row;
+}
+
+function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
+	var colSpan;
+	var rowSpan;
+
+	if (value.hyperlink) {
+		worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+	}
+	if (value.image) {
+		worksheet._insertDrawing(colIndex, rowIndex, value.image);
+	}
+	if (value.colspan || value.rowspan) {
+		colSpan = (value.colspan || 1) - 1;
+		rowSpan = (value.rowspan || 1) - 1;
+
+		worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
+			{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
+		worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+	}
 }

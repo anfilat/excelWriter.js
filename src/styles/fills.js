@@ -30,16 +30,21 @@ Fills.prototype.init = function () {
 Fills.prototype.canon = canon;
 Fills.prototype.exportFormat = exportFormat;
 
+Fills.prototype._merge = function (formatTo, formatFrom) {
+	return formatFrom || formatTo;
+};
+
 function canon(format, type, isTable) {
 	var result = {
-		type: type
+		fillType: type
 	};
 
 	if (type === 'pattern') {
-		var fgColor = format.color || 'FFFFFFFF';
-		var bgColor = format.backColor || 'FFFFFFFF';
+		var fgColor = format.color || format.fgColor || 'FFFFFFFF';
+		var bgColor = format.backColor || format.bgColor || 'FFFFFFFF';
+		var patternType = format.type || format.patternType;
 
-		result.patternType = _.includes(PATTERN_TYPES, format.type) ? format.type : 'solid';
+		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
 		if (isTable && result.patternType === 'solid') {
 			result.fgColor = bgColor;
 			result.bgColor = fgColor;
@@ -65,7 +70,7 @@ function canon(format, type, isTable) {
 function exportFormat(format) {
 	var children;
 
-	if (format.type === 'pattern') {
+	if (format.fillType === 'pattern') {
 		children = [exportPatternFill(format)];
 	} else {
 		children = [exportGradientFill(format)];
