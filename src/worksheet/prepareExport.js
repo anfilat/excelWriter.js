@@ -7,24 +7,26 @@ module.exports = {
 		var rowIndex;
 		var len;
 		var maxX = 0;
-		var row;
-
-		this._prepareTables();
+		var preparedDataRow;
 
 		this.preparedData = [];
+		this.preparedColumns = [];
 		this.preparedRows = [];
 
-		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
-			row = prepareRow(this, rowIndex);
+		this._prepareTables();
+		prepareColumns(this);
+		prepareRows(this);
 
-			if (row) {
-				if (row.length > maxX) {
-					maxX = row.length;
-				}
+		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
+			preparedDataRow = prepareDataRow(this, rowIndex);
+
+			if (preparedDataRow.length > maxX) {
+				maxX = preparedDataRow.length;
 			}
 		}
 
 		this.data = null;
+		this.columns = null;
 		this.rows = null;
 
 		this.maxX = maxX;
@@ -32,12 +34,47 @@ module.exports = {
 	}
 };
 
-function prepareRow(worksheet, rowIndex) {
+function prepareColumns(worksheet) {
+	var styles = worksheet.common.styles;
+
+	_.forEach(worksheet.columns, function (column, index) {
+		var preparedColumn;
+
+		if (column) {
+			preparedColumn = _.clone(column);
+
+			if (column.style) {
+				preparedColumn.style = styles.addFormat(column.style);
+				preparedColumn.styleId = styles._getId(preparedColumn.style);
+			}
+			worksheet.preparedColumns[index] = preparedColumn;
+		}
+	});
+}
+
+function prepareRows(worksheet) {
+	var styles = worksheet.common.styles;
+
+	_.forEach(worksheet.rows, function (row, index) {
+		var preparedRow;
+
+		if (row) {
+			preparedRow = _.clone(row);
+
+			if (row.style) {
+				preparedRow.style = styles.addFormat(row.style);
+			}
+			worksheet.preparedRows[index] = preparedRow;
+		}
+	});
+}
+
+function prepareDataRow(worksheet, rowIndex) {
 	var common = worksheet.common;
 	var styles = common.styles;
-	var row = worksheet.rows[rowIndex];
+	var row = worksheet.preparedRows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
-	var preparedRow = [];
+	var preparedDataRow = [];
 	var rowStyle = null;
 	var column;
 	var colIndex;
@@ -52,21 +89,16 @@ function prepareRow(worksheet, rowIndex) {
 	var date;
 
 	if (dataRow) {
-		if (dataRow.data) {
-			row = row || {};
-			row.height = dataRow.height || row.height;
-			row.style = dataRow.style || row.style;
-			row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
-
+		if (!_.isArray(dataRow)) {
+			row = mergeDataRowToRow(row, dataRow);
 			dataRow = dataRow.data;
 		}
 		if (row) {
 			rowStyle = row.style || null;
-			row.style = styles.cells.getId(row.style);
 		}
 
 		for (colIndex = 0; colIndex < dataRow.length; colIndex++) {
-			column = worksheet.columns[colIndex];
+			column = worksheet.preparedColumns[colIndex];
 			value = dataRow[colIndex];
 
 			if (_.isNil(value)) {
@@ -145,17 +177,29 @@ function prepareRow(worksheet, rowIndex) {
 				cellValue = null;
 			}
 
-			preparedRow[colIndex] = {
+			preparedDataRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				style: styles.cells.getId(cellStyle),
+				styleId: cellStyle ? styles._getId(styles.addFormat(cellStyle)) : null,
 				isString: isString
 			};
 		}
 	}
 
-	worksheet.preparedData[rowIndex] = preparedRow;
-	worksheet.preparedRows[rowIndex] = row;
+	worksheet.preparedData[rowIndex] = preparedDataRow;
+	if (row) {
+		row.styleId = styles._getId(row.style);
+		worksheet.preparedRows[rowIndex] = row;
+	}
 
-	return preparedRow;
+	return preparedDataRow;
+}
+
+function mergeDataRowToRow(row, dataRow) {
+	row = row || {};
+	row.height = dataRow.height || row.height;
+	row.style = dataRow.style || row.style;
+	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
+
+	return row;
 }

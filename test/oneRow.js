@@ -18,11 +18,6 @@ module.exports = function (excel) {
 		format: currency,
 		horizontal: 'center'
 	});
-	var columnFormat = workbook.addFormat({
-		gradient: {left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, start: 'FFFFFF00', end: 'FF5B9BD5'}
-	});
-	var currencyFormat = workbook.addFormat({format: 'currency'});
-	var dateFormat = workbook.addFormat({format: 'date', horizontal: 'right', indent: 1});
 	var fillFormat = workbook.addFormat({
 		font: {
 			italic: true,
@@ -34,8 +29,12 @@ module.exports = function (excel) {
 	});
 	var columns = [
 		{width: 10},
-		{width: 40, style: columnFormat},
-		{style: currencyFormat}
+		{
+			width: 50,
+			style: {gradient: {left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, start: 'FFFFFF00', end: 'FF5B9BD5'}}
+		},
+		{style: {format: 'currency'}},
+		{width: 15}
 	];
 	var worksheetData = [
 		{
@@ -47,22 +46,26 @@ module.exports = function (excel) {
 		},
 		{
 			outlineLevel: 1,
-			data: [{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
-				'Dolore anim', 'not date', {date: 1342977404000}]
+			data: [{value: 2541, style: header}, 'Labore duis cillum dolor adipisicing cillum dolore.', 205,
+				{value: 'Dolore anim', style: {font: {bold: true}}}, 'not date', {date: 1342977404000}]
 		},
-		[{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
-			'Dolore anim', 1342372604000, {time: 1342977404000}],
-		[{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
-			'Dolore anim', 1342372604000, {time: 1342977404000}]
+		[{value: 2541, style: header}, 'Irure duis sit cupidatat culpa adipisicing nisi.', 59,
+			'Ullamco cillum', 1342372604000, {time: 1342977404000}],
+		[{value: 2541, style: header}, 'Est sunt esse elit reprehenderit exercitation irure.', 145,
+			'Culpa occaecat', 1342372604000, {time: 1342977404000}]
 	];
 
 	workbook.addWorksheet()
 		.setData(worksheetData)
 		.setData(7, worksheetData)
 		.setColumns(columns)
-		.setColumn(5, {width: 12, style: dateFormat, type: 'date'})
-		.setRow(2, {height: 30})
-		.setRows(3, [{height: 30}, {height: 30}]);
+		.setColumn(5, {
+			width: 12,
+			style: {format: 'date', horizontal: 'right', indent: 1},
+			type: 'date'
+		})
+		.setRow(2, {height: 25})
+		.setRows(3, [{height: 20}, {height: 15}]);
 
 	return workbook;
 };

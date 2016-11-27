@@ -176,6 +176,10 @@ Common.prototype.uniqueIdSeparated = function (space) {
 	};
 };
 
+Common.prototype.addString = function (string) {
+	return this.sharedStrings.add(string);
+};
+
 Common.prototype.addWorksheet = function (worksheet) {
 	var index = this.worksheets.length + 1;
 	var path = 'worksheets/sheet' + index + '.xml';
@@ -563,7 +567,7 @@ module.exports = AnchorOneCell;
 'use strict';
 
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
-var RelationshipManager = require('../relationshipManager');
+var Relations = require('../relations');
 var util = require('../util');
 var toXMLString = require('../XMLString');
 var Picture = require('./picture');
@@ -573,7 +577,7 @@ function Drawings(common) {
 
 	this.objectId = this.common.uniqueId('Drawings');
 	this.drawings = [];
-	this.relations = new RelationshipManager(common);
+	this.relations = new Relations(common);
 }
 
 Drawings.prototype.addImage = function (name, config, anchorType) {
@@ -610,7 +614,7 @@ Drawings.prototype.export = function () {
 module.exports = Drawings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../relationshipManager":13,"../util":27,"./picture":11}],11:[function(require,module,exports){
+},{"../XMLString":2,"../relations":13,"../util":27,"./picture":11}],11:[function(require,module,exports){
 'use strict';
 
 var util = require('../util');
@@ -1415,6 +1419,10 @@ Styles.prototype.addFormat = function (format, name) {
 	return this.cells.add(format, null, name);
 };
 
+Styles.prototype._getId = function (name) {
+	return this.cells.getId(name);
+};
+
 Styles.prototype.addFontFormat = function (format, name) {
 	return this.fonts.add(format, null, name);
 };
@@ -2198,14 +2206,14 @@ module.exports = util;
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var util = require('./util');
 var Common = require('./common');
-var RelationshipManager = require('./relationshipManager');
+var Relations = require('./relations');
 var Worksheet = require('./worksheet');
 var toXMLString = require('./XMLString');
 
 function Workbook() {
 	this.common = new Common();
 	this.styles = this.common.styles;
-	this.relations = new RelationshipManager(this.common);
+	this.relations = new Relations(this.common);
 
 	this.objectId = this.common.uniqueId('Workbook');
 }
@@ -2542,7 +2550,7 @@ function createWorkbookRelationship() {
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":4,"./relationshipManager":13,"./util":27,"./worksheet":32}],29:[function(require,module,exports){
+},{"./XMLString":2,"./common":4,"./relations":13,"./util":27,"./worksheet":32}],29:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2681,10 +2689,11 @@ WorksheetStream.prototype._read = function (size) {
 };
 
 function exportBeforeRows(worksheet) {
-	return getXMLBegin() +
+	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
+		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' +
 		exportDimension(worksheet.maxX, worksheet.maxY) +
 		worksheet._exportSheetView() +
-		exportColumns(worksheet.columns) +
+		exportColumns(worksheet.preparedColumns) +
 		'<sheetData>';
 }
 
@@ -2699,7 +2708,7 @@ function exportAfterRows(worksheet) {
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
 		worksheet._exportDrawing() +
-		getXMLEnd();
+		'</worksheet>';
 }
 
 function exportData(worksheet) {
@@ -2733,8 +2742,8 @@ function exportRow(dataRow, row, rowIndex) {
 			}
 
 			attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
-			if (value.style) {
-				attrs += ' s="' + value.style + '"';
+			if (value.styleId) {
+				attrs += ' s="' + value.styleId + '"';
 			}
 			if (value.isString) {
 				attrs += ' t="s"';
@@ -2761,9 +2770,9 @@ function getRowAttributes(row, rowIndex) {
 			attributes += ' customHeight="1"';
 			attributes += ' ht="' + row.height + '"';
 		}
-		if (row.style !== undefined) {
+		if (row.styleId) {
 			attributes += ' customFormat="1"';
-			attributes += ' s="' + row.style + '"';
+			attributes += ' s="' + row.styleId + '"';
 		}
 		if (row.outlineLevel) {
 			attributes += ' outlineLevel="' + row.outlineLevel + '"';
@@ -2815,8 +2824,8 @@ function exportColumns(columns) {
 			} else {
 				attributes.push(['width', 9.140625]);
 			}
-			if (column.style !== undefined) {
-				attributes.push(['style', column.style]);
+			if (column.styleId) {
+				attributes.push(['style', column.styleId]);
 			}
 
 			return toXMLString({
@@ -2831,15 +2840,6 @@ function exportColumns(columns) {
 		});
 	}
 	return '';
-}
-
-function getXMLBegin() {
-	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
-		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">';
-}
-
-function getXMLEnd() {
-	return '</worksheet>';
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
@@ -2928,7 +2928,7 @@ var drawing = require('./drawing');
 var tables = require('./tables');
 var prepareExport = require('./prepareExport');
 var worksheetExport = require('./export');
-var RelationshipManager = require('../relationshipManager');
+var Relations = require('../relations');
 
 function Worksheet(workbook, config) {
 	config = config || {};
@@ -2951,7 +2951,7 @@ function Worksheet(workbook, config) {
 	this.name = config.name;
 	this.state = config.state || 'visible';
 	this.timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
-	this.relations = new RelationshipManager(this.common);
+	this.relations = new Relations(this.common);
 }
 
 _.assign(Worksheet.prototype, prepareExport);
@@ -3056,7 +3056,7 @@ Worksheet.prototype.setData = function (startRow, data) {
 module.exports = Worksheet;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../relationshipManager":13,"./drawing":29,"./export":30,"./hyperlinks":31,"./mergedCells":33,"./prepareExport":34,"./print":35,"./sheetView":36,"./tables":37}],33:[function(require,module,exports){
+},{"../relations":13,"./drawing":29,"./export":30,"./hyperlinks":31,"./mergedCells":33,"./prepareExport":34,"./print":35,"./sheetView":36,"./tables":37}],33:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3142,24 +3142,26 @@ module.exports = {
 		var rowIndex;
 		var len;
 		var maxX = 0;
-		var row;
-
-		this._prepareTables();
+		var preparedDataRow;
 
 		this.preparedData = [];
+		this.preparedColumns = [];
 		this.preparedRows = [];
 
-		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
-			row = prepareRow(this, rowIndex);
+		this._prepareTables();
+		prepareColumns(this);
+		prepareRows(this);
 
-			if (row) {
-				if (row.length > maxX) {
-					maxX = row.length;
-				}
+		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
+			preparedDataRow = prepareDataRow(this, rowIndex);
+
+			if (preparedDataRow.length > maxX) {
+				maxX = preparedDataRow.length;
 			}
 		}
 
 		this.data = null;
+		this.columns = null;
 		this.rows = null;
 
 		this.maxX = maxX;
@@ -3167,11 +3169,47 @@ module.exports = {
 	}
 };
 
-function prepareRow(worksheet, rowIndex) {
+function prepareColumns(worksheet) {
 	var styles = worksheet.common.styles;
-	var row = worksheet.rows[rowIndex];
+
+	_.forEach(worksheet.columns, function (column, index) {
+		var preparedColumn;
+
+		if (column) {
+			preparedColumn = _.clone(column);
+
+			if (column.style) {
+				preparedColumn.style = styles.addFormat(column.style);
+				preparedColumn.styleId = styles._getId(preparedColumn.style);
+			}
+			worksheet.preparedColumns[index] = preparedColumn;
+		}
+	});
+}
+
+function prepareRows(worksheet) {
+	var styles = worksheet.common.styles;
+
+	_.forEach(worksheet.rows, function (row, index) {
+		var preparedRow;
+
+		if (row) {
+			preparedRow = _.clone(row);
+
+			if (row.style) {
+				preparedRow.style = styles.addFormat(row.style);
+			}
+			worksheet.preparedRows[index] = preparedRow;
+		}
+	});
+}
+
+function prepareDataRow(worksheet, rowIndex) {
+	var common = worksheet.common;
+	var styles = common.styles;
+	var row = worksheet.preparedRows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
-	var preparedRow = [];
+	var preparedDataRow = [];
 	var rowStyle = null;
 	var column;
 	var colIndex;
@@ -3186,21 +3224,16 @@ function prepareRow(worksheet, rowIndex) {
 	var date;
 
 	if (dataRow) {
-		if (dataRow.data) {
-			row = row || {};
-			row.height = dataRow.height || row.height;
-			row.style = dataRow.style || row.style;
-			row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
-
+		if (!_.isArray(dataRow)) {
+			row = mergeDataRowToRow(row, dataRow);
 			dataRow = dataRow.data;
 		}
 		if (row) {
 			rowStyle = row.style || null;
-			row.style = styles.cells.getId(row.style);
 		}
 
 		for (colIndex = 0; colIndex < dataRow.length; colIndex++) {
-			column = worksheet.columns[colIndex];
+			column = worksheet.preparedColumns[colIndex];
 			value = dataRow[colIndex];
 
 			if (_.isNil(value)) {
@@ -3264,14 +3297,14 @@ function prepareRow(worksheet, rowIndex) {
 			}
 
 			if (cellType === 'string') {
-				cellValue = worksheet.common.sharedStrings.add(cellValue);
+				cellValue = common.addString(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
 				date = 25569.0 + (cellValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
-					cellValue = worksheet.common.sharedStrings.add(String(cellValue));
+					cellValue = common.addString(String(cellValue));
 					isString = true;
 				}
 			} else if (cellType === 'formula') {
@@ -3279,19 +3312,31 @@ function prepareRow(worksheet, rowIndex) {
 				cellValue = null;
 			}
 
-			preparedRow[colIndex] = {
+			preparedDataRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				style: styles.cells.getId(cellStyle),
+				styleId: cellStyle ? styles._getId(styles.addFormat(cellStyle)) : null,
 				isString: isString
 			};
 		}
 	}
 
-	worksheet.preparedData[rowIndex] = preparedRow;
-	worksheet.preparedRows[rowIndex] = row;
+	worksheet.preparedData[rowIndex] = preparedDataRow;
+	if (row) {
+		row.styleId = styles._getId(row.style);
+		worksheet.preparedRows[rowIndex] = row;
+	}
 
-	return preparedRow;
+	return preparedDataRow;
+}
+
+function mergeDataRowToRow(row, dataRow) {
+	row = row || {};
+	row.height = dataRow.height || row.height;
+	row.style = dataRow.style || row.style;
+	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
+
+	return row;
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})

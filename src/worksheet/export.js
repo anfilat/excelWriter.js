@@ -71,7 +71,7 @@ function exportBeforeRows(worksheet) {
 		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' +
 		exportDimension(worksheet.maxX, worksheet.maxY) +
 		worksheet._exportSheetView() +
-		exportColumns(worksheet.columns) +
+		exportColumns(worksheet.preparedColumns) +
 		'<sheetData>';
 }
 
@@ -120,8 +120,8 @@ function exportRow(dataRow, row, rowIndex) {
 			}
 
 			attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
-			if (value.style) {
-				attrs += ' s="' + value.style + '"';
+			if (value.styleId) {
+				attrs += ' s="' + value.styleId + '"';
 			}
 			if (value.isString) {
 				attrs += ' t="s"';
@@ -148,9 +148,9 @@ function getRowAttributes(row, rowIndex) {
 			attributes += ' customHeight="1"';
 			attributes += ' ht="' + row.height + '"';
 		}
-		if (row.style !== undefined) {
+		if (row.styleId) {
 			attributes += ' customFormat="1"';
-			attributes += ' s="' + row.style + '"';
+			attributes += ' s="' + row.styleId + '"';
 		}
 		if (row.outlineLevel) {
 			attributes += ' outlineLevel="' + row.outlineLevel + '"';
@@ -202,8 +202,8 @@ function exportColumns(columns) {
 			} else {
 				attributes.push(['width', 9.140625]);
 			}
-			if (column.style !== undefined) {
-				attributes.push(['style', column.style]);
+			if (column.styleId) {
+				attributes.push(['style', column.styleId]);
 			}
 
 			return toXMLString({

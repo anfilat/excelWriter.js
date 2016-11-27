@@ -25,6 +25,10 @@ Styles.prototype.addFormat = function (format, name) {
 	return this.cells.add(format, null, name);
 };
 
+Styles.prototype._getId = function (name) {
+	return this.cells.getId(name);
+};
+
 Styles.prototype.addFontFormat = function (format, name) {
 	return this.fonts.add(format, null, name);
 };
