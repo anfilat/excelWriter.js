@@ -25,8 +25,8 @@ Fonts.prototype.init = function () {
 Fonts.prototype.canon = canon;
 Fonts.prototype.exportFormat = exportFormat;
 
-Fonts.prototype._merge = function (formatTo, formatFrom) {
-	var result = _.assign({}, formatTo, formatFrom);
+Fonts.prototype.merge = function (formatTo, formatFrom) {
+	var result = _.assign(formatTo, formatFrom);
 
 	result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
 	return result;

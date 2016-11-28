@@ -35,18 +35,18 @@ Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {
 	if (count === 0) {
 		return null;
 	} else if (count === 1) {
-		return columnFormat || rowFormat || cellFormat;
+		return this.cells.add(columnFormat || rowFormat || cellFormat);
 	} else {
 		var format = {};
 
 		if (columnFormat) {
-			format = this.cells.merge(format, this.cells.get(columnFormat));
+			format = this.cells.merge(format, this.cells.fullGet(columnFormat));
 		}
 		if (rowFormat) {
-			format = this.cells.merge(format, this.cells.get(rowFormat));
+			format = this.cells.merge(format, this.cells.fullGet(rowFormat));
 		}
 		if (cellFormat) {
-			format = this.cells.merge(format, this.cells.get(cellFormat));
+			format = this.cells.merge(format, this.cells.fullGet(cellFormat));
 		}
 		return this.cells.add(format);
 	}

@@ -30,7 +30,7 @@ Fills.prototype.init = function () {
 Fills.prototype.canon = canon;
 Fills.prototype.exportFormat = exportFormat;
 
-Fills.prototype._merge = function (formatTo, formatFrom) {
+Fills.prototype.merge = function (formatTo, formatFrom) {
 	return formatFrom || formatTo;
 };
 

@@ -108,7 +108,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			isString = false;
 			if (value && typeof value === 'object') {
 				if (value.style) {
-					cellStyle = styles.addFormat(value.style);
+					cellStyle = value.style;
 				}
 				if (value.formula) {
 					cellValue = value.formula;
@@ -161,7 +161,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			preparedDataRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				styleId: cellStyle ? styles._getId(cellStyle) : null,
+				styleId: styles._getId(cellStyle),
 				isString: isString
 			};
 		}

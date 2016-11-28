@@ -40,7 +40,7 @@ function canon(format) {
 		result.wrapText = format.wrapText ? 1 : 0;
 	}
 
-	return _.isEmpty(result) ? null : result;
+	return _.isEmpty(result) ? undefined : result;
 }
 
 function merge(formatTo, formatFrom) {

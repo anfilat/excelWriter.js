@@ -22,13 +22,9 @@ StylePart.prototype.add = function (format, type, name) {
 
 	if (name && this.formatsByNames[name]) {
 		canonFormat = this.canon(format, type);
-		if (_.isObject(canonFormat)) {
-			stringFormat = JSON.stringify(canonFormat);
-		} else {
-			stringFormat = canonFormat;
-		}
+		stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 
-		if (stringFormat !== this.formatsByNames[name].format) {
+		if (stringFormat !== this.formatsByNames[name].stringFormat) {
 			this._add(canonFormat, stringFormat, name);
 		}
 		return name;
@@ -40,11 +36,7 @@ StylePart.prototype.add = function (format, type, name) {
 	}
 
 	canonFormat = this.canon(format, type || format.fillType);
-	if (_.isObject(canonFormat)) {
-		stringFormat = JSON.stringify(canonFormat);
-	} else {
-		stringFormat = canonFormat;
-	}
+	stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 	styleFormat = this.formatsByData[stringFormat];
 
 	if (!styleFormat) {
@@ -62,7 +54,8 @@ StylePart.prototype._add = function (canonFormat, stringFormat, name) {
 	var styleFormat = {
 		name: name,
 		formatId: this.lastId++,
-		format: canonFormat
+		format: canonFormat,
+		stringFormat: stringFormat
 	};
 
 	this.formats.push(styleFormat);
@@ -72,10 +65,13 @@ StylePart.prototype._add = function (canonFormat, stringFormat, name) {
 	return styleFormat;
 };
 
-StylePart.prototype.get = function (name) {
-	var styleFormat = this.formatsByNames[name];
+StylePart.prototype.get = function (format) {
+	if (_.isString(format)) {
+		var styleFormat = this.formatsByNames[format];
 
-	return styleFormat ? styleFormat.format : null;
+		return styleFormat ? styleFormat.format : format;
+	}
+	return format;
 };
 
 StylePart.prototype.getId = function (name) {
@@ -107,10 +103,6 @@ StylePart.prototype.export = function () {
 
 StylePart.prototype.canon = function (format) {
 	return format;
-};
-
-StylePart.prototype.merge = function (formatTo, formatFrom) {
-	return this.add(this._merge(this.get(formatTo), this.get(formatFrom)));
 };
 
 StylePart.prototype.exportCollectionExt = function () {};

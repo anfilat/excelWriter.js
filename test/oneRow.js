@@ -23,6 +23,9 @@ module.exports = function (excel) {
 			italic: true,
 			color: 'FFFF0000'
 		},
+		border: {
+			right: {color: 'FF8888FF', style: 'thin'}
+		},
 		pattern: {type: 'darkHorizontal', color: 'FF88FF88', backColor: 'FF8888F0'},
 		locked: false,
 		hidden: true

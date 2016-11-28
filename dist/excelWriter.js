@@ -851,48 +851,53 @@ var HORIZONTAL = ['left', 'center', 'right', 'fill', 'justify', 'centerContinuou
 var VERTICAL = ['top', 'center', 'bottom', 'justify', 'distributed'];
 
 function canon(format) {
-	var result = [];
+	var result = {};
 
-	if (format.horizontal && _.includes(HORIZONTAL, format.horizontal)) {
-		result.push(['horizontal', format.horizontal]);
+	if (_.has(format, 'horizontal') && _.includes(HORIZONTAL, format.horizontal)) {
+		result.horizontal = format.horizontal;
 	}
-	if (format.vertical && _.includes(VERTICAL, format.vertical)) {
-		result.push(['vertical', format.vertical]);
+	if (_.has(format, 'vertical') && _.includes(VERTICAL, format.vertical)) {
+		result.vertical = format.vertical;
 	}
-	if (format.indent) {
-		result.push(['indent', format.indent]);
+	if (_.has(format, 'indent')) {
+		result.indent = format.indent;
 	}
-	if (format.justifyLastLine) {
-		result.push(['justifyLastLine', 1]);
+	if (_.has(format, 'justifyLastLine')) {
+		result.justifyLastLine = format.justifyLastLine ? 1 : 0;
 	}
 	if (_.has(format, 'readingOrder') && _.includes([0, 1, 2], format.readingOrder)) {
-		result.push(['readingOrder', format.readingOrder]);
+		result.readingOrder = format.readingOrder;
 	}
-	if (format.relativeIndent) {
-		result.push(['relativeIndent', format.relativeIndent]);
+	if (_.has(format, 'relativeIndent')) {
+		result.relativeIndent = format.relativeIndent;
 	}
-	if (format.shrinkToFit) {
-		result.push(['shrinkToFit', 1]);
+	if (_.has(format, 'shrinkToFit')) {
+		result.shrinkToFit = format.shrinkToFit ? 1 : 0;
 	}
-	if (format.textRotation) {
-		result.push(['textRotation', format.textRotation]);
+	if (_.has(format, 'textRotation')) {
+		result.textRotation = format.textRotation;
 	}
-	if (format.wrapText) {
-		result.push(['wrapText', 1]);
+	if (_.has(format, 'wrapText')) {
+		result.wrapText = format.wrapText ? 1 : 0;
 	}
 
-	return result.length ? result : undefined;
+	return _.isEmpty(result) ? undefined : result;
 }
 
-function exportAlignment(attributes) {
+function merge(formatTo, formatFrom) {
+	return _.assign(formatTo, formatFrom);
+}
+
+function exportAlignment(format) {
 	return toXMLString({
 		name: 'alignment',
-		attributes: attributes
+		attributes: _.toPairs(format)
 	});
 }
 
 module.exports = {
 	canon: canon,
+	merge: merge,
 	export: exportAlignment
 };
 
@@ -927,6 +932,26 @@ Borders.prototype.init = function () {
 
 Borders.prototype.canon = canon;
 Borders.prototype.exportFormat = exportFormat;
+
+Borders.prototype.merge = function (formatTo, formatFrom) {
+	formatTo = formatTo || {};
+
+	if (formatFrom) {
+		_.forEach(BORDERS, function (name) {
+			var borderFrom = formatFrom[name];
+
+			if (borderFrom && (borderFrom.style || borderFrom.color)) {
+				formatTo[name] = {
+					style: borderFrom.style,
+					color: borderFrom.color
+				};
+			} else if (!formatTo[name]) {
+				formatTo[name] = {};
+			}
+		});
+	}
+	return formatTo;
+};
 
 function canon(format) {
 	var result = {};
@@ -1023,6 +1048,8 @@ Cells.prototype.canon = function (format) {
 		result.fill = this.styles.fills.add(format.pattern, 'pattern');
 	} else if (format.gradient) {
 		result.fill = this.styles.fills.add(format.gradient, 'gradient');
+	} else if (format.fill) {
+		result.fill = this.styles.fills.add(format.fill, format.fillType);
 	}
 	if (format.border) {
 		result.border = this.styles.borders.add(format.border);
@@ -1032,16 +1059,63 @@ Cells.prototype.canon = function (format) {
 	return result;
 };
 
+Cells.prototype.fullGet = function (format) {
+	var result = {};
+
+	format = this.get(format);
+	if (format.format) {
+		result.format = this.styles.numberFormats.get(format.format);
+	}
+	if (format.font) {
+		result.font = _.clone(this.styles.fonts.get(format.font));
+	}
+	if (format.fill) {
+		result.fill = _.clone(this.styles.fills.get(format.fill));
+	}
+	if (format.border) {
+		result.border = _.clone(this.styles.borders.get(format.border));
+	}
+	if (format.alignment) {
+		result.alignment = _.clone(format.alignment);
+	}
+	if (format.protection) {
+		result.protection = _.clone(format.protection);
+	}
+	return result;
+};
+
+Cells.prototype.merge = function (formatTo, formatFrom) {
+	if (formatTo.format || formatFrom.format) {
+		formatTo.format = this.styles.numberFormats.merge(formatTo.format, formatFrom.format);
+	}
+	if (formatTo.font || formatFrom.font) {
+		formatTo.font = this.styles.fonts.merge(formatTo.font, formatFrom.font);
+	}
+	if (formatTo.fill || formatFrom.fill) {
+		formatTo.fill = this.styles.fills.merge(formatTo.fill, formatFrom.fill);
+	}
+	if (formatTo.border || formatFrom.border) {
+		formatTo.border = this.styles.borders.merge(formatTo.border, formatFrom.border);
+	}
+	if (formatTo.alignment || formatFrom.alignment) {
+		formatTo.alignment = alignment.merge(formatTo.alignment, formatFrom.alignment);
+	}
+	if (formatTo.protection || formatFrom.protection) {
+		formatTo.protection = protection.merge(formatTo.protection, formatFrom.protection);
+	}
+	return formatTo;
+};
+
 Cells.prototype.exportFormat = function (format) {
 	var styles = this.styles;
 	var attributes = [];
 	var children = [];
 
-	if (format.alignment && format.alignment.length) {
+	if (format.alignment) {
 		children.push(alignment.export(format.alignment));
 		attributes.push(['applyAlignment', 'true']);
 	}
-	if (format.protection && format.protection.length) {
+	if (format.protection) {
 		children.push(protection.export(format.protection));
 		attributes.push(['applyProtection', 'true']);
 	}
@@ -1114,16 +1188,21 @@ Fills.prototype.init = function () {
 Fills.prototype.canon = canon;
 Fills.prototype.exportFormat = exportFormat;
 
+Fills.prototype.merge = function (formatTo, formatFrom) {
+	return formatFrom || formatTo;
+};
+
 function canon(format, type, isTable) {
 	var result = {
-		type: type
+		fillType: type
 	};
 
 	if (type === 'pattern') {
-		var fgColor = format.color || 'FFFFFFFF';
-		var bgColor = format.backColor || 'FFFFFFFF';
+		var fgColor = format.color || format.fgColor || 'FFFFFFFF';
+		var bgColor = format.backColor || format.bgColor || 'FFFFFFFF';
+		var patternType = format.type || format.patternType;
 
-		result.patternType = _.includes(PATTERN_TYPES, format.type) ? format.type : 'solid';
+		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
 		if (isTable && result.patternType === 'solid') {
 			result.fgColor = bgColor;
 			result.bgColor = fgColor;
@@ -1149,7 +1228,7 @@ function canon(format, type, isTable) {
 function exportFormat(format) {
 	var children;
 
-	if (format.type === 'pattern') {
+	if (format.fillType === 'pattern') {
 		children = [exportPatternFill(format)];
 	} else {
 		children = [exportGradientFill(format)];
@@ -1262,6 +1341,13 @@ Fonts.prototype.init = function () {
 
 Fonts.prototype.canon = canon;
 Fonts.prototype.exportFormat = exportFormat;
+
+Fonts.prototype.merge = function (formatTo, formatFrom) {
+	var result = _.assign(formatTo, formatFrom);
+
+	result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
+	return result;
+};
 
 function canon(format) {
 	var result = {};
@@ -1423,6 +1509,29 @@ Styles.prototype._getId = function (name) {
 	return this.cells.getId(name);
 };
 
+Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {
+	var count = Number(Boolean(columnFormat)) + Number(Boolean(rowFormat)) + Number(Boolean(cellFormat));
+
+	if (count === 0) {
+		return null;
+	} else if (count === 1) {
+		return this.cells.add(columnFormat || rowFormat || cellFormat);
+	} else {
+		var format = {};
+
+		if (columnFormat) {
+			format = this.cells.merge(format, this.cells.fullGet(columnFormat));
+		}
+		if (rowFormat) {
+			format = this.cells.merge(format, this.cells.fullGet(rowFormat));
+		}
+		if (cellFormat) {
+			format = this.cells.merge(format, this.cells.fullGet(cellFormat));
+		}
+		return this.cells.add(format);
+	}
+};
+
 Styles.prototype.addFontFormat = function (format, name) {
 	return this.fonts.add(format, null, name);
 };
@@ -1501,12 +1610,19 @@ NumberFormats.prototype.init = function () {
 	var self = this;
 
 	_.forEach(PREDEFINED, function (formatId, format) {
-		self.formatsByNames[format] = {formatId: formatId};
+		self.formatsByNames[format] = {
+			formatId: formatId,
+			format: format
+		};
 	});
 };
 
 NumberFormats.prototype.canon = canon;
 NumberFormats.prototype.exportFormat = exportFormat;
+
+NumberFormats.prototype.merge = function (formatTo, formatFrom) {
+	return formatFrom || formatTo;
+};
 
 function canon(format) {
 	return format;
@@ -1541,27 +1657,32 @@ var toXMLString = require('../XMLString');
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.protection.aspx
 
 function canon(format) {
-	var result = [];
+	var result = {};
 
-	if (_.has(format, 'locked') && !format.locked) {
-		result.push(['locked', 0]);
+	if (_.has(format, 'locked')) {
+		result.locked = format.locked ? 1 : 0;
 	}
-	if (format.hidden) {
-		result.push(['hidden', 1]);
+	if (_.has(format, 'hidden')) {
+		result.hidden = format.hidden ? 1 : 0;
 	}
 
-	return result.length ? result : undefined;
+	return _.isEmpty(result) ? undefined : result;
 }
 
-function exportProtection(attributes) {
+function merge(formatTo, formatFrom) {
+	return _.assign(formatTo, formatFrom);
+}
+
+function exportProtection(format) {
 	return toXMLString({
 		name: 'protection',
-		attributes: attributes
+		attributes: _.toPairs(format)
 	});
 }
 
 module.exports = {
 	canon: canon,
+	merge: merge,
 	export: exportProtection
 };
 
@@ -1592,13 +1713,9 @@ StylePart.prototype.add = function (format, type, name) {
 
 	if (name && this.formatsByNames[name]) {
 		canonFormat = this.canon(format, type);
-		if (_.isObject(canonFormat)) {
-			stringFormat = JSON.stringify(canonFormat);
-		} else {
-			stringFormat = canonFormat;
-		}
+		stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 
-		if (stringFormat !== this.formatsByNames[name].format) {
+		if (stringFormat !== this.formatsByNames[name].stringFormat) {
 			this._add(canonFormat, stringFormat, name);
 		}
 		return name;
@@ -1609,12 +1726,8 @@ StylePart.prototype.add = function (format, type, name) {
 		return format;
 	}
 
-	canonFormat = this.canon(format, type);
-	if (_.isObject(canonFormat)) {
-		stringFormat = JSON.stringify(canonFormat);
-	} else {
-		stringFormat = canonFormat;
-	}
+	canonFormat = this.canon(format, type || format.fillType);
+	stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 	styleFormat = this.formatsByData[stringFormat];
 
 	if (!styleFormat) {
@@ -1632,7 +1745,8 @@ StylePart.prototype._add = function (canonFormat, stringFormat, name) {
 	var styleFormat = {
 		name: name,
 		formatId: this.lastId++,
-		format: canonFormat
+		format: canonFormat,
+		stringFormat: stringFormat
 	};
 
 	this.formats.push(styleFormat);
@@ -1642,10 +1756,13 @@ StylePart.prototype._add = function (canonFormat, stringFormat, name) {
 	return styleFormat;
 };
 
-StylePart.prototype.get = function (name) {
-	var styleFormat = this.formatsByNames[name];
+StylePart.prototype.get = function (format) {
+	if (_.isString(format)) {
+		var styleFormat = this.formatsByNames[format];
 
-	return styleFormat ? styleFormat.format : null;
+		return styleFormat ? styleFormat.format : format;
+	}
+	return format;
 };
 
 StylePart.prototype.getId = function (name) {
@@ -3219,13 +3336,11 @@ function prepareDataRow(worksheet, rowIndex) {
 	var cellType;
 	var cellFormula;
 	var isString;
-	var colSpan;
-	var rowSpan;
 	var date;
 
 	if (dataRow) {
 		if (!_.isArray(dataRow)) {
-			row = mergeDataRowToRow(row, dataRow);
+			row = mergeDataRowToRow(worksheet, row, dataRow);
 			dataRow = dataRow.data;
 		}
 		if (row) {
@@ -3240,10 +3355,13 @@ function prepareDataRow(worksheet, rowIndex) {
 				continue;
 			}
 
+			cellStyle = null;
 			cellFormula = null;
 			isString = false;
 			if (value && typeof value === 'object') {
-				cellStyle = value.style || null;
+				if (value.style) {
+					cellStyle = value.style;
+				}
 				if (value.formula) {
 					cellValue = value.formula;
 					cellType = 'formula';
@@ -3258,33 +3376,13 @@ function prepareDataRow(worksheet, rowIndex) {
 					cellType = value.type;
 				}
 
-				if (value.hyperlink) {
-					worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
-				}
-				if (value.image) {
-					worksheet._insertDrawing(colIndex, rowIndex, value.image);
-				}
-				if (value.colspan || value.rowspan) {
-					colSpan = (value.colspan || 1) - 1;
-					rowSpan = (value.rowspan || 1) - 1;
-
-					worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
-						{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-					worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
-				}
+				insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex);
 			} else {
 				cellValue = value;
-				cellStyle = null;
 				cellType = null;
 			}
 
-			if (cellStyle === null) {
-				if (rowStyle !== null) {
-					cellStyle = rowStyle;
-				} else if (column && column.style) {
-					cellStyle = column.style;
-				}
-			}
+			cellStyle = styles._merge(column ? column.style : null, rowStyle, cellStyle);
 
 			if (!cellType) {
 				if (column && column.type) {
@@ -3315,7 +3413,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			preparedDataRow[colIndex] = {
 				value: cellValue,
 				formula: cellFormula,
-				styleId: cellStyle ? styles._getId(styles.addFormat(cellStyle)) : null,
+				styleId: styles._getId(cellStyle),
 				isString: isString
 			};
 		}
@@ -3330,13 +3428,33 @@ function prepareDataRow(worksheet, rowIndex) {
 	return preparedDataRow;
 }
 
-function mergeDataRowToRow(row, dataRow) {
+function mergeDataRowToRow(worksheet, row, dataRow) {
 	row = row || {};
 	row.height = dataRow.height || row.height;
-	row.style = dataRow.style || row.style;
+	row.style = dataRow.style ? worksheet.common.styles.addFormat(dataRow.style) : row.style;
 	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
 
 	return row;
+}
+
+function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
+	var colSpan;
+	var rowSpan;
+
+	if (value.hyperlink) {
+		worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+	}
+	if (value.image) {
+		worksheet._insertDrawing(colIndex, rowIndex, value.image);
+	}
+	if (value.colspan || value.rowspan) {
+		colSpan = (value.colspan || 1) - 1;
+		rowSpan = (value.rowspan || 1) - 1;
+
+		worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
+			{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
+		worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+	}
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})

@@ -34,7 +34,7 @@ NumberFormats.prototype.init = function () {
 NumberFormats.prototype.canon = canon;
 NumberFormats.prototype.exportFormat = exportFormat;
 
-NumberFormats.prototype._merge = function (formatTo, formatFrom) {
+NumberFormats.prototype.merge = function (formatTo, formatFrom) {
 	return formatFrom || formatTo;
 };
 
