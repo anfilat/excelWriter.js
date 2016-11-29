@@ -18,36 +18,7 @@ function Borders(styles) {
 
 util.inherits(Borders, StylePart);
 
-Borders.prototype.init = function () {
-	this.formats.push(
-		{format: this.canon({})}
-	);
-};
-
-Borders.prototype.canon = canon;
-Borders.prototype.exportFormat = exportFormat;
-
-Borders.prototype.merge = function (formatTo, formatFrom) {
-	formatTo = formatTo || {};
-
-	if (formatFrom) {
-		_.forEach(BORDERS, function (name) {
-			var borderFrom = formatFrom[name];
-
-			if (borderFrom && (borderFrom.style || borderFrom.color)) {
-				formatTo[name] = {
-					style: borderFrom.style,
-					color: borderFrom.color
-				};
-			} else if (!formatTo[name]) {
-				formatTo[name] = {};
-			}
-		});
-	}
-	return formatTo;
-};
-
-function canon(format) {
+Borders.canon = function (format) {
 	var result = {};
 
 	_.forEach(BORDERS, function (name) {
@@ -63,9 +34,9 @@ function canon(format) {
 		}
 	});
 	return result;
-}
+};
 
-function exportFormat(format) {
+Borders.exportFormat = function (format) {
 	var children = _.map(BORDERS, function (name) {
 		var border = format[name];
 		var attributes;
@@ -90,10 +61,36 @@ function exportFormat(format) {
 		name: 'border',
 		children: children
 	});
-}
-
-module.exports = {
-	Borders: Borders,
-	canon: canon,
-	exportFormat: exportFormat
 };
+
+Borders.prototype.init = function () {
+	this.formats.push(
+		{format: this.canon({})}
+	);
+};
+
+Borders.prototype.canon = Borders.canon;
+
+Borders.prototype.merge = function (formatTo, formatFrom) {
+	formatTo = formatTo || {};
+
+	if (formatFrom) {
+		_.forEach(BORDERS, function (name) {
+			var borderFrom = formatFrom[name];
+
+			if (borderFrom && (borderFrom.style || borderFrom.color)) {
+				formatTo[name] = {
+					style: borderFrom.style,
+					color: borderFrom.color
+				};
+			} else if (!formatTo[name]) {
+				formatTo[name] = {};
+			}
+		});
+	}
+	return formatTo;
+};
+
+Borders.prototype.exportFormat = Borders.exportFormat;
+
+module.exports = Borders;

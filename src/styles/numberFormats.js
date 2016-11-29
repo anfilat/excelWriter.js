@@ -20,6 +20,22 @@ function NumberFormats(styles) {
 
 util.inherits(NumberFormats, StylePart);
 
+NumberFormats.canon = function (format) {
+	return format;
+};
+
+NumberFormats.exportFormat = function (format, styleFormat) {
+	var attributes = [
+		['numFmtId', styleFormat.formatId],
+		['formatCode', format]
+	];
+
+	return toXMLString({
+		name: 'numFmt',
+		attributes: attributes
+	});
+};
+
 NumberFormats.prototype.init = function () {
 	var self = this;
 
@@ -31,31 +47,12 @@ NumberFormats.prototype.init = function () {
 	});
 };
 
-NumberFormats.prototype.canon = canon;
-NumberFormats.prototype.exportFormat = exportFormat;
+NumberFormats.prototype.canon = NumberFormats.canon;
 
 NumberFormats.prototype.merge = function (formatTo, formatFrom) {
 	return formatFrom || formatTo;
 };
 
-function canon(format) {
-	return format;
-}
+NumberFormats.prototype.exportFormat = NumberFormats.exportFormat;
 
-function exportFormat(format, styleFormat) {
-	var attributes = [
-		['numFmtId', styleFormat.formatId],
-		['formatCode', format]
-	];
-
-	return toXMLString({
-		name: 'numFmt',
-		attributes: attributes
-	});
-}
-
-module.exports = {
-	NumberFormats: NumberFormats,
-	canon: canon,
-	exportFormat: exportFormat
-};
+module.exports = NumberFormats;

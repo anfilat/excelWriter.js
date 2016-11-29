@@ -19,22 +19,7 @@ function Fills(styles) {
 
 util.inherits(Fills, StylePart);
 
-Fills.prototype.init = function () {
-	this.formats.push({
-		format: this.canon({type: 'none'}, 'pattern')
-	}, {
-		format: this.canon({type: 'gray125'}, 'pattern')
-	});
-};
-
-Fills.prototype.canon = canon;
-Fills.prototype.exportFormat = exportFormat;
-
-Fills.prototype.merge = function (formatTo, formatFrom) {
-	return formatFrom || formatTo;
-};
-
-function canon(format, type, isTable) {
+Fills.canon = function (format, type, isTable) {
 	var result = {
 		fillType: type
 	};
@@ -65,9 +50,9 @@ function canon(format, type, isTable) {
 		result.end = format.end || 'FFFFFFFF';
 	}
 	return result;
-}
+};
 
-function exportFormat(format) {
+Fills.exportFormat = function (format) {
 	var children;
 
 	if (format.fillType === 'pattern') {
@@ -80,7 +65,7 @@ function exportFormat(format) {
 		name: 'fill',
 		children: children
 	});
-}
+};
 
 function exportPatternFill(format) {
 	var attributes = [
@@ -148,8 +133,20 @@ function exportGradientFill(format) {
 	});
 }
 
-module.exports = {
-	Fills: Fills,
-	canon: canon,
-	exportFormat: exportFormat
+Fills.prototype.init = function () {
+	this.formats.push({
+		format: this.canon({type: 'none'}, 'pattern')
+	}, {
+		format: this.canon({type: 'gray125'}, 'pattern')
+	});
 };
+
+Fills.prototype.canon = Fills.canon;
+
+Fills.prototype.merge = function (formatTo, formatFrom) {
+	return formatFrom || formatTo;
+};
+
+Fills.prototype.exportFormat = Fills.exportFormat;
+
+module.exports = Fills;

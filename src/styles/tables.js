@@ -88,6 +88,4 @@ Tables.prototype.exportFormat = function (format, styleFormat) {
 	});
 };
 
-module.exports = {
-	Tables: Tables
-};
+module.exports = Tables;

@@ -1,23 +1,23 @@
 'use strict';
 
-var numberFormats = require('./numberFormats');
-var fonts = require('./fonts');
-var fills = require('./fills');
-var borders = require('./borders');
-var cells = require('./cells');
-var tables = require('./tables');
-var tableElements = require('./tableElements');
+var NumberFormats = require('./numberFormats');
+var Fonts = require('./fonts');
+var Fills = require('./fills');
+var Borders = require('./borders');
+var Cells = require('./cells');
+var Tables = require('./tables');
+var TableElements = require('./tableElements');
 var toXMLString = require('../XMLString');
 
 function Styles(common) {
 	this.objectId = common.uniqueId('Styles');
-	this.numberFormats = new numberFormats.NumberFormats(this);
-	this.fonts = new fonts.Fonts(this);
-	this.fills = new fills.Fills(this);
-	this.borders = new borders.Borders(this);
-	this.cells = new cells.Cells(this);
-	this.tableElements = new tableElements.TableElements(this);
-	this.tables = new tables.Tables(this);
+	this.numberFormats = new NumberFormats(this);
+	this.fonts = new Fonts(this);
+	this.fills = new Fills(this);
+	this.borders = new Borders(this);
+	this.cells = new Cells(this);
+	this.tableElements = new TableElements(this);
+	this.tables = new Tables(this);
 	this.defaultTableStyle = '';
 }
 

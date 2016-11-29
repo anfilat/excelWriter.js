@@ -103,11 +103,11 @@ Cells.prototype.exportFormat = function (format) {
 	var children = [];
 
 	if (format.alignment) {
-		children.push(alignment.export(format.alignment));
+		children.push(alignment.exportFormat(format.alignment));
 		attributes.push(['applyAlignment', 'true']);
 	}
 	if (format.protection) {
-		children.push(protection.export(format.protection));
+		children.push(protection.exportFormat(format.protection));
 		attributes.push(['applyProtection', 'true']);
 	}
 
@@ -140,6 +140,4 @@ Cells.prototype.exportFormat = function (format) {
 	});
 };
 
-module.exports = {
-	Cells: Cells
-};
+module.exports = Cells;

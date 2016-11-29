@@ -16,23 +16,7 @@ function Fonts(styles) {
 
 util.inherits(Fonts, StylePart);
 
-Fonts.prototype.init = function () {
-	this.formats.push(
-		{format: canon({})}
-	);
-};
-
-Fonts.prototype.canon = canon;
-Fonts.prototype.exportFormat = exportFormat;
-
-Fonts.prototype.merge = function (formatTo, formatFrom) {
-	var result = _.assign(formatTo, formatFrom);
-
-	result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
-	return result;
-};
-
-function canon(format) {
+Fonts.canon = function (format) {
 	var result = {};
 
 	if (_.has(format, 'bold')) {
@@ -73,9 +57,9 @@ function canon(format) {
 		result.fontName = format.fontName;
 	}
 	return result;
-}
+};
 
-function exportFormat(format) {
+Fonts.exportFormat = function (format) {
 	var children = [];
 	var attrs;
 
@@ -151,10 +135,23 @@ function exportFormat(format) {
 		name: 'font',
 		children: children
 	});
-}
-
-module.exports = {
-	Fonts: Fonts,
-	canon: canon,
-	exportFormat: exportFormat
 };
+
+Fonts.prototype.init = function () {
+	this.formats.push(
+		{format: this.canon({})}
+	);
+};
+
+Fonts.prototype.canon = Fonts.canon;
+
+Fonts.prototype.merge = function (formatTo, formatFrom) {
+	var result = _.assign(formatTo, formatFrom);
+
+	result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
+	return result;
+};
+
+Fonts.prototype.exportFormat = Fonts.exportFormat;
+
+module.exports = Fonts;

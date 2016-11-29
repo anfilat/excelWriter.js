@@ -57,5 +57,5 @@ function exportAlignment(format) {
 module.exports = {
 	canon: canon,
 	merge: merge,
-	export: exportAlignment
+	exportFormat: exportAlignment
 };

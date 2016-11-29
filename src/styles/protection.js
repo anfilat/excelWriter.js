@@ -32,5 +32,5 @@ function exportProtection(format) {
 module.exports = {
 	canon: canon,
 	merge: merge,
-	export: exportProtection
+	exportFormat: exportProtection
 };

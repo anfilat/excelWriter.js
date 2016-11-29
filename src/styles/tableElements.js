@@ -2,10 +2,10 @@
 
 var StylePart = require('./stylePart');
 var util = require('../util');
-var numberFormats = require('./numberFormats');
-var fonts = require('./fonts');
-var fills = require('./fills');
-var borders = require('./borders');
+var NumberFormats = require('./numberFormats');
+var Fonts = require('./fonts');
+var Fills = require('./fills');
+var Borders = require('./borders');
 var alignment = require('./alignment');
 var toXMLString = require('../XMLString');
 
@@ -20,18 +20,18 @@ TableElements.prototype.canon = function (format) {
 	var result = {};
 
 	if (format.format) {
-		result.format = numberFormats.canon(format.format);
+		result.format = NumberFormats.canon(format.format);
 	}
 	if (format.font) {
-		result.font = fonts.canon(format.font);
+		result.font = Fonts.canon(format.font);
 	}
 	if (format.pattern) {
-		result.fill = fills.canon(format.pattern, 'pattern', 'table');
+		result.fill = Fills.canon(format.pattern, 'pattern', 'table');
 	} else if (format.gradient) {
-		result.fill = fills.canon(format.gradient, 'gradient');
+		result.fill = Fills.canon(format.gradient, 'gradient');
 	}
 	if (format.border) {
-		result.border = borders.canon(format.border);
+		result.border = Borders.canon(format.border);
 	}
 	result.alignment = alignment.canon(format);
 	return result;
@@ -41,16 +41,16 @@ TableElements.prototype.exportFormat = function (format) {
 	var children = [];
 
 	if (format.font) {
-		children.push(fonts.exportFormat(format.font));
+		children.push(Fonts.exportFormat(format.font));
 	}
 	if (format.fill) {
-		children.push(fills.exportFormat(format.fill));
+		children.push(Fills.exportFormat(format.fill));
 	}
 	if (format.border) {
-		children.push(borders.exportFormat(format.border));
+		children.push(Borders.exportFormat(format.border));
 	}
 	if (format.format) {
-		children.push(numberFormats.exportFormat(format.format));
+		children.push(NumberFormats.exportFormat(format.format));
 	}
 	if (format.alignment && format.alignment.length) {
 		children.push(alignment.export(format.alignment));
@@ -62,6 +62,4 @@ TableElements.prototype.exportFormat = function (format) {
 	});
 };
 
-module.exports = {
-	TableElements: TableElements
-};
+module.exports = TableElements;

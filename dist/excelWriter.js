@@ -898,7 +898,7 @@ function exportAlignment(format) {
 module.exports = {
 	canon: canon,
 	merge: merge,
-	export: exportAlignment
+	exportFormat: exportAlignment
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
@@ -924,36 +924,7 @@ function Borders(styles) {
 
 util.inherits(Borders, StylePart);
 
-Borders.prototype.init = function () {
-	this.formats.push(
-		{format: this.canon({})}
-	);
-};
-
-Borders.prototype.canon = canon;
-Borders.prototype.exportFormat = exportFormat;
-
-Borders.prototype.merge = function (formatTo, formatFrom) {
-	formatTo = formatTo || {};
-
-	if (formatFrom) {
-		_.forEach(BORDERS, function (name) {
-			var borderFrom = formatFrom[name];
-
-			if (borderFrom && (borderFrom.style || borderFrom.color)) {
-				formatTo[name] = {
-					style: borderFrom.style,
-					color: borderFrom.color
-				};
-			} else if (!formatTo[name]) {
-				formatTo[name] = {};
-			}
-		});
-	}
-	return formatTo;
-};
-
-function canon(format) {
+Borders.canon = function (format) {
 	var result = {};
 
 	_.forEach(BORDERS, function (name) {
@@ -969,9 +940,9 @@ function canon(format) {
 		}
 	});
 	return result;
-}
+};
 
-function exportFormat(format) {
+Borders.exportFormat = function (format) {
 	var children = _.map(BORDERS, function (name) {
 		var border = format[name];
 		var attributes;
@@ -996,13 +967,39 @@ function exportFormat(format) {
 		name: 'border',
 		children: children
 	});
-}
-
-module.exports = {
-	Borders: Borders,
-	canon: canon,
-	exportFormat: exportFormat
 };
+
+Borders.prototype.init = function () {
+	this.formats.push(
+		{format: this.canon({})}
+	);
+};
+
+Borders.prototype.canon = Borders.canon;
+
+Borders.prototype.merge = function (formatTo, formatFrom) {
+	formatTo = formatTo || {};
+
+	if (formatFrom) {
+		_.forEach(BORDERS, function (name) {
+			var borderFrom = formatFrom[name];
+
+			if (borderFrom && (borderFrom.style || borderFrom.color)) {
+				formatTo[name] = {
+					style: borderFrom.style,
+					color: borderFrom.color
+				};
+			} else if (!formatTo[name]) {
+				formatTo[name] = {};
+			}
+		});
+	}
+	return formatTo;
+};
+
+Borders.prototype.exportFormat = Borders.exportFormat;
+
+module.exports = Borders;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],16:[function(require,module,exports){
@@ -1112,11 +1109,11 @@ Cells.prototype.exportFormat = function (format) {
 	var children = [];
 
 	if (format.alignment) {
-		children.push(alignment.export(format.alignment));
+		children.push(alignment.exportFormat(format.alignment));
 		attributes.push(['applyAlignment', 'true']);
 	}
 	if (format.protection) {
-		children.push(protection.export(format.protection));
+		children.push(protection.exportFormat(format.protection));
 		attributes.push(['applyProtection', 'true']);
 	}
 
@@ -1149,9 +1146,7 @@ Cells.prototype.exportFormat = function (format) {
 	});
 };
 
-module.exports = {
-	Cells: Cells
-};
+module.exports = Cells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./alignment":14,"./protection":21,"./stylePart":22}],17:[function(require,module,exports){
@@ -1177,22 +1172,7 @@ function Fills(styles) {
 
 util.inherits(Fills, StylePart);
 
-Fills.prototype.init = function () {
-	this.formats.push({
-		format: this.canon({type: 'none'}, 'pattern')
-	}, {
-		format: this.canon({type: 'gray125'}, 'pattern')
-	});
-};
-
-Fills.prototype.canon = canon;
-Fills.prototype.exportFormat = exportFormat;
-
-Fills.prototype.merge = function (formatTo, formatFrom) {
-	return formatFrom || formatTo;
-};
-
-function canon(format, type, isTable) {
+Fills.canon = function (format, type, isTable) {
 	var result = {
 		fillType: type
 	};
@@ -1223,9 +1203,9 @@ function canon(format, type, isTable) {
 		result.end = format.end || 'FFFFFFFF';
 	}
 	return result;
-}
+};
 
-function exportFormat(format) {
+Fills.exportFormat = function (format) {
 	var children;
 
 	if (format.fillType === 'pattern') {
@@ -1238,7 +1218,7 @@ function exportFormat(format) {
 		name: 'fill',
 		children: children
 	});
-}
+};
 
 function exportPatternFill(format) {
 	var attributes = [
@@ -1306,11 +1286,23 @@ function exportGradientFill(format) {
 	});
 }
 
-module.exports = {
-	Fills: Fills,
-	canon: canon,
-	exportFormat: exportFormat
+Fills.prototype.init = function () {
+	this.formats.push({
+		format: this.canon({type: 'none'}, 'pattern')
+	}, {
+		format: this.canon({type: 'gray125'}, 'pattern')
+	});
 };
+
+Fills.prototype.canon = Fills.canon;
+
+Fills.prototype.merge = function (formatTo, formatFrom) {
+	return formatFrom || formatTo;
+};
+
+Fills.prototype.exportFormat = Fills.exportFormat;
+
+module.exports = Fills;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./stylePart":22}],18:[function(require,module,exports){
@@ -1333,23 +1325,7 @@ function Fonts(styles) {
 
 util.inherits(Fonts, StylePart);
 
-Fonts.prototype.init = function () {
-	this.formats.push(
-		{format: canon({})}
-	);
-};
-
-Fonts.prototype.canon = canon;
-Fonts.prototype.exportFormat = exportFormat;
-
-Fonts.prototype.merge = function (formatTo, formatFrom) {
-	var result = _.assign(formatTo, formatFrom);
-
-	result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
-	return result;
-};
-
-function canon(format) {
+Fonts.canon = function (format) {
 	var result = {};
 
 	if (_.has(format, 'bold')) {
@@ -1390,9 +1366,9 @@ function canon(format) {
 		result.fontName = format.fontName;
 	}
 	return result;
-}
+};
 
-function exportFormat(format) {
+Fonts.exportFormat = function (format) {
 	var children = [];
 	var attrs;
 
@@ -1468,36 +1444,49 @@ function exportFormat(format) {
 		name: 'font',
 		children: children
 	});
-}
-
-module.exports = {
-	Fonts: Fonts,
-	canon: canon,
-	exportFormat: exportFormat
 };
+
+Fonts.prototype.init = function () {
+	this.formats.push(
+		{format: this.canon({})}
+	);
+};
+
+Fonts.prototype.canon = Fonts.canon;
+
+Fonts.prototype.merge = function (formatTo, formatFrom) {
+	var result = _.assign(formatTo, formatFrom);
+
+	result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
+	return result;
+};
+
+Fonts.prototype.exportFormat = Fonts.exportFormat;
+
+module.exports = Fonts;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],19:[function(require,module,exports){
 'use strict';
 
-var numberFormats = require('./numberFormats');
-var fonts = require('./fonts');
-var fills = require('./fills');
-var borders = require('./borders');
-var cells = require('./cells');
-var tables = require('./tables');
-var tableElements = require('./tableElements');
+var NumberFormats = require('./numberFormats');
+var Fonts = require('./fonts');
+var Fills = require('./fills');
+var Borders = require('./borders');
+var Cells = require('./cells');
+var Tables = require('./tables');
+var TableElements = require('./tableElements');
 var toXMLString = require('../XMLString');
 
 function Styles(common) {
 	this.objectId = common.uniqueId('Styles');
-	this.numberFormats = new numberFormats.NumberFormats(this);
-	this.fonts = new fonts.Fonts(this);
-	this.fills = new fills.Fills(this);
-	this.borders = new borders.Borders(this);
-	this.cells = new cells.Cells(this);
-	this.tableElements = new tableElements.TableElements(this);
-	this.tables = new tables.Tables(this);
+	this.numberFormats = new NumberFormats(this);
+	this.fonts = new Fonts(this);
+	this.fills = new Fills(this);
+	this.borders = new Borders(this);
+	this.cells = new Cells(this);
+	this.tableElements = new TableElements(this);
+	this.tables = new Tables(this);
 	this.defaultTableStyle = '';
 }
 
@@ -1606,6 +1595,22 @@ function NumberFormats(styles) {
 
 util.inherits(NumberFormats, StylePart);
 
+NumberFormats.canon = function (format) {
+	return format;
+};
+
+NumberFormats.exportFormat = function (format, styleFormat) {
+	var attributes = [
+		['numFmtId', styleFormat.formatId],
+		['formatCode', format]
+	];
+
+	return toXMLString({
+		name: 'numFmt',
+		attributes: attributes
+	});
+};
+
 NumberFormats.prototype.init = function () {
 	var self = this;
 
@@ -1617,34 +1622,15 @@ NumberFormats.prototype.init = function () {
 	});
 };
 
-NumberFormats.prototype.canon = canon;
-NumberFormats.prototype.exportFormat = exportFormat;
+NumberFormats.prototype.canon = NumberFormats.canon;
 
 NumberFormats.prototype.merge = function (formatTo, formatFrom) {
 	return formatFrom || formatTo;
 };
 
-function canon(format) {
-	return format;
-}
+NumberFormats.prototype.exportFormat = NumberFormats.exportFormat;
 
-function exportFormat(format, styleFormat) {
-	var attributes = [
-		['numFmtId', styleFormat.formatId],
-		['formatCode', format]
-	];
-
-	return toXMLString({
-		name: 'numFmt',
-		attributes: attributes
-	});
-}
-
-module.exports = {
-	NumberFormats: NumberFormats,
-	canon: canon,
-	exportFormat: exportFormat
-};
+module.exports = NumberFormats;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./stylePart":22}],21:[function(require,module,exports){
@@ -1683,7 +1669,7 @@ function exportProtection(format) {
 module.exports = {
 	canon: canon,
 	merge: merge,
-	export: exportProtection
+	exportFormat: exportProtection
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
@@ -1810,10 +1796,10 @@ module.exports = StylePart;
 
 var StylePart = require('./stylePart');
 var util = require('../util');
-var numberFormats = require('./numberFormats');
-var fonts = require('./fonts');
-var fills = require('./fills');
-var borders = require('./borders');
+var NumberFormats = require('./numberFormats');
+var Fonts = require('./fonts');
+var Fills = require('./fills');
+var Borders = require('./borders');
 var alignment = require('./alignment');
 var toXMLString = require('../XMLString');
 
@@ -1828,18 +1814,18 @@ TableElements.prototype.canon = function (format) {
 	var result = {};
 
 	if (format.format) {
-		result.format = numberFormats.canon(format.format);
+		result.format = NumberFormats.canon(format.format);
 	}
 	if (format.font) {
-		result.font = fonts.canon(format.font);
+		result.font = Fonts.canon(format.font);
 	}
 	if (format.pattern) {
-		result.fill = fills.canon(format.pattern, 'pattern', 'table');
+		result.fill = Fills.canon(format.pattern, 'pattern', 'table');
 	} else if (format.gradient) {
-		result.fill = fills.canon(format.gradient, 'gradient');
+		result.fill = Fills.canon(format.gradient, 'gradient');
 	}
 	if (format.border) {
-		result.border = borders.canon(format.border);
+		result.border = Borders.canon(format.border);
 	}
 	result.alignment = alignment.canon(format);
 	return result;
@@ -1849,16 +1835,16 @@ TableElements.prototype.exportFormat = function (format) {
 	var children = [];
 
 	if (format.font) {
-		children.push(fonts.exportFormat(format.font));
+		children.push(Fonts.exportFormat(format.font));
 	}
 	if (format.fill) {
-		children.push(fills.exportFormat(format.fill));
+		children.push(Fills.exportFormat(format.fill));
 	}
 	if (format.border) {
-		children.push(borders.exportFormat(format.border));
+		children.push(Borders.exportFormat(format.border));
 	}
 	if (format.format) {
-		children.push(numberFormats.exportFormat(format.format));
+		children.push(NumberFormats.exportFormat(format.format));
 	}
 	if (format.alignment && format.alignment.length) {
 		children.push(alignment.export(format.alignment));
@@ -1870,9 +1856,7 @@ TableElements.prototype.exportFormat = function (format) {
 	});
 };
 
-module.exports = {
-	TableElements: TableElements
-};
+module.exports = TableElements;
 
 },{"../XMLString":2,"../util":27,"./alignment":14,"./borders":15,"./fills":17,"./fonts":18,"./numberFormats":20,"./stylePart":22}],24:[function(require,module,exports){
 (function (global){
@@ -1966,9 +1950,7 @@ Tables.prototype.exportFormat = function (format, styleFormat) {
 	});
 };
 
-module.exports = {
-	Tables: Tables
-};
+module.exports = Tables;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./stylePart":22}],25:[function(require,module,exports){
