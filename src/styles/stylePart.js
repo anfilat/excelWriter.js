@@ -11,8 +11,8 @@ function StylePart(styles, exportName, formatName) {
 	this.lastId = 0;
 	this.exportEmpty = true;
 	this.formats = [];
-	this.formatsByData = {};
-	this.formatsByNames = {};
+	this.formatsByData = Object.create(null);
+	this.formatsByNames = Object.create(null);
 }
 
 StylePart.prototype.add = function (format, type, name) {
