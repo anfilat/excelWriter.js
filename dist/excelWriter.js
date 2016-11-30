@@ -881,7 +881,7 @@ function canon(format) {
 		result.wrapText = format.wrapText ? 1 : 0;
 	}
 
-	return _.isEmpty(result) ? undefined : result;
+	return _.isEmpty(result) ? null : result;
 }
 
 function merge(formatTo, formatFrom) {
@@ -1032,8 +1032,10 @@ Cells.prototype.init = function () {
 	);
 };
 
-Cells.prototype.canon = function (format) {
+Cells.prototype.canon = function (format, flags) {
 	var result = {};
+	var alignmentValue;
+	var protectionValue;
 
 	if (format.format) {
 		result.format = this.styles.numberFormats.add(format.format);
@@ -1042,41 +1044,70 @@ Cells.prototype.canon = function (format) {
 		result.font = this.styles.fonts.add(format.font);
 	}
 	if (format.pattern) {
-		result.fill = this.styles.fills.add(format.pattern, 'pattern');
+		result.fill = this.styles.fills.add(format.pattern, null, {fillType: 'pattern'});
 	} else if (format.gradient) {
-		result.fill = this.styles.fills.add(format.gradient, 'gradient');
-	} else if (format.fill) {
-		result.fill = this.styles.fills.add(format.fill, format.fillType);
+		result.fill = this.styles.fills.add(format.gradient, null, {fillType: 'gradient'});
+	} else if (flags && flags.merge && format.fill) {
+		result.fill = this.styles.fills.add(format.fill, null, flags);
 	}
 	if (format.border) {
 		result.border = this.styles.borders.add(format.border);
 	}
-	result.alignment = alignment.canon(format);
-	result.protection = protection.canon(format);
+	alignmentValue = alignment.canon(format);
+	if (alignmentValue) {
+		result.alignment = alignmentValue;
+	}
+	protectionValue = protection.canon(format);
+	if (protectionValue) {
+		result.protection = protectionValue;
+	}
+	result.fillOut = format.fillOut;
 	return result;
 };
 
 Cells.prototype.fullGet = function (format) {
 	var result = {};
 
-	format = this.get(format);
+	if (this.getId(format)) {
+		format = this.get(format);
+		if (format.format) {
+			result.format = this.styles.numberFormats.get(format.format);
+		}
+		if (format.font) {
+			result.font = _.clone(this.styles.fonts.get(format.font));
+		}
+		if (format.fill) {
+			result.fill = _.clone(this.styles.fills.get(format.fill));
+		}
+		if (format.border) {
+			result.border = _.clone(this.styles.borders.get(format.border));
+		}
+		if (format.alignment) {
+			result.alignment = _.clone(format.alignment);
+		}
+		if (format.protection) {
+			result.protection = _.clone(format.protection);
+		}
+	} else {
+		result = this.canon(format);
+	}
+	return result;
+};
+
+Cells.prototype.cutVisible = function (format) {
+	var result = {};
+
 	if (format.format) {
-		result.format = this.styles.numberFormats.get(format.format);
+		result.format = format.format;
 	}
 	if (format.font) {
-		result.font = _.clone(this.styles.fonts.get(format.font));
-	}
-	if (format.fill) {
-		result.fill = _.clone(this.styles.fills.get(format.fill));
-	}
-	if (format.border) {
-		result.border = _.clone(this.styles.borders.get(format.border));
+		result.font = format.font;
 	}
 	if (format.alignment) {
-		result.alignment = _.clone(format.alignment);
+		result.alignment = format.alignment;
 	}
 	if (format.protection) {
-		result.protection = _.clone(format.protection);
+		result.protection = format.protection;
 	}
 	return result;
 };
@@ -1172,18 +1203,18 @@ function Fills(styles) {
 
 util.inherits(Fills, StylePart);
 
-Fills.canon = function (format, type, isTable) {
+Fills.canon = function (format, flags) {
 	var result = {
-		fillType: type
+		fillType: flags.merge ? format.fillType : flags.fillType
 	};
 
-	if (type === 'pattern') {
-		var fgColor = format.color || format.fgColor || 'FFFFFFFF';
-		var bgColor = format.backColor || format.bgColor || 'FFFFFFFF';
-		var patternType = format.type || format.patternType;
+	if (result.fillType === 'pattern') {
+		var fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
+		var bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
+		var patternType = flags.merge ? format.patternType : format.type;
 
 		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
-		if (isTable && result.patternType === 'solid') {
+		if (flags.isTable && result.patternType === 'solid') {
 			result.fgColor = bgColor;
 			result.bgColor = fgColor;
 		} else {
@@ -1288,9 +1319,9 @@ function exportGradientFill(format) {
 
 Fills.prototype.init = function () {
 	this.formats.push({
-		format: this.canon({type: 'none'}, 'pattern')
+		format: this.canon({type: 'none'}, {fillType: 'pattern'})
 	}, {
-		format: this.canon({type: 'gray125'}, 'pattern')
+		format: this.canon({type: 'gray125'}, {fillType: 'pattern'})
 	});
 };
 
@@ -1467,8 +1498,10 @@ module.exports = Fonts;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":27,"./stylePart":22,"./utils":25}],19:[function(require,module,exports){
+(function (global){
 'use strict';
 
+var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var NumberFormats = require('./numberFormats');
 var Fonts = require('./fonts');
 var Fills = require('./fills');
@@ -1491,11 +1524,23 @@ function Styles(common) {
 }
 
 Styles.prototype.addFormat = function (format, name) {
-	return this.cells.add(format, null, name);
+	return this.cells.add(format, name);
+};
+
+Styles.prototype._get = function (name) {
+	return this.cells.get(name);
 };
 
 Styles.prototype._getId = function (name) {
 	return this.cells.getId(name);
+};
+
+Styles.prototype._addInvisibleFormat = function (format) {
+	var style = this.cells.cutVisible(this.cells.fullGet(format));
+
+	if (!_.isEmpty(style)) {
+		return this.addFormat(style);
+	}
 };
 
 Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {
@@ -1517,36 +1562,36 @@ Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {
 		if (cellFormat) {
 			format = this.cells.merge(format, this.cells.fullGet(cellFormat));
 		}
-		return this.cells.add(format);
+		return this.cells.add(format, null, {merge: true});
 	}
 };
 
 Styles.prototype.addFontFormat = function (format, name) {
-	return this.fonts.add(format, null, name);
+	return this.fonts.add(format, name);
 };
 
 Styles.prototype.addBorderFormat = function (format, name) {
-	return this.borders.add(format, null, name);
+	return this.borders.add(format, name);
 };
 
 Styles.prototype.addPatternFormat = function (format, name) {
-	return this.fills.add(format, 'pattern', name);
+	return this.fills.add(format, name, {fillType: 'pattern'});
 };
 
 Styles.prototype.addGradientFormat = function (format, name) {
-	return this.fills.add(format, 'gradient', name);
+	return this.fills.add(format, name, {fillType: 'gradient'});
 };
 
 Styles.prototype.addNumberFormat = function (format, name) {
-	return this.numberFormats.add(format, null, name);
+	return this.numberFormats.add(format, name);
 };
 
 Styles.prototype.addTableFormat = function (format, name) {
-	return this.tables.add(format, null, name);
+	return this.tables.add(format, name);
 };
 
 Styles.prototype.addTableElementFormat = function (format, name) {
-	return this.tableElements.add(format, null, name);
+	return this.tableElements.add(format, name);
 };
 
 Styles.prototype.setDefaultTableStyle = function (name) {
@@ -1571,6 +1616,7 @@ Styles.prototype.export = function () {
 
 module.exports = Styles;
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"./borders":15,"./cells":16,"./fills":17,"./fonts":18,"./numberFormats":20,"./tableElements":23,"./tables":24}],20:[function(require,module,exports){
 (function (global){
 'use strict';
@@ -1652,7 +1698,7 @@ function canon(format) {
 		result.hidden = format.hidden ? 1 : 0;
 	}
 
-	return _.isEmpty(result) ? undefined : result;
+	return _.isEmpty(result) ? null : result;
 }
 
 function merge(formatTo, formatFrom) {
@@ -1688,17 +1734,17 @@ function StylePart(styles, exportName, formatName) {
 	this.lastId = 0;
 	this.exportEmpty = true;
 	this.formats = [];
-	this.formatsByData = {};
-	this.formatsByNames = {};
+	this.formatsByData = Object.create(null);
+	this.formatsByNames = Object.create(null);
 }
 
-StylePart.prototype.add = function (format, type, name) {
+StylePart.prototype.add = function (format, name, flags) {
 	var canonFormat;
 	var stringFormat;
 	var styleFormat;
 
 	if (name && this.formatsByNames[name]) {
-		canonFormat = this.canon(format, type);
+		canonFormat = this.canon(format, flags);
 		stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 
 		if (stringFormat !== this.formatsByNames[name].stringFormat) {
@@ -1712,7 +1758,7 @@ StylePart.prototype.add = function (format, type, name) {
 		return format;
 	}
 
-	canonFormat = this.canon(format, type || format.fillType);
+	canonFormat = this.canon(format, flags);
 	stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 	styleFormat = this.formatsByData[stringFormat];
 
@@ -1740,6 +1786,10 @@ StylePart.prototype._add = function (canonFormat, stringFormat, name) {
 	this.formatsByNames[name] = styleFormat;
 
 	return styleFormat;
+};
+
+StylePart.prototype.canon = function (format) {
+	return format;
 };
 
 StylePart.prototype.get = function (format) {
@@ -1776,10 +1826,6 @@ StylePart.prototype.export = function () {
 		});
 	}
 	return '';
-};
-
-StylePart.prototype.canon = function (format) {
-	return format;
 };
 
 StylePart.prototype.exportCollectionExt = function () {};
@@ -1820,9 +1866,9 @@ TableElements.prototype.canon = function (format) {
 		result.font = Fonts.canon(format.font);
 	}
 	if (format.pattern) {
-		result.fill = Fills.canon(format.pattern, 'pattern', 'table');
+		result.fill = Fills.canon(format.pattern, {fillType: 'pattern', isTable: true});
 	} else if (format.gradient) {
-		result.fill = Fills.canon(format.gradient, 'gradient');
+		result.fill = Fills.canon(format.gradient, {fillType: 'gradient'});
 	}
 	if (format.border) {
 		result.border = Borders.canon(format.border);
@@ -3279,7 +3325,11 @@ function prepareColumns(worksheet) {
 
 			if (column.style) {
 				preparedColumn.style = styles.addFormat(column.style);
-				preparedColumn.styleId = styles._getId(preparedColumn.style);
+				if (styles._get(preparedColumn.style).fillOut) {
+					preparedColumn.styleId = styles._getId(preparedColumn.style);
+				} else {
+					preparedColumn.styleId = styles._getId(styles._addInvisibleFormat(preparedColumn.style));
+				}
 			}
 			worksheet.preparedColumns[index] = preparedColumn;
 		}
@@ -3403,7 +3453,13 @@ function prepareDataRow(worksheet, rowIndex) {
 
 	worksheet.preparedData[rowIndex] = preparedDataRow;
 	if (row) {
-		row.styleId = styles._getId(row.style);
+		if (row.style) {
+			if (styles._get(row.style).fillOut) {
+				row.styleId = styles._getId(row.style);
+			} else {
+				row.styleId = styles._getId(styles._addInvisibleFormat(row.style));
+			}
+		}
 		worksheet.preparedRows[rowIndex] = row;
 	}
 

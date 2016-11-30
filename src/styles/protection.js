@@ -15,7 +15,7 @@ function canon(format) {
 		result.hidden = format.hidden ? 1 : 0;
 	}
 
-	return _.isEmpty(result) ? undefined : result;
+	return _.isEmpty(result) ? null : result;
 }
 
 function merge(formatTo, formatFrom) {

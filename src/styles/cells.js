@@ -28,6 +28,8 @@ Cells.prototype.init = function () {
 
 Cells.prototype.canon = function (format, flags) {
 	var result = {};
+	var alignmentValue;
+	var protectionValue;
 
 	if (format.format) {
 		result.format = this.styles.numberFormats.add(format.format);
@@ -45,8 +47,15 @@ Cells.prototype.canon = function (format, flags) {
 	if (format.border) {
 		result.border = this.styles.borders.add(format.border);
 	}
-	result.alignment = alignment.canon(format);
-	result.protection = protection.canon(format);
+	alignmentValue = alignment.canon(format);
+	if (alignmentValue) {
+		result.alignment = alignmentValue;
+	}
+	protectionValue = protection.canon(format);
+	if (protectionValue) {
+		result.protection = protectionValue;
+	}
+	result.fillOut = format.fillOut;
 	return result;
 };
 
@@ -75,6 +84,24 @@ Cells.prototype.fullGet = function (format) {
 		}
 	} else {
 		result = this.canon(format);
+	}
+	return result;
+};
+
+Cells.prototype.cutVisible = function (format) {
+	var result = {};
+
+	if (format.format) {
+		result.format = format.format;
+	}
+	if (format.font) {
+		result.font = format.font;
+	}
+	if (format.alignment) {
+		result.alignment = format.alignment;
+	}
+	if (format.protection) {
+		result.protection = format.protection;
 	}
 	return result;
 };

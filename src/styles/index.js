@@ -1,5 +1,6 @@
 'use strict';
 
+var _ = require('lodash');
 var NumberFormats = require('./numberFormats');
 var Fonts = require('./fonts');
 var Fills = require('./fills');
@@ -25,8 +26,20 @@ Styles.prototype.addFormat = function (format, name) {
 	return this.cells.add(format, name);
 };
 
+Styles.prototype._get = function (name) {
+	return this.cells.get(name);
+};
+
 Styles.prototype._getId = function (name) {
 	return this.cells.getId(name);
+};
+
+Styles.prototype._addInvisibleFormat = function (format) {
+	var style = this.cells.cutVisible(this.cells.fullGet(format));
+
+	if (!_.isEmpty(style)) {
+		return this.addFormat(style);
+	}
 };
 
 Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {

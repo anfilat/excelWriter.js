@@ -45,7 +45,11 @@ function prepareColumns(worksheet) {
 
 			if (column.style) {
 				preparedColumn.style = styles.addFormat(column.style);
-				preparedColumn.styleId = styles._getId(preparedColumn.style);
+				if (styles._get(preparedColumn.style).fillOut) {
+					preparedColumn.styleId = styles._getId(preparedColumn.style);
+				} else {
+					preparedColumn.styleId = styles._getId(styles._addInvisibleFormat(preparedColumn.style));
+				}
 			}
 			worksheet.preparedColumns[index] = preparedColumn;
 		}
@@ -169,7 +173,13 @@ function prepareDataRow(worksheet, rowIndex) {
 
 	worksheet.preparedData[rowIndex] = preparedDataRow;
 	if (row) {
-		row.styleId = styles._getId(row.style);
+		if (row.style) {
+			if (styles._get(row.style).fillOut) {
+				row.styleId = styles._getId(row.style);
+			} else {
+				row.styleId = styles._getId(styles._addInvisibleFormat(row.style));
+			}
+		}
 		worksheet.preparedRows[rowIndex] = row;
 	}
 

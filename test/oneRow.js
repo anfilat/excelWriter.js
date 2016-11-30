@@ -31,10 +31,16 @@ module.exports = function (excel) {
 		hidden: true
 	});
 	var columns = [
-		{width: 10},
+		{
+			width: 10,
+			style: header
+		},
 		{
 			width: 50,
-			style: {gradient: {left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, start: 'FFFFFF00', end: 'FF5B9BD5'}}
+			style: {
+				fillOut: true,
+				gradient: {left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, start: 'FFFFFF00', end: 'FF5B9BD5'}
+			}
 		},
 		{style: {format: 'currency'}},
 		{width: 15}
@@ -45,7 +51,7 @@ module.exports = function (excel) {
 			height: 30,
 			style: fillFormat,
 			data: [
-				{value: 2541, style: header},
+				2541,
 				{value: 'Nullam aliquet mi et nunc tempus rutrum.', style: {pattern: {color: 'FF999999'}}},
 				260,
 				'__proto__',
@@ -56,7 +62,7 @@ module.exports = function (excel) {
 		{
 			outlineLevel: 1,
 			data: [
-				{value: 2541, style: header},
+				2542,
 				'Labore duis cillum dolor adipisicing cillum dolore.',
 				205,
 				{value: 'Dolore anim', style: {font: {bold: true}}},
@@ -65,7 +71,7 @@ module.exports = function (excel) {
 			]
 		},
 		[
-			{value: 2541, style: header},
+			2543,
 			'Irure duis sit cupidatat culpa adipisicing nisi.',
 			59,
 			'Ullamco cillum',
@@ -73,7 +79,7 @@ module.exports = function (excel) {
 			{time: 1342977404000}
 		],
 		[
-			{value: 2541, style: header},
+			2544,
 			'Est sunt esse elit reprehenderit exercitation irure.',
 			145,
 			'Culpa occaecat',
