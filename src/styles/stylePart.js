@@ -15,13 +15,13 @@ function StylePart(styles, exportName, formatName) {
 	this.formatsByNames = Object.create(null);
 }
 
-StylePart.prototype.add = function (format, type, name) {
+StylePart.prototype.add = function (format, name, flags) {
 	var canonFormat;
 	var stringFormat;
 	var styleFormat;
 
 	if (name && this.formatsByNames[name]) {
-		canonFormat = this.canon(format, type);
+		canonFormat = this.canon(format, flags);
 		stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 
 		if (stringFormat !== this.formatsByNames[name].stringFormat) {
@@ -35,7 +35,7 @@ StylePart.prototype.add = function (format, type, name) {
 		return format;
 	}
 
-	canonFormat = this.canon(format, type || format.fillType);
+	canonFormat = this.canon(format, flags);
 	stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
 	styleFormat = this.formatsByData[stringFormat];
 
@@ -63,6 +63,10 @@ StylePart.prototype._add = function (canonFormat, stringFormat, name) {
 	this.formatsByNames[name] = styleFormat;
 
 	return styleFormat;
+};
+
+StylePart.prototype.canon = function (format) {
+	return format;
 };
 
 StylePart.prototype.get = function (format) {
@@ -99,10 +103,6 @@ StylePart.prototype.export = function () {
 		});
 	}
 	return '';
-};
-
-StylePart.prototype.canon = function (format) {
-	return format;
 };
 
 StylePart.prototype.exportCollectionExt = function () {};

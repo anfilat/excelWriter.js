@@ -22,7 +22,7 @@ function Styles(common) {
 }
 
 Styles.prototype.addFormat = function (format, name) {
-	return this.cells.add(format, null, name);
+	return this.cells.add(format, name);
 };
 
 Styles.prototype._getId = function (name) {
@@ -48,36 +48,36 @@ Styles.prototype._merge = function (columnFormat, rowFormat, cellFormat) {
 		if (cellFormat) {
 			format = this.cells.merge(format, this.cells.fullGet(cellFormat));
 		}
-		return this.cells.add(format);
+		return this.cells.add(format, null, {merge: true});
 	}
 };
 
 Styles.prototype.addFontFormat = function (format, name) {
-	return this.fonts.add(format, null, name);
+	return this.fonts.add(format, name);
 };
 
 Styles.prototype.addBorderFormat = function (format, name) {
-	return this.borders.add(format, null, name);
+	return this.borders.add(format, name);
 };
 
 Styles.prototype.addPatternFormat = function (format, name) {
-	return this.fills.add(format, 'pattern', name);
+	return this.fills.add(format, name, {fillType: 'pattern'});
 };
 
 Styles.prototype.addGradientFormat = function (format, name) {
-	return this.fills.add(format, 'gradient', name);
+	return this.fills.add(format, name, {fillType: 'gradient'});
 };
 
 Styles.prototype.addNumberFormat = function (format, name) {
-	return this.numberFormats.add(format, null, name);
+	return this.numberFormats.add(format, name);
 };
 
 Styles.prototype.addTableFormat = function (format, name) {
-	return this.tables.add(format, null, name);
+	return this.tables.add(format, name);
 };
 
 Styles.prototype.addTableElementFormat = function (format, name) {
-	return this.tableElements.add(format, null, name);
+	return this.tableElements.add(format, name);
 };
 
 Styles.prototype.setDefaultTableStyle = function (name) {

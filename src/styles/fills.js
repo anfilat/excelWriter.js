@@ -19,18 +19,18 @@ function Fills(styles) {
 
 util.inherits(Fills, StylePart);
 
-Fills.canon = function (format, type, isTable) {
+Fills.canon = function (format, flags) {
 	var result = {
-		fillType: type
+		fillType: flags.merge ? format.fillType : flags.fillType
 	};
 
-	if (type === 'pattern') {
-		var fgColor = format.color || format.fgColor || 'FFFFFFFF';
-		var bgColor = format.backColor || format.bgColor || 'FFFFFFFF';
-		var patternType = format.type || format.patternType;
+	if (result.fillType === 'pattern') {
+		var fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
+		var bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
+		var patternType = flags.merge ? format.patternType : format.type;
 
 		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
-		if (isTable && result.patternType === 'solid') {
+		if (flags.isTable && result.patternType === 'solid') {
 			result.fgColor = bgColor;
 			result.bgColor = fgColor;
 		} else {
@@ -135,9 +135,9 @@ function exportGradientFill(format) {
 
 Fills.prototype.init = function () {
 	this.formats.push({
-		format: this.canon({type: 'none'}, 'pattern')
+		format: this.canon({type: 'none'}, {fillType: 'pattern'})
 	}, {
-		format: this.canon({type: 'gray125'}, 'pattern')
+		format: this.canon({type: 'gray125'}, {fillType: 'pattern'})
 	});
 };
 

@@ -26,9 +26,9 @@ TableElements.prototype.canon = function (format) {
 		result.font = Fonts.canon(format.font);
 	}
 	if (format.pattern) {
-		result.fill = Fills.canon(format.pattern, 'pattern', 'table');
+		result.fill = Fills.canon(format.pattern, {fillType: 'pattern', isTable: true});
 	} else if (format.gradient) {
-		result.fill = Fills.canon(format.gradient, 'gradient');
+		result.fill = Fills.canon(format.gradient, {fillType: 'gradient'});
 	}
 	if (format.border) {
 		result.border = Borders.canon(format.border);

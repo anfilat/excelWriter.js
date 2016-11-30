@@ -26,7 +26,7 @@ Cells.prototype.init = function () {
 	);
 };
 
-Cells.prototype.canon = function (format) {
+Cells.prototype.canon = function (format, flags) {
 	var result = {};
 
 	if (format.format) {
@@ -36,11 +36,11 @@ Cells.prototype.canon = function (format) {
 		result.font = this.styles.fonts.add(format.font);
 	}
 	if (format.pattern) {
-		result.fill = this.styles.fills.add(format.pattern, 'pattern');
+		result.fill = this.styles.fills.add(format.pattern, null, {fillType: 'pattern'});
 	} else if (format.gradient) {
-		result.fill = this.styles.fills.add(format.gradient, 'gradient');
-	} else if (format.fill) {
-		result.fill = this.styles.fills.add(format.fill, format.fillType);
+		result.fill = this.styles.fills.add(format.gradient, null, {fillType: 'gradient'});
+	} else if (flags && flags.merge && format.fill) {
+		result.fill = this.styles.fills.add(format.fill, null, flags);
 	}
 	if (format.border) {
 		result.border = this.styles.borders.add(format.border);
@@ -53,24 +53,28 @@ Cells.prototype.canon = function (format) {
 Cells.prototype.fullGet = function (format) {
 	var result = {};
 
-	format = this.get(format);
-	if (format.format) {
-		result.format = this.styles.numberFormats.get(format.format);
-	}
-	if (format.font) {
-		result.font = _.clone(this.styles.fonts.get(format.font));
-	}
-	if (format.fill) {
-		result.fill = _.clone(this.styles.fills.get(format.fill));
-	}
-	if (format.border) {
-		result.border = _.clone(this.styles.borders.get(format.border));
-	}
-	if (format.alignment) {
-		result.alignment = _.clone(format.alignment);
-	}
-	if (format.protection) {
-		result.protection = _.clone(format.protection);
+	if (this.getId(format)) {
+		format = this.get(format);
+		if (format.format) {
+			result.format = this.styles.numberFormats.get(format.format);
+		}
+		if (format.font) {
+			result.font = _.clone(this.styles.fonts.get(format.font));
+		}
+		if (format.fill) {
+			result.fill = _.clone(this.styles.fills.get(format.fill));
+		}
+		if (format.border) {
+			result.border = _.clone(this.styles.borders.get(format.border));
+		}
+		if (format.alignment) {
+			result.alignment = _.clone(format.alignment);
+		}
+		if (format.protection) {
+			result.protection = _.clone(format.protection);
+		}
+	} else {
+		result = this.canon(format);
 	}
 	return result;
 };

@@ -44,18 +44,42 @@ module.exports = function (excel) {
 			outlineLevel: 0,
 			height: 30,
 			style: fillFormat,
-			data: [{value: 2541, style: header}, 'Nullam aliquet mi et nunc tempus rutrum.', 260,
-				'__proto__', 1342372604000, {date: 1342977404000}]
+			data: [
+				{value: 2541, style: header},
+				{value: 'Nullam aliquet mi et nunc tempus rutrum.', style: {pattern: {color: 'FF999999'}}},
+				260,
+				'__proto__',
+				1342372604000,
+				{date: 1342977404000}
+			]
 		},
 		{
 			outlineLevel: 1,
-			data: [{value: 2541, style: header}, 'Labore duis cillum dolor adipisicing cillum dolore.', 205,
-				{value: 'Dolore anim', style: {font: {bold: true}}}, 'not date', {date: 1342977404000}]
+			data: [
+				{value: 2541, style: header},
+				'Labore duis cillum dolor adipisicing cillum dolore.',
+				205,
+				{value: 'Dolore anim', style: {font: {bold: true}}},
+				'not date',
+				{date: 1342977404000}
+			]
 		},
-		[{value: 2541, style: header}, 'Irure duis sit cupidatat culpa adipisicing nisi.', 59,
-			'Ullamco cillum', 1342372604000, {time: 1342977404000}],
-		[{value: 2541, style: header}, 'Est sunt esse elit reprehenderit exercitation irure.', 145,
-			'Culpa occaecat', 1342372604000, {time: 1342977404000}]
+		[
+			{value: 2541, style: header},
+			'Irure duis sit cupidatat culpa adipisicing nisi.',
+			59,
+			'Ullamco cillum',
+			1342372604000,
+			{time: 1342977404000}
+		],
+		[
+			{value: 2541, style: header},
+			'Est sunt esse elit reprehenderit exercitation irure.',
+			145,
+			'Culpa occaecat',
+			1342372604000,
+			{time: 1342977404000}
+		]
 	];
 
 	workbook.addWorksheet()
