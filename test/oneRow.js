@@ -53,7 +53,7 @@ module.exports = function (excel) {
 			data: [
 				2541,
 				{value: 'Nullam aliquet mi et nunc tempus rutrum.', style: {pattern: {color: 'FF999999'}}},
-				260,
+				undefined,
 				'__proto__',
 				1342372604000,
 				{date: 1342977404000}

@@ -103,10 +103,6 @@ function prepareDataRow(worksheet, rowIndex) {
 			column = worksheet.preparedColumns[colIndex];
 			value = dataRow[colIndex];
 
-			if (_.isNil(value)) {
-				continue;
-			}
-
 			cellStyle = null;
 			cellFormula = null;
 			isString = false;
@@ -141,7 +137,7 @@ function prepareDataRow(worksheet, rowIndex) {
 					cellType = column.type;
 				} else if (typeof cellValue === 'number') {
 					cellType = 'number';
-				} else {
+				} else if (typeof cellValue === 'string') {
 					cellType = 'string';
 				}
 			}
