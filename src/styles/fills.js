@@ -134,11 +134,10 @@ function exportGradientFill(format) {
 }
 
 Fills.prototype.init = function () {
-	this.formats.push({
-		format: this.canon({type: 'none'}, {fillType: 'pattern'})
-	}, {
-		format: this.canon({type: 'gray125'}, {fillType: 'pattern'})
-	});
+	this.formats.push(
+		{format: this.canon({type: 'none'}, {fillType: 'pattern'})},
+		{format: this.canon({type: 'gray125'}, {fillType: 'pattern'})}
+	);
 };
 
 Fills.prototype.canon = Fills.canon;

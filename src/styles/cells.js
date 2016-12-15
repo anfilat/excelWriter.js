@@ -55,7 +55,9 @@ Cells.prototype.canon = function (format, flags) {
 	if (protectionValue) {
 		result.protection = protectionValue;
 	}
-	result.fillOut = format.fillOut;
+	if (format.fillOut) {
+		result.fillOut = format.fillOut;
+	}
 	return result;
 };
 

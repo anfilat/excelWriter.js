@@ -106,7 +106,10 @@ function prepareDataRow(worksheet, rowIndex) {
 			cellStyle = null;
 			cellFormula = null;
 			isString = false;
-			if (value && typeof value === 'object') {
+			if (_.isDate(value)) {
+				cellValue = value;
+				cellType = 'date';
+			} else if (value && typeof value === 'object') {
 				if (value.style) {
 					cellStyle = value.style;
 				}
@@ -146,7 +149,8 @@ function prepareDataRow(worksheet, rowIndex) {
 				cellValue = common.addString(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
-				date = 25569.0 + (cellValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
+				date = 25569.0 + ((_.isDate(cellValue) ? cellValue.valueOf() : cellValue) - worksheet.timezoneOffset) /
+					(60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
