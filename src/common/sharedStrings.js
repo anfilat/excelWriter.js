@@ -4,6 +4,8 @@ var Readable = require('stream').Readable;
 var _ = require('lodash');
 var util = require('../util');
 
+var spaceRE = /^\s|\s$/;
+
 function SharedStrings(common) {
 	this.objectId = common.uniqueId('SharedStrings');
 	this._strings = Object.create(null);
@@ -37,7 +39,12 @@ SharedStrings.prototype.export = function (canStream) {
 	} else {
 		var len = this._stringArray.length;
 		var children = _.map(this._stringArray, function (string) {
-			return '<si><t>' + _.escape(string) + '</t></si>';
+			var str = _.escape(string);
+
+			if (spaceRE.test(str)) {
+				return '<si><t xml:space="preserve">' + str + '</t></si>';
+			}
+			return '<si><t>' + str + '</t></si>';
 		});
 
 		return getXMLBegin(len) + children.join('') + getXMLEnd();
@@ -66,9 +73,17 @@ SharedStringsStream.prototype._read = function (size) {
 
 	if (this.status === 1) {
 		var s = '';
+		var str;
+
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
-				s += '<si><t>' + _.escape(this.strings[this.index]) + '</t></si>';
+				str = _.escape(this.strings[this.index]);
+
+				if (spaceRE.test(str)) {
+					s += '<si><t xml:space="preserve">' + str + '</t></si>';
+				} else {
+					s += '<si><t>' + str + '</t></si>';
+				}
 				this.strings[this.index] = null;
 				this.index++;
 			}

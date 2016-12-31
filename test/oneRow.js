@@ -43,7 +43,7 @@ module.exports = function (excel) {
 			}
 		},
 		{style: {format: 'currency'}},
-		{width: 15}
+		{width: 25}
 	];
 	var worksheetData = [
 		{
@@ -74,7 +74,7 @@ module.exports = function (excel) {
 			2543,
 			'Irure duis sit cupidatat culpa adipisicing nisi.',
 			59,
-			'Ullamco cillum',
+			' String with header space',
 			1342372604000,
 			{time: 1342977404000}
 		],
@@ -82,7 +82,7 @@ module.exports = function (excel) {
 			2544,
 			'Est sunt esse elit reprehenderit exercitation irure.',
 			145,
-			'Culpa occaecat',
+			'String with trailing space ',
 			1342372604000,
 			{time: 1342977404000}
 		]

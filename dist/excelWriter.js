@@ -247,6 +247,8 @@ var Readable = require('stream').Readable;
 var _ = (typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null);
 var util = require('../util');
 
+var spaceRE = /^\s|\s$/;
+
 function SharedStrings(common) {
 	this.objectId = common.uniqueId('SharedStrings');
 	this._strings = Object.create(null);
@@ -280,7 +282,12 @@ SharedStrings.prototype.export = function (canStream) {
 	} else {
 		var len = this._stringArray.length;
 		var children = _.map(this._stringArray, function (string) {
-			return '<si><t>' + _.escape(string) + '</t></si>';
+			var str = _.escape(string);
+
+			if (spaceRE.test(str)) {
+				return '<si><t xml:space="preserve">' + str + '</t></si>';
+			}
+			return '<si><t>' + str + '</t></si>';
 		});
 
 		return getXMLBegin(len) + children.join('') + getXMLEnd();
@@ -309,9 +316,17 @@ SharedStringsStream.prototype._read = function (size) {
 
 	if (this.status === 1) {
 		var s = '';
+		var str;
+
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
-				s += '<si><t>' + _.escape(this.strings[this.index]) + '</t></si>';
+				str = _.escape(this.strings[this.index]);
+
+				if (spaceRE.test(str)) {
+					s += '<si><t xml:space="preserve">' + str + '</t></si>';
+				} else {
+					s += '<si><t>' + str + '</t></si>';
+				}
 				this.strings[this.index] = null;
 				this.index++;
 			}
@@ -1061,7 +1076,9 @@ Cells.prototype.canon = function (format, flags) {
 	if (protectionValue) {
 		result.protection = protectionValue;
 	}
-	result.fillOut = format.fillOut;
+	if (format.fillOut) {
+		result.fillOut = format.fillOut;
+	}
 	return result;
 };
 
@@ -1318,11 +1335,10 @@ function exportGradientFill(format) {
 }
 
 Fills.prototype.init = function () {
-	this.formats.push({
-		format: this.canon({type: 'none'}, {fillType: 'pattern'})
-	}, {
-		format: this.canon({type: 'gray125'}, {fillType: 'pattern'})
-	});
+	this.formats.push(
+		{format: this.canon({type: 'none'}, {fillType: 'pattern'})},
+		{format: this.canon({type: 'gray125'}, {fillType: 'pattern'})}
+	);
 };
 
 Fills.prototype.canon = Fills.canon;
@@ -3386,7 +3402,10 @@ function prepareDataRow(worksheet, rowIndex) {
 			cellStyle = null;
 			cellFormula = null;
 			isString = false;
-			if (value && typeof value === 'object') {
+			if (_.isDate(value)) {
+				cellValue = value;
+				cellType = 'date';
+			} else if (value && typeof value === 'object') {
 				if (value.style) {
 					cellStyle = value.style;
 				}
@@ -3426,7 +3445,8 @@ function prepareDataRow(worksheet, rowIndex) {
 				cellValue = common.addString(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
-				date = 25569.0 + (cellValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
+				date = 25569.0 + ((_.isDate(cellValue) ? cellValue.valueOf() : cellValue) - worksheet.timezoneOffset) /
+					(60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
