@@ -1,12 +1,12 @@
 'use strict';
 
-var _ = require('lodash');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.protection.aspx
 
 function canon(format) {
-	var result = {};
+	const result = {};
 
 	if (_.has(format, 'locked')) {
 		result.locked = format.locked ? 1 : 0;
@@ -22,7 +22,7 @@ function merge(formatTo, formatFrom) {
 	return _.assign(formatTo, formatFrom);
 }
 
-function exportProtection(format) {
+function exportFormat(format) {
 	return toXMLString({
 		name: 'protection',
 		attributes: _.toPairs(format)
@@ -30,7 +30,7 @@ function exportProtection(format) {
 }
 
 module.exports = {
-	canon: canon,
-	merge: merge,
-	exportFormat: exportProtection
+	canon,
+	merge,
+	exportFormat
 };

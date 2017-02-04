@@ -1,114 +1,100 @@
 'use strict';
 
-var _ = require('lodash');
-var util = require('./util');
-var Common = require('./common');
-var Relations = require('./relations');
-var Worksheet = require('./worksheet');
-var toXMLString = require('./XMLString');
+const _ = require('lodash');
+const util = require('./util');
+const Common = require('./common');
+const Relations = require('./relations');
+const Worksheet = require('./worksheet');
+const toXMLString = require('./XMLString');
 
-function Workbook() {
-	this.common = new Common();
-	this.styles = this.common.styles;
-	this.relations = new Relations(this.common);
+class Workbook {
+	constructor() {
+		this.common = new Common();
+		this.styles = this.common.styles;
+		this.relations = new Relations(this.common);
 
-	this.objectId = this.common.uniqueId('Workbook');
+		this.objectId = this.common.uniqueId('Workbook');
+	}
+	addWorksheet(config) {
+		config = _.defaults(config, {
+			name: this.common.getNewWorksheetDefaultName()
+		});
+		const worksheet = new Worksheet(this, config);
+		this.common.addWorksheet(worksheet);
+		this.relations.addRelation(worksheet, 'worksheet');
+
+		return worksheet;
+	}
+	addFormat(format, name) {
+		return this.styles.addFormat(format, name);
+	}
+	addFontFormat(format, name) {
+		return this.styles.addFontFormat(format, name);
+	}
+	addBorderFormat(format, name) {
+		return this.styles.addBorderFormat(format, name);
+	}
+	addPatternFormat(format, name) {
+		return this.styles.addPatternFormat(format, name);
+	}
+	addGradientFormat(format, name) {
+		return this.styles.addGradientFormat(format, name);
+	}
+	addNumberFormat(format, name) {
+		return this.styles.addNumberFormat(format, name);
+	}
+	addTableFormat(format, name) {
+		return this.styles.addTableFormat(format, name);
+	}
+	addTableElementFormat(format, name) {
+		return this.styles.addTableElementFormat(format, name);
+	}
+	setDefaultTableStyle(name) {
+		this.styles.setDefaultTableStyle(name);
+		return this;
+	}
+	addImage(data, type, name) {
+		return this.common.addImage(data, type, name);
+	}
+	_generateFiles(zip, canStream) {
+		prepareWorksheets(this.common);
+
+		exportWorksheets(zip, canStream, this.common);
+		exportTables(zip, this.common);
+		exportImages(zip, this.common);
+		exportDrawings(zip, this.common);
+		exportStyles(zip, this.relations, this.styles);
+		exportSharedStrings(zip, canStream, this.relations, this.common);
+		zip.file('[Content_Types].xml', createContentTypes(this.common));
+		zip.file('_rels/.rels', createWorkbookRelationship());
+		zip.file('xl/workbook.xml', this._export());
+		zip.file('xl/_rels/workbook.xml.rels', this.relations.export());
+	}
+	_export() {
+		return toXMLString({
+			name: 'workbook',
+			ns: 'spreadsheetml',
+			attributes: [
+				['xmlns:r', util.schemas.relationships]
+			],
+			children: [
+				bookViewsXML(this.common),
+				sheetsXML(this.relations, this.common),
+				definedNamesXML(this.common)
+			]
+		});
+	}
 }
 
-Workbook.prototype.addWorksheet = function (config) {
-	var worksheet;
-
-	config = _.defaults(config, {
-		name: this.common.getNewWorksheetDefaultName()
-	});
-	worksheet = new Worksheet(this, config);
-	this.common.addWorksheet(worksheet);
-	this.relations.addRelation(worksheet, 'worksheet');
-
-	return worksheet;
-};
-
-Workbook.prototype.addFormat = function (format, name) {
-	return this.styles.addFormat(format, name);
-};
-
-Workbook.prototype.addFontFormat = function (format, name) {
-	return this.styles.addFontFormat(format, name);
-};
-
-Workbook.prototype.addBorderFormat = function (format, name) {
-	return this.styles.addBorderFormat(format, name);
-};
-
-Workbook.prototype.addPatternFormat = function (format, name) {
-	return this.styles.addPatternFormat(format, name);
-};
-
-Workbook.prototype.addGradientFormat = function (format, name) {
-	return this.styles.addGradientFormat(format, name);
-};
-
-Workbook.prototype.addNumberFormat = function (format, name) {
-	return this.styles.addNumberFormat(format, name);
-};
-
-Workbook.prototype.addTableFormat = function (format, name) {
-	return this.styles.addTableFormat(format, name);
-};
-
-Workbook.prototype.addTableElementFormat = function (format, name) {
-	return this.styles.addTableElementFormat(format, name);
-};
-
-Workbook.prototype.setDefaultTableStyle = function (name) {
-	this.styles.setDefaultTableStyle(name);
-	return this;
-};
-
-Workbook.prototype.addImage = function (data, type, name) {
-	return this.common.addImage(data, type, name);
-};
-
-Workbook.prototype._generateFiles = function (zip, canStream) {
-	prepareWorksheets(this.common);
-
-	exportWorksheets(zip, canStream, this.common);
-	exportTables(zip, this.common);
-	exportImages(zip, this.common);
-	exportDrawings(zip, this.common);
-	exportStyles(zip, this.relations, this.styles);
-	exportSharedStrings(zip, canStream, this.relations, this.common);
-	zip.file('[Content_Types].xml', createContentTypes(this.common));
-	zip.file('_rels/.rels', createWorkbookRelationship());
-	zip.file('xl/workbook.xml', this._export());
-	zip.file('xl/_rels/workbook.xml.rels', this.relations.export());
-};
-
-Workbook.prototype._export = function () {
-	return toXMLString({
-		name: 'workbook',
-		ns: 'spreadsheetml',
-		attributes: [
-			['xmlns:r', util.schemas.relationships]
-		],
-		children: [
-			bookViewsXML(this.common),
-			sheetsXML(this.relations, this.common),
-			definedNamesXML(this.common)
-		]
-	});
-};
-
 function bookViewsXML(common) {
-	var activeTab = 0;
-	var activeWorksheetId;
+	let activeTab = 0;
+	let activeWorksheetId;
 
 	if (common.activeWorksheet) {
 		activeWorksheetId = common.activeWorksheet.objectId;
 
-		activeTab = Math.max(activeTab, _.findIndex(common.worksheets, function (worksheet) {
-			return worksheet.objectId === activeWorksheetId;
-		}));
+		activeTab = Math.max(activeTab,
+			_.findIndex(common.worksheets, worksheet => worksheet.objectId === activeWorksheetId));
 	}
 
 	return toXMLString({
@@ -125,8 +111,8 @@ function bookViewsXML(common) {
 }
 
 function sheetsXML(relations, common) {
-	var maxWorksheetNameLength = 31;
-	var children = _.map(common.worksheets, function (worksheet, index) {
+	const maxWorksheetNameLength = 31;
+	const children = _.map(common.worksheets, (worksheet, index) => {
 		// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
 		// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
 		if (worksheet.name.length > maxWorksheetNameLength) {
@@ -147,24 +133,23 @@ function sheetsXML(relations, common) {
 
 	return toXMLString({
 		name: 'sheets',
-		children: children
+		children
 	});
 }
 
 function definedNamesXML(common) {
-	var isPrintTitles = _.some(common.worksheets, function (worksheet) {
-		return worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0);
-	});
+	const isPrintTitles = _.some(common.worksheets,
+		worksheet => worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0));
 
 	if (isPrintTitles) {
-		var children = [];
+		const children = [];
 
-		_.forEach(common.worksheets, function (worksheet, index) {
-			var entry = worksheet._printTitles;
+		_.forEach(common.worksheets, (worksheet, index) => {
+			const entry = worksheet._printTitles;
 
 			if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
-				var value = '';
-				var name = worksheet.name;
+				const name = worksheet.name;
+				let value = '';
 
 				if (entry.topTo >= 0) {
 					value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
@@ -179,7 +164,7 @@ function definedNamesXML(common) {
 
 				children.push(toXMLString({
 					name: 'definedName',
-					value: value,
+					value,
 					attributes: [
 						['name', '_xlnm.Print_Titles'],
 						['localSheetId', index]
@@ -190,33 +175,33 @@ function definedNamesXML(common) {
 
 		return toXMLString({
 			name: 'definedNames',
-			children: children
+			children
 		});
 	}
 	return '';
 }
 
 function prepareWorksheets(common) {
-	_.forEach(common.worksheets, function (worksheet) {
+	_.forEach(common.worksheets, worksheet => {
 		worksheet._prepare();
 	});
 }
 
 function exportWorksheets(zip, canStream, common) {
-	_.forEach(common.worksheets, function (worksheet) {
+	_.forEach(common.worksheets, worksheet => {
 		zip.file(worksheet.path, worksheet._export(canStream));
 		zip.file(worksheet.relationsPath, worksheet.relations.export());
 	});
 }
 
 function exportTables(zip, common) {
-	_.forEach(common.tables, function (table) {
+	_.forEach(common.tables, table => {
 		zip.file(table.path, table._export());
 	});
 }
 
 function exportImages(zip, common) {
-	_.forEach(common.getImages(), function (image) {
+	_.forEach(common.getImages(), image => {
 		zip.file(image.path, image.data, {base64: true, binary: true});
 		image.data = null;
 	});
@@ -224,7 +209,7 @@ function exportImages(zip, common) {
 }
 
 function exportDrawings(zip, common) {
-	_.forEach(common.drawings, function (drawing) {
+	_.forEach(common.drawings, drawing => {
 		zip.file(drawing.path, drawing.export());
 		zip.file(drawing.relationsPath, drawing.relations.export());
 	});
@@ -243,7 +228,7 @@ function exportSharedStrings(zip, canStream, relations, common) {
 }
 
 function createContentTypes(common) {
-	var children = [];
+	const children = [];
 
 	children.push(toXMLString({
 		name: 'Default',
@@ -283,7 +268,7 @@ function createContentTypes(common) {
 		]
 	}));
 
-	_.forEach(common.worksheets, function (worksheet, index) {
+	_.forEach(common.worksheets, (worksheet, index) => {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [
@@ -292,7 +277,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.tables, function (table, index) {
+	_.forEach(common.tables, (table, index) => {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [
@@ -301,7 +286,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.getExtensions(), function (contentType, extension) {
+	_.forEach(common.getExtensions(), (contentType, extension) => {
 		children.push(toXMLString({
 			name: 'Default',
 			attributes: [
@@ -310,7 +295,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.drawings, function (drawing, index) {
+	_.forEach(common.drawings, (drawing, index) => {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [
@@ -323,7 +308,7 @@ function createContentTypes(common) {
 	return toXMLString({
 		name: 'Types',
 		ns: 'contentTypes',
-		children: children
+		children
 	});
 }
 

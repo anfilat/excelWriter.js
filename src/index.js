@@ -1,10 +1,10 @@
 'use strict';
 
-var _ = require('lodash');
-var JSZip = require('jszip');
-var Workbook = require('./workbook');
+const _ = require('lodash');
+const JSZip = require('jszip');
+const Workbook = require('./workbook');
 
-var excelWriter = {
+module.exports = {
 	createWorkbook: function () {
 		return new Workbook();
 	},
@@ -15,8 +15,8 @@ var excelWriter = {
 	 * @param {Object?} options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
 	 */
 	save: function (workbook, options) {
-		var zip = new JSZip();
-		var canStream = JSZip.support.nodestream;
+		const zip = new JSZip();
+		const canStream = JSZip.support.nodestream;
 
 		workbook._generateFiles(zip, canStream);
 		return zip.generateAsync(_.defaults(options, {
@@ -27,8 +27,8 @@ var excelWriter = {
 	},
 
 	saveAsNodeStream: function (workbook, options) {
-		var zip = new JSZip();
-		var canStream = JSZip.support.nodestream;
+		const zip = new JSZip();
+		const canStream = JSZip.support.nodestream;
 
 		workbook._generateFiles(zip, canStream);
 		return zip.generateNodeStream(_.defaults(options, {
@@ -36,5 +36,3 @@ var excelWriter = {
 		}));
 	}
 };
-
-module.exports = excelWriter;

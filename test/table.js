@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = function (excel) {
-	var data = [
+	const data = [
 		['Artist', 'Album', 'Price'],
 		['Buckethead', 'Albino Slug', 8.99],
 		['Buckethead', 'Electric Tears', 13.99],
@@ -10,8 +10,8 @@ module.exports = function (excel) {
 		['Crystal Method', 'Tweekend', 10.64],
 		['Crystal Method', 'Divided By Night', 8.99]
 	];
-	var workbook = excel.createWorkbook();
-	var wholeTable = workbook.addTableElementFormat({
+	const workbook = excel.createWorkbook();
+	const wholeTable = workbook.addTableElementFormat({
 		pattern: {color: 'FF0088FF', type: 'solid'},
 		font: {italic: true, color: 'FF880000'}
 	});

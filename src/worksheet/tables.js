@@ -1,52 +1,51 @@
 'use strict';
 
-var _ = require('lodash');
-var Table = require('../table');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const Table = require('../table');
+const toXMLString = require('../XMLString');
 
-module.exports = {
-	init: function () {
+module.exports = SuperClass => class MergedCells extends SuperClass {
+	constructor(workbook, config) {
+		super(workbook, config);
 		this._tables = [];
-	},
-	methods: {
-		addTable: function (config) {
-			var table = new Table(this, config);
+	}
+	addTable(config) {
+		const table = new Table(this, config);
 
-			this.common.addTable(table);
-			this.relations.addRelation(table, 'table');
-			this._tables.push(table);
+		this.common.addTable(table);
+		this.relations.addRelation(table, 'table');
+		this._tables.push(table);
 
-			return table;
-		},
-		_prepareTables: function () {
-			var data = this.data;
+		return table;
+	}
+	_prepareTables() {
+		const data = this.data;
 
-			_.forEach(this._tables, function (table) {
-				table._prepare(data);
-			});
-		},
-		_exportTables: function () {
-			var relations = this.relations;
+		_.forEach(this._tables, table => {
+			table._prepare(data);
+		});
+	}
+	_exportTables() {
+		const relations = this.relations;
 
-			if (this._tables.length > 0) {
-				var children = _.map(this._tables, function (table) {
-					return toXMLString({
-						name: 'tablePart',
-						attributes: [
-							['r:id', relations.getRelationshipId(table)]
-						]
-					});
-				});
-
-				return toXMLString({
-					name: 'tableParts',
+		if (this._tables.length > 0) {
+			const children = _.map(this._tables,
+				table => toXMLString({
+					name: 'tablePart',
 					attributes: [
-						['count', this._tables.length]
-					],
-					children: children
-				});
-			}
-			return '';
+						['r:id', relations.getRelationshipId(table)]
+					]
+				})
+			);
+
+			return toXMLString({
+				name: 'tableParts',
+				attributes: [
+					['count', this._tables.length]
+				],
+				children
+			});
 		}
+		return '';
 	}
 };

@@ -1,16 +1,16 @@
 'use strict';
 
-var _ = require('lodash');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.alignment.aspx
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.horizontalalignmentvalues.aspx
-var HORIZONTAL = ['left', 'center', 'right', 'fill', 'justify', 'centerContinuous', 'distributed'];
+const HORIZONTAL = ['left', 'center', 'right', 'fill', 'justify', 'centerContinuous', 'distributed'];
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.verticalalignmentvalues.aspx
-var VERTICAL = ['top', 'center', 'bottom', 'justify', 'distributed'];
+const VERTICAL = ['top', 'center', 'bottom', 'justify', 'distributed'];
 
 function canon(format) {
-	var result = {};
+	const result = {};
 
 	if (_.has(format, 'horizontal') && _.includes(HORIZONTAL, format.horizontal)) {
 		result.horizontal = format.horizontal;
@@ -47,7 +47,7 @@ function merge(formatTo, formatFrom) {
 	return _.assign(formatTo, formatFrom);
 }
 
-function exportAlignment(format) {
+function exportFormat(format) {
 	return toXMLString({
 		name: 'alignment',
 		attributes: _.toPairs(format)
@@ -55,7 +55,7 @@ function exportAlignment(format) {
 }
 
 module.exports = {
-	canon: canon,
-	merge: merge,
-	exportFormat: exportAlignment
+	canon,
+	merge,
+	exportFormat
 };

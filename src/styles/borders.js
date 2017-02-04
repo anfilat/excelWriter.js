@@ -1,96 +1,93 @@
 'use strict';
 
-var _ = require('lodash');
-var StylePart = require('./stylePart');
-var util = require('../util');
-var formatUtils = require('./utils');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const StylePart = require('./stylePart');
+const formatUtils = require('./utils');
+const toXMLString = require('../XMLString');
 
-var BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
+const BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.borders.aspx
-function Borders(styles) {
-	StylePart.call(this, styles, 'borders', 'border');
+class Borders extends StylePart {
+	constructor(styles)	{
+		super(styles, 'borders', 'border');
 
-	this.init();
-	this.lastId = this.formats.length;
-}
+		this.init();
+		this.lastId = this.formats.length;
+	}
+	init() {
+		this.formats.push(
+			{format: this.canon({})}
+		);
+	}
+	static canon(format) {
+		const result = {};
 
-util.inherits(Borders, StylePart);
+		_.forEach(BORDERS, name => {
+			const border = format[name];
 
-Borders.canon = function (format) {
-	var result = {};
-
-	_.forEach(BORDERS, function (name) {
-		var border = format[name];
-
-		if (border) {
-			result[name] = {
-				style: border.style,
-				color: border.color
-			};
-		} else {
-			result[name] = {};
-		}
-	});
-	return result;
-};
-
-Borders.exportFormat = function (format) {
-	var children = _.map(BORDERS, function (name) {
-		var border = format[name];
-		var attributes;
-		var children;
-
-		if (border) {
-			if (border.style) {
-				attributes = [['style', border.style]];
-			}
-			if (border.color) {
-				children = [formatUtils.exportColor(border.color)];
-			}
-		}
-		return toXMLString({
-			name: name,
-			attributes: attributes,
-			children: children
-		});
-	});
-
-	return toXMLString({
-		name: 'border',
-		children: children
-	});
-};
-
-Borders.prototype.init = function () {
-	this.formats.push(
-		{format: this.canon({})}
-	);
-};
-
-Borders.prototype.canon = Borders.canon;
-
-Borders.prototype.merge = function (formatTo, formatFrom) {
-	formatTo = formatTo || {};
-
-	if (formatFrom) {
-		_.forEach(BORDERS, function (name) {
-			var borderFrom = formatFrom[name];
-
-			if (borderFrom && (borderFrom.style || borderFrom.color)) {
-				formatTo[name] = {
-					style: borderFrom.style,
-					color: borderFrom.color
+			if (border) {
+				result[name] = {
+					style: border.style,
+					color: border.color
 				};
-			} else if (!formatTo[name]) {
-				formatTo[name] = {};
+			} else {
+				result[name] = {};
 			}
+		});
+		return result;
+	}
+	static exportFormat(format) {
+		const children = _.map(BORDERS, function (name) {
+			const border = format[name];
+			let attributes;
+			let children;
+
+			if (border) {
+				if (border.style) {
+					attributes = [['style', border.style]];
+				}
+				if (border.color) {
+					children = [formatUtils.exportColor(border.color)];
+				}
+			}
+			return toXMLString({
+				name,
+				attributes,
+				children
+			});
+		});
+
+		return toXMLString({
+			name: 'border',
+			children
 		});
 	}
-	return formatTo;
-};
+	canon(format) {
+		return Borders.canon(format);
+	}
+	merge(formatTo, formatFrom) {
+		formatTo = formatTo || {};
 
-Borders.prototype.exportFormat = Borders.exportFormat;
+		if (formatFrom) {
+			_.forEach(BORDERS, name => {
+				const borderFrom = formatFrom[name];
+
+				if (borderFrom && (borderFrom.style || borderFrom.color)) {
+					formatTo[name] = {
+						style: borderFrom.style,
+						color: borderFrom.color
+					};
+				} else if (!formatTo[name]) {
+					formatTo[name] = {};
+				}
+			});
+		}
+		return formatTo;
+	}
+	exportFormat(format, styleFormat) {
+		return Borders.exportFormat(format, styleFormat);
+	}
+}
 
 module.exports = Borders;

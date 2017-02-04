@@ -1,24 +1,24 @@
 'use strict';
 
 module.exports = function (excel) {
-	var workbook = excel.createWorkbook();
+	const workbook = excel.createWorkbook();
 	workbook.addFontFormat({bold: true, underline: true, color: {theme: 3}}, 'font');
-	var headerBorder = workbook.addBorderFormat({
+	const headerBorder = workbook.addBorderFormat({
 		bottom: {color: 'FFFF0000', style: 'thin'},
 		top: {color: 'FFFF0000', style: 'thin'},
 		left: {color: 'FFFF0000', style: 'thin'},
 		right: {color: 'FFFF0000', style: 'thin'}
 	});
-	var greenFill = workbook.addPatternFormat({color: 'FF00FF00'});
-	var currency = workbook.addNumberFormat('$ #,##0.00;$ #,##0.00;-', 'currency');
-	var header = workbook.addFormat({
+	const greenFill = workbook.addPatternFormat({color: 'FF00FF00'});
+	const currency = workbook.addNumberFormat('$ #,##0.00;$ #,##0.00;-', 'currency');
+	const header = workbook.addFormat({
 		font: 'font',
 		border: headerBorder,
 		pattern: greenFill,
 		format: currency,
 		horizontal: 'center'
 	});
-	var fillFormat = workbook.addFormat({
+	const fillFormat = workbook.addFormat({
 		font: {
 			italic: true,
 			color: 'FFFF0000'
@@ -30,7 +30,7 @@ module.exports = function (excel) {
 		locked: false,
 		hidden: true
 	});
-	var columns = [
+	const columns = [
 		{
 			width: 10,
 			style: header
@@ -45,7 +45,7 @@ module.exports = function (excel) {
 		{style: {format: 'currency'}},
 		{width: 25}
 	];
-	var worksheetData = [
+	const worksheetData = [
 		{
 			outlineLevel: 0,
 			height: 30,

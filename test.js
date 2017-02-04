@@ -5,18 +5,16 @@
 
 'use strict';
 
-var fs = require('fs');
-var _ = require('lodash');
-var runTest = require('./runTest');
+const fs = require('fs');
+const _ = require('lodash');
+const runTest = require('./runTest');
 
 process.chdir('./test');
 
 _(fs.readdirSync('.'))
-	.filter(function (fileName) {
-		return !_.startsWith(fileName, '_') && _.endsWith(fileName, '.js');
-	})
-	.forEach(function (fileName) {
-		var test = require('./test/' + fileName);
+	.filter(fileName => !_.startsWith(fileName, '_') && _.endsWith(fileName, '.js'))
+	.forEach(fileName => {
+		const test = require('./test/' + fileName);
 
 		runTest.compare(test, fileName)
 			.catch(function (error) {

@@ -1,8 +1,8 @@
 'use strict';
 
 module.exports = function (excel) {
-	var workbook = excel.createWorkbook();
-	var worksheetData = [
+	const workbook = excel.createWorkbook();
+	const worksheetData = [
 		[
 			{date: 1342372604000},
 			{date: new Date(2016, 11, 15)},

@@ -3,13 +3,13 @@
 
 'use strict';
 
-var excelWriter = require('../src');
-var fs = require('fs');
-var path = require('path');
+const excelWriter = require('../src');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = function (test) {
-	var fileName = path.parse(process.argv[1]).name;
-	var workbook = test(excelWriter);
+	const fileName = path.parse(process.argv[1]).name;
+	const workbook = test(excelWriter);
 
 	try {
 		fs.statSync('xlsx');

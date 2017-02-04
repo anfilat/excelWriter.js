@@ -1,13 +1,11 @@
 'use strict';
 
-var _ = require('lodash');
+const _ = require('lodash');
 
-module.exports = {
-	_prepare: function () {
-		var rowIndex;
-		var len;
-		var maxX = 0;
-		var preparedDataRow;
+module.exports = SuperClass => class PrepareExport extends SuperClass {
+	_prepare() {
+		let maxX = 0;
+		let preparedDataRow;
 
 		this.preparedData = [];
 		this.preparedColumns = [];
@@ -17,7 +15,7 @@ module.exports = {
 		prepareColumns(this);
 		prepareRows(this);
 
-		for (rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
+		for (let rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
 			preparedDataRow = prepareDataRow(this, rowIndex);
 
 			if (preparedDataRow.length > maxX) {
@@ -35,10 +33,10 @@ module.exports = {
 };
 
 function prepareColumns(worksheet) {
-	var styles = worksheet.common.styles;
+	const styles = worksheet.common.styles;
 
-	_.forEach(worksheet.columns, function (column, index) {
-		var preparedColumn;
+	_.forEach(worksheet.columns, (column, index) => {
+		let preparedColumn;
 
 		if (column) {
 			preparedColumn = _.clone(column);
@@ -57,10 +55,10 @@ function prepareColumns(worksheet) {
 }
 
 function prepareRows(worksheet) {
-	var styles = worksheet.common.styles;
+	const styles = worksheet.common.styles;
 
-	_.forEach(worksheet.rows, function (row, index) {
-		var preparedRow;
+	_.forEach(worksheet.rows, (row, index) => {
+		let preparedRow;
 
 		if (row) {
 			preparedRow = _.clone(row);
@@ -74,21 +72,12 @@ function prepareRows(worksheet) {
 }
 
 function prepareDataRow(worksheet, rowIndex) {
-	var common = worksheet.common;
-	var styles = common.styles;
-	var row = worksheet.preparedRows[rowIndex];
-	var dataRow = worksheet.data[rowIndex];
-	var preparedDataRow = [];
-	var rowStyle = null;
-	var column;
-	var colIndex;
-	var value;
-	var cellValue;
-	var cellStyle;
-	var cellType;
-	var cellFormula;
-	var isString;
-	var date;
+	const common = worksheet.common;
+	const styles = common.styles;
+	const preparedDataRow = [];
+	let row = worksheet.preparedRows[rowIndex];
+	let dataRow = worksheet.data[rowIndex];
+	let rowStyle = null;
 
 	if (dataRow) {
 		if (!_.isArray(dataRow)) {
@@ -99,13 +88,15 @@ function prepareDataRow(worksheet, rowIndex) {
 			rowStyle = row.style || null;
 		}
 
-		for (colIndex = 0; colIndex < dataRow.length; colIndex++) {
-			column = worksheet.preparedColumns[colIndex];
-			value = dataRow[colIndex];
+		for (let colIndex = 0; colIndex < dataRow.length; colIndex++) {
+			const column = worksheet.preparedColumns[colIndex];
+			const value = dataRow[colIndex];
+			let cellStyle = null;
+			let cellFormula = null;
+			let isString = false;
+			let cellValue;
+			let cellType;
 
-			cellStyle = null;
-			cellFormula = null;
-			isString = false;
 			if (_.isDate(value)) {
 				cellValue = value;
 				cellType = 'date';
@@ -149,7 +140,7 @@ function prepareDataRow(worksheet, rowIndex) {
 				cellValue = common.addString(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
-				date = 25569.0 + ((_.isDate(cellValue) ? cellValue.valueOf() : cellValue) - worksheet.timezoneOffset) /
+				const date = 25569.0 + ((_.isDate(cellValue) ? cellValue.valueOf() : cellValue) - worksheet.timezoneOffset) /
 					(60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
@@ -166,7 +157,7 @@ function prepareDataRow(worksheet, rowIndex) {
 				value: cellValue,
 				formula: cellFormula,
 				styleId: styles._getId(cellStyle),
-				isString: isString
+				isString
 			};
 		}
 	}
@@ -196,9 +187,6 @@ function mergeDataRowToRow(worksheet, row, dataRow) {
 }
 
 function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
-	var colSpan;
-	var rowSpan;
-
 	if (value.hyperlink) {
 		worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
 	}
@@ -206,8 +194,8 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 		worksheet._insertDrawing(colIndex, rowIndex, value.image);
 	}
 	if (value.colspan || value.rowspan) {
-		colSpan = (value.colspan || 1) - 1;
-		rowSpan = (value.rowspan || 1) - 1;
+		const colSpan = (value.colspan || 1) - 1;
+		const rowSpan = (value.rowspan || 1) - 1;
 
 		worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
 			{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});

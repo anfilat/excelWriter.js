@@ -3,12 +3,13 @@
 /**
  * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.sheetview.aspx
  */
-var _ = require('lodash');
-var util = require('../util');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const util = require('../util');
+const toXMLString = require('../XMLString');
 
-module.exports = {
-	init: function (config) {
+module.exports = SuperClass => class SheetView extends SuperClass {
+	constructor(workbook, config) {
+		super(workbook, config);
 		this._pane = null;
 		this._attributes = {
 			defaultGridColor: {
@@ -78,88 +79,84 @@ module.exports = {
 			}
 		};
 
-		var self = this;
-
-		_.forEach(config, function (value, name) {
+		_.forEach(config, (value, name) => {
 			if (name === 'freeze') {
-				self.freeze(value.col, value.row, value.cell, value.activePane);
+				this.freeze(value.col, value.row, value.cell, value.activePane);
 			} else if (name === 'split') {
-				self.split(value.x, value.y, value.cell, value.activePane);
-			} else if (self._attributes[name]) {
-				self._attributes[name].value = value;
-			}
-		});
-	},
-	methods: {
-		setAttribute: function (name, value) {
-			if (this._attributes[name]) {
+				this.split(value.x, value.y, value.cell, value.activePane);
+			} else if (this._attributes[name]) {
 				this._attributes[name].value = value;
 			}
-			return this;
-		},
-		/**
-		 * Add froze pane
-		 * @param col - column number: 0, 1, 2 ...
-		 * @param row - row number: 0, 1, 2 ...
-		 * @param cell? - 'A1' | {c: 1, r: 1}
-		 * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
-		 */
-		freeze: function (col, row, cell, activePane) {
-			this._pane = {
-				state: 'frozen',
-				xSplit: col,
-				ySplit: row,
-				topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
-				activePane: activePane || 'bottomRight'
-			};
-			return this;
-		},
-		/**
-		 * Add split pane
-		 * @param x - Horizontal position of the split, in points; 0 (zero) if none
-		 * @param y - Vertical position of the split, in points; 0 (zero) if none
-		 * @param cell? - 'A1' | {c: 1, r: 1}
-		 * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
-		 */
-		split: function (x, y, cell, activePane) {
-			this._pane = {
-				state: 'split',
-				xSplit: x * 20,
-				ySplit: y * 20,
-				topLeftCell: util.canonCell(cell) || 'A1',
-				activePane: activePane || 'bottomRight'
-			};
-			return this;
-		},
-		_exportSheetView: function () {
-			var attributes = [
-				['workbookViewId', 0]
-			];
-
-			_.forEach(this._attributes, function (attr, name) {
-				var value = attr.value;
-
-				if (value !== null) {
-					if (attr.bool) {
-						value = value ? 'true' : 'false';
-					}
-					attributes.push([name, value]);
-				}
-			});
-
-			return toXMLString({
-				name: 'sheetViews',
-				children: [
-					toXMLString({
-						name: 'sheetView',
-						attributes: attributes,
-						children: [
-							exportPane(this._pane)
-						]
-					})
-				]
-			});
+		});
+	}
+	setAttribute(name, value) {
+		if (this._attributes[name]) {
+			this._attributes[name].value = value;
 		}
+		return this;
+	}
+	/**
+	 * Add froze pane
+	 * @param col - column number: 0, 1, 2 ...
+	 * @param row - row number: 0, 1, 2 ...
+	 * @param cell? - 'A1' | {c: 1, r: 1}
+	 * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+	 */
+	freeze(col, row, cell, activePane) {
+		this._pane = {
+			state: 'frozen',
+			xSplit: col,
+			ySplit: row,
+			topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
+			activePane: activePane || 'bottomRight'
+		};
+		return this;
+	}
+	/**
+	 * Add split pane
+	 * @param x - Horizontal position of the split, in points; 0 (zero) if none
+	 * @param y - Vertical position of the split, in points; 0 (zero) if none
+	 * @param cell? - 'A1' | {c: 1, r: 1}
+	 * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+	 */
+	split(x, y, cell, activePane) {
+		this._pane = {
+			state: 'split',
+			xSplit: x * 20,
+			ySplit: y * 20,
+			topLeftCell: util.canonCell(cell) || 'A1',
+			activePane: activePane || 'bottomRight'
+		};
+		return this;
+	}
+	_exportSheetView() {
+		const attributes = [
+			['workbookViewId', 0]
+		];
+
+		_.forEach(this._attributes, (attr, name) => {
+			let value = attr.value;
+
+			if (value !== null) {
+				if (attr.bool) {
+					value = value ? 'true' : 'false';
+				}
+				attributes.push([name, value]);
+			}
+		});
+
+		return toXMLString({
+			name: 'sheetViews',
+			children: [
+				toXMLString({
+					name: 'sheetView',
+					attributes,
+					children: [
+						exportPane(this._pane)
+					]
+				})
+			]
+		});
 	}
 };
 

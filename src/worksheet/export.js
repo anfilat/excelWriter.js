@@ -1,12 +1,12 @@
 'use strict';
 
-var Readable = require('stream').Readable;
-var _ = require('lodash');
-var util = require('../util');
-var toXMLString = require('../XMLString');
+const Readable = require('stream').Readable;
+const _ = require('lodash');
+const util = require('../util');
+const toXMLString = require('../XMLString');
 
-module.exports = {
-	_export: function (canStream) {
+module.exports = SuperClass => class WorksheetExport extends SuperClass {
+	_export(canStream) {
 		if (canStream) {
 			return new WorksheetStream({
 				worksheet: this
@@ -29,8 +29,8 @@ function WorksheetStream(options) {
 util.inherits(WorksheetStream, Readable || {});
 
 WorksheetStream.prototype._read = function (size) {
-	var stop = false;
-	var worksheet = this.worksheet;
+	const worksheet = this.worksheet;
+	let stop = false;
 
 	if (this.status === 0) {
 		stop = !this.push(exportBeforeRows(worksheet));
@@ -41,9 +41,9 @@ WorksheetStream.prototype._read = function (size) {
 	}
 
 	if (this.status === 1) {
-		var s = '';
-		var data = worksheet.preparedData;
-		var preparedRows = worksheet.preparedRows;
+		const data = worksheet.preparedData;
+		const preparedRows = worksheet.preparedRows;
+		let s = '';
 
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
@@ -90,11 +90,11 @@ function exportAfterRows(worksheet) {
 }
 
 function exportData(worksheet) {
-	var data = worksheet.preparedData;
-	var preparedRows = worksheet.preparedRows;
-	var children = '';
+	const data = worksheet.preparedData;
+	const preparedRows = worksheet.preparedRows;
+	let children = '';
 
-	for (var i = 0, len = data.length; i < len; i++) {
+	for (let i = 0, len = data.length; i < len; i++) {
 		children += exportRow(data[i], preparedRows[i], i);
 		data[i] = null;
 	}
@@ -102,11 +102,11 @@ function exportData(worksheet) {
 }
 
 function exportRow(dataRow, row, rowIndex) {
-	var rowLen;
-	var rowChildren = [];
-	var colIndex;
-	var value;
-	var attrs;
+	let rowLen;
+	let rowChildren = [];
+	let colIndex;
+	let value;
+	let attrs;
 
 	if (dataRow) {
 		rowLen = dataRow.length;
@@ -141,7 +141,7 @@ function exportRow(dataRow, row, rowIndex) {
 }
 
 function getRowAttributes(row, rowIndex) {
-	var attributes = ' r="' + (rowIndex + 1) + '"';
+	let attributes = ' r="' + (rowIndex + 1) + '"';
 
 	if (row) {
 		if (row.height !== undefined) {
@@ -160,7 +160,7 @@ function getRowAttributes(row, rowIndex) {
 }
 
 function exportDimension(maxX, maxY) {
-	var attributes = [];
+	const attributes = [];
 
 	if (maxX !== 0) {
 		attributes.push(
@@ -174,16 +174,16 @@ function exportDimension(maxX, maxY) {
 
 	return toXMLString({
 		name: 'dimension',
-		attributes: attributes
+		attributes
 	});
 }
 
 function exportColumns(columns) {
 	if (columns.length) {
-		var children = _.map(columns, function (column, index) {
+		const children = _.map(columns, function (column, index) {
 			column = column || {};
 
-			var attributes = [
+			const attributes = [
 				['min', column.min || index + 1],
 				['max', column.max || index + 1]
 			];
@@ -208,13 +208,13 @@ function exportColumns(columns) {
 
 			return toXMLString({
 				name: 'col',
-				attributes: attributes
+				attributes
 			});
 		});
 
 		return toXMLString({
 			name: 'cols',
-			children: children
+			children
 		});
 	}
 	return '';

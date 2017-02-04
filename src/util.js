@@ -1,16 +1,16 @@
 'use strict';
 
-var _ = require('lodash');
-var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-var LETTER_REFS = {};
+const _ = require('lodash');
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const LETTER_REFS = {};
 
 function positionToLetter(x, y) {
-	var result = LETTER_REFS[x];
+	let result = LETTER_REFS[x];
 
 	if (!result) {
-		var string = '';
-		var num = x;
-		var index;
+		let string = '';
+		let num = x;
+		let index;
 
 		do {
 			index = (num - 1) % 26;
@@ -25,11 +25,11 @@ function positionToLetter(x, y) {
 }
 
 function letterToPosition(cell) {
-	var x = 0;
-	var y = 0;
-	var i;
-	var len;
-	var charCode;
+	let x = 0;
+	let y = 0;
+	let i;
+	let len;
+	let charCode;
 
 	for (i = 0, len = cell.length; i < len; i++) {
 		charCode = cell.charCodeAt(i);
@@ -46,9 +46,9 @@ function letterToPosition(cell) {
 	};
 }
 
-var util = {
+module.exports = {
 	inherits: function (ctor, superCtor) {
-		var Obj = function () {};
+		const Obj = function () {};
 		Obj.prototype = superCtor.prototype;
 		ctor.prototype = new Obj();
 	},
@@ -64,8 +64,8 @@ var util = {
 		return cell;
 	},
 
-	positionToLetter: positionToLetter,
-	letterToPosition: letterToPosition,
+	positionToLetter,
+	letterToPosition,
 
 	xmlPrefix: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',
 
@@ -90,5 +90,3 @@ var util = {
 		'hyperlink': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink'
 	}
 };
-
-module.exports = util;

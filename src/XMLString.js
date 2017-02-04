@@ -1,7 +1,7 @@
 'use strict';
 
-var _ = require('lodash');
-var util = require('./util');
+const _ = require('lodash');
+const util = require('./util');
 
 /**
  * @param {{
@@ -13,11 +13,11 @@ var util = require('./util');
  * }} config
  */
 function toXMLString(config) {
-	var name = config.name;
-	var string = '<' + name;
-	var content = '';
-	var attr;
-	var i, l;
+	const name = config.name;
+	let string = '<' + name;
+	let content = '';
+	let attr;
+	let i, l;
 
 	if (config.ns) {
 		string = util.xmlPrefix + string +	' xmlns="' + util.schemas[config.ns] + '"';

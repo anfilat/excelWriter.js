@@ -1,7 +1,11 @@
 {
     "env": {
         "browser": true,
-        "node": true
+        "node": true,
+        "es6": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 6
     },
     "extends": "eslint:recommended",
     "rules": {
@@ -12,14 +16,13 @@
         ],
         "array-callback-return": "error",
         "arrow-body-style": "error",
-        "arrow-parens": "error",
+        "arrow-parens": ["error", "as-needed"],
         "arrow-spacing": "error",
         "block-scoped-var": "error",
         "block-spacing": "error",
         "brace-style": "error",
         "callback-return": "error",
         "camelcase": "error",
-        "class-methods-use-this": "error",
         "comma-dangle": "error",
         "comma-spacing": [
             "error",
@@ -244,7 +247,6 @@
         ],
         "sort-imports": "error",
         "sort-keys": "off",
-        "sort-vars": "error",
         "space-before-blocks": "error",
         "space-before-function-paren": ["error", {"anonymous": "always", "named": "never", "asyncArrow": "always"}],
         "space-in-parens": [

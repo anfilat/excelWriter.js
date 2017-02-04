@@ -1,11 +1,9 @@
 'use strict';
 
-var _ = require('lodash');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const toXMLString = require('../XMLString');
 
 function exportColor(color) {
-	var attributes;
-
 	if (_.isString(color)) {
 		return toXMLString({
 			name: 'color',
@@ -14,7 +12,7 @@ function exportColor(color) {
 			]
 		});
 	} else {
-		attributes = [];
+		const attributes = [];
 		if (!_.isUndefined(color.tint)) {
 			attributes.push(['tint', color.tint]);
 		}
@@ -27,7 +25,7 @@ function exportColor(color) {
 
 		return toXMLString({
 			name: 'color',
-			attributes: attributes
+			attributes
 		});
 	}
 }

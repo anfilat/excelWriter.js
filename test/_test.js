@@ -3,13 +3,13 @@
 
 'use strict';
 
-var runTest = require('../runTest');
+const runTest = require('../runTest');
 
-var fileName = process.argv[2];
-var compare = process.argv[3];
+const fileName = process.argv[2];
+const compare = process.argv[3];
 
 if (fileName) {
-	var test = require('./' + fileName);
+	const test = require('./' + fileName);
 
 	if (compare) {
 		runTest.compare(test, fileName)

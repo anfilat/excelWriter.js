@@ -5,15 +5,13 @@
 
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
-var _ = require('lodash');
-var loremIpsum = require('lorem-ipsum');
-var excel = require('../src');
-var testData;
-var fileName;
+const fs = require('fs');
+const path = require('path');
+const _ = require('lodash');
+const loremIpsum = require('lorem-ipsum');
+const excel = require('../src');
 
-fileName = path.parse(process.argv[1]).name;
+const fileName = path.parse(process.argv[1]).name;
 try {
 	fs.statSync('xlsx');
 } catch (e) {
@@ -21,7 +19,7 @@ try {
 }
 
 console.time('Generate test data');
-testData = generateData();
+const testData = generateData();
 console.timeEnd('Generate test data');
 
 console.log('Memory before - ', process.memoryUsage());
@@ -36,8 +34,8 @@ excel.saveAsNodeStream(run(testData))
 	});
 
 function generateData() {
-	var size = 1000000;
-	var testData = new Array(size);
+	const size = 1000000;
+	const testData = new Array(size);
 
 	_.times(size, function (i) {
 		testData[i] = [
@@ -53,9 +51,9 @@ function generateData() {
 }
 
 function run(testData) {
-	var workbook = excel.createWorkbook();
+	const workbook = excel.createWorkbook();
 	workbook.addFormat({format: 'date'}, 'date');
-	var columns = [
+	const columns = [
 		{type: 'number', width: 10},
 		{type: 'string', width: 60},
 		{
@@ -69,7 +67,7 @@ function run(testData) {
 		{type: 'date', style: 'date', width: 12},
 		{type: 'date', style: 'date', width: 12}
 	];
-	var worksheetData = [
+	const worksheetData = [
 		{
 			style: {
 				font: {bold: true, underline: true, color: {theme: 3}},

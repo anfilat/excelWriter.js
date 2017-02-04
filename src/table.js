@@ -1,137 +1,128 @@
 'use strict';
 
-var _ = require('lodash');
-var util = require('./util');
-var toXMLString = require('./XMLString');
+const _ = require('lodash');
+const util = require('./util');
+const toXMLString = require('./XMLString');
 
-function Table(worksheet, config) {
-	this.worksheet = worksheet;
-	this.common = worksheet.common;
+class Table {
+	constructor(worksheet, config) {
+		this.worksheet = worksheet;
+		this.common = worksheet.common;
 
-	var id = this.common.uniqueIdSeparated('Table');
+		this.tableId = this.common.uniqueIdForSpace('Table');
+		this.objectId = 'Table' + this.tableId;
+		this.name = this.objectId;
+		this.displayName = this.objectId;
+		this.headerRowCount = 1;
+		this.beginCell = null;
+		this.endCell = null;
+		this.totalsRowCount = 0;
+		this.totalRow = null;
+		this.themeStyle = null;
 
-	this.tableId = id.id;
-	this.objectId = id.space + id.id;
-	this.name = this.objectId;
-	this.displayName = this.objectId;
-	this.headerRowBorderDxfId = null;
-	this.headerRowCount = 1;
-	this.headerRowDxfId = null;
-	this.beginCell = null;
-	this.endCell = null;
-	this.totalsRowCount = 0;
-	this.totalRow = null;
-	this.themeStyle = null;
+		_.extend(this, config);
+	}
+	end() {
+		return this.worksheet;
+	}
+	setReferenceRange(beginCell, endCell) {
+		this.beginCell = util.canonCell(beginCell);
+		this.endCell = util.canonCell(endCell);
+		return this;
+	}
+	addTotalRow(totalRow) {
+		this.totalRow = totalRow;
+		this.totalsRowCount = 1;
+		return this;
+	}
+	setTheme(theme) {
+		this.themeStyle = theme;
+		return this;
+	}
+	/**
+	 * Expects an object with the following properties:
+	 * caseSensitive (boolean)
+	 * dataRange
+	 * columnSort (assumes true)
+	 * sortDirection
+	 * sortRange (defaults to dataRange)
+	 */
+	setSortState(state) {
+		this.sortState = state;
+		return this;
+	}
+	_prepare(worksheetData) {
+		const SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
+		const SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
 
-	_.extend(this, config);
-}
+		if (this.totalRow) {
+			const tableName = this.name;
+			const beginCell = util.letterToPosition(this.beginCell);
+			const endCell = util.letterToPosition(this.endCell);
+			const firstRow = beginCell.y - 1;
+			const firstColumn = beginCell.x - 1;
+			const lastRow = endCell.y - 1;
+			const headerRow = worksheetData[firstRow] || [];
+			let totalRow = worksheetData[lastRow + 1];
 
-Table.prototype.end = function () {
-	return this.worksheet;
-};
-
-Table.prototype.setReferenceRange = function (beginCell, endCell) {
-	this.beginCell = util.canonCell(beginCell);
-	this.endCell = util.canonCell(endCell);
-	return this;
-};
-
-Table.prototype.addTotalRow = function (totalRow) {
-	this.totalRow = totalRow;
-	this.totalsRowCount = 1;
-	return this;
-};
-
-Table.prototype.setTheme = function (theme) {
-	this.themeStyle = theme;
-	return this;
-};
-
-/**
- * Expects an object with the following properties:
- * caseSensitive (boolean)
- * dataRange
- * columnSort (assumes true)
- * sortDirection
- * sortRange (defaults to dataRange)
- */
-Table.prototype.setSortState = function (state) {
-	this.sortState = state;
-	return this;
-};
-
-Table.prototype._prepare = function (worksheetData) {
-	var SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
-	var SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
-
-	if (this.totalRow) {
-		var tableName = this.name;
-		var beginCell = util.letterToPosition(this.beginCell);
-		var endCell = util.letterToPosition(this.endCell);
-		var firstRow = beginCell.y - 1;
-		var firstColumn = beginCell.x - 1;
-		var lastRow = endCell.y - 1;
-		var headerRow = worksheetData[firstRow] || [];
-		var totalRow = worksheetData[lastRow + 1];
-
-		if (!totalRow) {
-			totalRow = [];
-			worksheetData[lastRow + 1] = totalRow;
-		}
-
-		_.forEach(this.totalRow, function (cell, i) {
-			var headerValue = headerRow[firstColumn + i];
-			var funcIndex;
-
-			if (typeof headerValue === 'object') {
-				headerValue = headerValue.value;
+			if (!totalRow) {
+				totalRow = [];
+				worksheetData[lastRow + 1] = totalRow;
 			}
-			cell.name = headerValue;
-			if (cell.totalsRowLabel) {
-				totalRow[firstColumn + i] = {
-					value: cell.totalsRowLabel,
-					type: 'string'
-				};
-			} else if (cell.totalsRowFunction) {
-				funcIndex = _.indexOf(SUB_TOTAL_FUNCTIONS, cell.totalsRowFunction);
 
-				if (funcIndex !== -1) {
-					totalRow[firstColumn + i] = {
-						value: 'SUBTOTAL(' + SUB_TOTAL_NUMS[funcIndex] + ',' + tableName + '[' + headerValue + '])',
-						type: 'formula'
-					};
+			_.forEach(this.totalRow, (cell, i) => {
+				let headerValue = headerRow[firstColumn + i];
+				let funcIndex;
+
+				if (typeof headerValue === 'object') {
+					headerValue = headerValue.value;
 				}
-			}
+				cell.name = headerValue;
+				if (cell.totalsRowLabel) {
+					totalRow[firstColumn + i] = {
+						value: cell.totalsRowLabel,
+						type: 'string'
+					};
+				} else if (cell.totalsRowFunction) {
+					funcIndex = _.indexOf(SUB_TOTAL_FUNCTIONS, cell.totalsRowFunction);
+
+					if (funcIndex !== -1) {
+						totalRow[firstColumn + i] = {
+							value: `SUBTOTAL(${SUB_TOTAL_NUMS[funcIndex]},${tableName}[${headerValue}])`,
+							type: 'formula'
+						};
+					}
+				}
+			});
+		}
+	}
+	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
+	_export() {
+		const attributes = [
+			['id', this.tableId],
+			['name', this.name],
+			['displayName', this.displayName]
+		];
+		const children = [];
+		const end = util.letterToPosition(this.endCell);
+		const ref = this.beginCell + ':' + util.positionToLetter(end.x, end.y + this.totalsRowCount);
+
+		attributes.push(['ref', ref]);
+		attributes.push(['totalsRowCount', this.totalsRowCount]);
+		attributes.push(['headerRowCount', this.headerRowCount]);
+
+		children.push(exportAutoFilter(this.beginCell, this.endCell));
+		children.push(exportTableColumns(this.totalRow));
+		children.push(exportTableStyleInfo(this.common, this.themeStyle));
+
+		return toXMLString({
+			name: 'table',
+			ns: 'spreadsheetml',
+			attributes,
+			children
 		});
 	}
-};
-
-//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
-Table.prototype._export = function () {
-	var attributes = [
-		['id', this.tableId],
-		['name', this.name],
-		['displayName', this.displayName]
-	];
-	var children = [];
-	var end = util.letterToPosition(this.endCell);
-	var ref = this.beginCell + ':' + util.positionToLetter(end.x, end.y + this.totalsRowCount);
-
-	attributes.push(['ref', ref]);
-	attributes.push(['totalsRowCount', this.totalsRowCount]);
-	attributes.push(['headerRowCount', this.headerRowCount]);
-
-	children.push(exportAutoFilter(this.beginCell, this.endCell));
-	children.push(exportTableColumns(this.totalRow));
-	children.push(exportTableStyleInfo(this.common, this.themeStyle));
-
-	return toXMLString({
-		name: 'table',
-		ns: 'spreadsheetml',
-		attributes: attributes,
-		children: children
-	});
-};
+}
 
 function exportAutoFilter(beginCell, endCell) {
 	return toXMLString({
@@ -141,11 +132,11 @@ function exportAutoFilter(beginCell, endCell) {
 }
 
 function exportTableColumns(totalRow) {
-	var attributes = [
+	const attributes = [
 		['count', totalRow.length]
 	];
-	var children = _.map(totalRow, function (cell, index) {
-		var attributes = [
+	const children = _.map(totalRow, (cell, index) => {
+		const attributes = [
 			['id', index + 1],
 			['name', cell.name]
 		];
@@ -159,26 +150,26 @@ function exportTableColumns(totalRow) {
 
 		return toXMLString({
 			name: 'tableColumn',
-			attributes: attributes
+			attributes
 		});
 	});
 
 	return toXMLString({
 		name: 'tableColumns',
-		attributes: attributes,
-		children: children
+		attributes,
+		children
 	});
 }
 
 function exportTableStyleInfo(common, themeStyle) {
-	var attributes = [
+	const attributes = [
 		['name', themeStyle]
 	];
-	var isRowStripes = false;
-	var isColumnStripes = false;
-	var isFirstColumn = false;
-	var isLastColumn = false;
-	var format = common.styles.tables.get(themeStyle);
+	const format = common.styles.tables.get(themeStyle);
+	let isRowStripes = false;
+	let isColumnStripes = false;
+	let isFirstColumn = false;
+	let isLastColumn = false;
 
 	if (format) {
 		isRowStripes = format.firstRowStripe || format.secondRowStripe;
@@ -195,7 +186,7 @@ function exportTableStyleInfo(common, themeStyle) {
 
 	return toXMLString({
 		name: 'tableStyleInfo',
-		attributes: attributes
+		attributes
 	});
 }
 

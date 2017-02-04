@@ -1,77 +1,89 @@
 'use strict';
 
-var _ = require('lodash');
-var StylePart = require('./stylePart');
-var util = require('../util');
-var toXMLString = require('../XMLString');
+const _ = require('lodash');
+const StylePart = require('./stylePart');
+const toXMLString = require('../XMLString');
 
-var PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gray125', 'gray0625',
+const PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gray125', 'gray0625',
 	'darkHorizontal', 'darkVertical', 'darkDown', 'darkUp', 'darkGrid', 'darkTrellis',
 	'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp',	'lightGrid', 'lightTrellis'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fills.aspx
-function Fills(styles) {
-	StylePart.call(this, styles, 'fills', 'fill');
+class Fills extends StylePart {
+	constructor(styles) {
+		super(styles, 'fills', 'fill');
 
-	this.init();
-	this.lastId = this.formats.length;
+		this.init();
+		this.lastId = this.formats.length;
+	}
+	init() {
+		this.formats.push(
+			{format: this.canon({type: 'none'}, {fillType: 'pattern'})},
+			{format: this.canon({type: 'gray125'}, {fillType: 'pattern'})}
+		);
+	}
+	static canon(format, flags) {
+		const result = {
+			fillType: flags.merge ? format.fillType : flags.fillType
+		};
+
+		if (result.fillType === 'pattern') {
+			const fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
+			const bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
+			const patternType = flags.merge ? format.patternType : format.type;
+
+			result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
+			if (flags.isTable && result.patternType === 'solid') {
+				result.fgColor = bgColor;
+				result.bgColor = fgColor;
+			} else {
+				result.fgColor = fgColor;
+				result.bgColor = bgColor;
+			}
+		} else {
+			if (_.has(format, 'left')) {
+				result.left = format.left || 0;
+				result.right = format.right || 0;
+				result.top = format.top || 0;
+				result.bottom = format.bottom || 0;
+			} else {
+				result.degree = format.degree || 0;
+			}
+			result.start = format.start || 'FFFFFFFF';
+			result.end = format.end || 'FFFFFFFF';
+		}
+		return result;
+	}
+	static exportFormat(format) {
+		let children;
+
+		if (format.fillType === 'pattern') {
+			children = [exportPatternFill(format)];
+		} else {
+			children = [exportGradientFill(format)];
+		}
+
+		return toXMLString({
+			name: 'fill',
+			children
+		});
+	}
+	canon(format, flags) {
+		return Fills.canon(format, flags);
+	}
+	merge(formatTo, formatFrom) {
+		return formatFrom || formatTo;
+	}
+	exportFormat(format) {
+		return Fills.exportFormat(format);
+	}
 }
 
-util.inherits(Fills, StylePart);
-
-Fills.canon = function (format, flags) {
-	var result = {
-		fillType: flags.merge ? format.fillType : flags.fillType
-	};
-
-	if (result.fillType === 'pattern') {
-		var fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
-		var bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
-		var patternType = flags.merge ? format.patternType : format.type;
-
-		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
-		if (flags.isTable && result.patternType === 'solid') {
-			result.fgColor = bgColor;
-			result.bgColor = fgColor;
-		} else {
-			result.fgColor = fgColor;
-			result.bgColor = bgColor;
-		}
-	} else {
-		if (_.has(format, 'left')) {
-			result.left = format.left || 0;
-			result.right = format.right || 0;
-			result.top = format.top || 0;
-			result.bottom = format.bottom || 0;
-		} else {
-			result.degree = format.degree || 0;
-		}
-		result.start = format.start || 'FFFFFFFF';
-		result.end = format.end || 'FFFFFFFF';
-	}
-	return result;
-};
-
-Fills.exportFormat = function (format) {
-	var children;
-
-	if (format.fillType === 'pattern') {
-		children = [exportPatternFill(format)];
-	} else {
-		children = [exportGradientFill(format)];
-	}
-
-	return toXMLString({
-		name: 'fill',
-		children: children
-	});
-};
-
 function exportPatternFill(format) {
-	var attributes = [
+	const attributes = [
 		['patternType', format.patternType]
 	];
-	var children = [
+	const children = [
 		toXMLString({
 			name: 'fgColor',
 			attributes: [
@@ -88,15 +100,15 @@ function exportPatternFill(format) {
 
 	return toXMLString({
 		name: 'patternFill',
-		attributes: attributes,
-		children: children
+		attributes,
+		children
 	});
 }
 
 function exportGradientFill(format) {
-	var attributes = [];
-	var children = [];
-	var attrs;
+	const attributes = [];
+	const children = [];
+	let attrs;
 
 	if (format.degree) {
 		attributes.push(['degree', format.degree]);
@@ -128,24 +140,9 @@ function exportGradientFill(format) {
 
 	return toXMLString({
 		name: 'gradientFill',
-		attributes: attributes,
-		children: children
+		attributes,
+		children
 	});
 }
-
-Fills.prototype.init = function () {
-	this.formats.push(
-		{format: this.canon({type: 'none'}, {fillType: 'pattern'})},
-		{format: this.canon({type: 'gray125'}, {fillType: 'pattern'})}
-	);
-};
-
-Fills.prototype.canon = Fills.canon;
-
-Fills.prototype.merge = function (formatTo, formatFrom) {
-	return formatFrom || formatTo;
-};
-
-Fills.prototype.exportFormat = Fills.exportFormat;
 
 module.exports = Fills;
