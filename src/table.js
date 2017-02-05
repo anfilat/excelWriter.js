@@ -97,7 +97,7 @@ class Table {
 		}
 	}
 	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
-	_export() {
+	_save() {
 		const attributes = [
 			['id', this.tableId],
 			['name', this.name],
@@ -111,9 +111,9 @@ class Table {
 		attributes.push(['totalsRowCount', this.totalsRowCount]);
 		attributes.push(['headerRowCount', this.headerRowCount]);
 
-		children.push(exportAutoFilter(this.beginCell, this.endCell));
-		children.push(exportTableColumns(this.totalRow));
-		children.push(exportTableStyleInfo(this.common, this.themeStyle));
+		children.push(saveAutoFilter(this.beginCell, this.endCell));
+		children.push(saveTableColumns(this.totalRow));
+		children.push(saveTableStyleInfo(this.common, this.themeStyle));
 
 		return toXMLString({
 			name: 'table',
@@ -124,14 +124,14 @@ class Table {
 	}
 }
 
-function exportAutoFilter(beginCell, endCell) {
+function saveAutoFilter(beginCell, endCell) {
 	return toXMLString({
 		name: 'autoFilter',
 		attributes: ['ref', beginCell + ':' + endCell]
 	});
 }
 
-function exportTableColumns(totalRow) {
+function saveTableColumns(totalRow) {
 	const attributes = [
 		['count', totalRow.length]
 	];
@@ -161,7 +161,7 @@ function exportTableColumns(totalRow) {
 	});
 }
 
-function exportTableStyleInfo(common, themeStyle) {
+function saveTableStyleInfo(common, themeStyle) {
 	const attributes = [
 		['name', themeStyle]
 	];

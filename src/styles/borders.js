@@ -37,7 +37,7 @@ class Borders extends StylePart {
 		});
 		return result;
 	}
-	static exportFormat(format) {
+	static saveFormat(format) {
 		const children = _.map(BORDERS, function (name) {
 			const border = format[name];
 			let attributes;
@@ -48,7 +48,7 @@ class Borders extends StylePart {
 					attributes = [['style', border.style]];
 				}
 				if (border.color) {
-					children = [formatUtils.exportColor(border.color)];
+					children = [formatUtils.saveColor(border.color)];
 				}
 			}
 			return toXMLString({
@@ -85,8 +85,8 @@ class Borders extends StylePart {
 		}
 		return formatTo;
 	}
-	exportFormat(format, styleFormat) {
-		return Borders.exportFormat(format, styleFormat);
+	saveFormat(format, styleFormat) {
+		return Borders.saveFormat(format, styleFormat);
 	}
 }
 

@@ -28,7 +28,7 @@ class NumberFormats extends StylePart {
 	static canon(format) {
 		return format;
 	}
-	static exportFormat(format, styleFormat) {
+	static saveFormat(format, styleFormat) {
 		const attributes = [
 			['numFmtId', styleFormat.formatId],
 			['formatCode', format]
@@ -45,8 +45,8 @@ class NumberFormats extends StylePart {
 	merge(formatTo, formatFrom) {
 		return formatFrom || formatTo;
 	}
-	exportFormat(format, styleFormat) {
-		return NumberFormats.exportFormat(format, styleFormat);
+	saveFormat(format, styleFormat) {
+		return NumberFormats.saveFormat(format, styleFormat);
 	}
 }
 

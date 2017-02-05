@@ -33,23 +33,23 @@ class TableElements extends StylePart {
 		result.alignment = alignment.canon(format);
 		return result;
 	}
-	exportFormat(format) {
+	saveFormat(format) {
 		const children = [];
 
 		if (format.font) {
-			children.push(Fonts.exportFormat(format.font));
+			children.push(Fonts.saveFormat(format.font));
 		}
 		if (format.fill) {
-			children.push(Fills.exportFormat(format.fill));
+			children.push(Fills.saveFormat(format.fill));
 		}
 		if (format.border) {
-			children.push(Borders.exportFormat(format.border));
+			children.push(Borders.saveFormat(format.border));
 		}
 		if (format.format) {
-			children.push(NumberFormats.exportFormat(format.format));
+			children.push(NumberFormats.saveFormat(format.format));
 		}
 		if (format.alignment && format.alignment.length) {
-			children.push(alignment.export(format.alignment));
+			children.push(alignment.save(format.alignment));
 		}
 
 		return toXMLString({

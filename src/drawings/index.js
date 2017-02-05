@@ -25,13 +25,13 @@ class Drawings {
 
 		this.drawings.push(picture);
 	}
-	export() {
+	save() {
 		const attributes = [
 			['xmlns:a', util.schemas.drawing],
 			['xmlns:r', util.schemas.relationships],
 			['xmlns:xdr', util.schemas.spreadsheetDrawing]
 		];
-		const children = this.drawings.map(picture => picture.export());
+		const children = this.drawings.map(picture => picture.save());
 
 		return toXMLString({
 			name: 'xdr:wsDr',

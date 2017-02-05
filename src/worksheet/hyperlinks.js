@@ -38,7 +38,7 @@ module.exports = SuperClass => class Hyperlinks extends SuperClass {
 			tooltip
 		});
 	}
-	_exportHyperlinks() {
+	_saveHyperlinks() {
 		const relations = this.relations;
 
 		if (this._hyperlinks.length > 0) {

@@ -59,18 +59,18 @@ class Workbook {
 	_generateFiles(zip, canStream) {
 		prepareWorksheets(this.common);
 
-		exportWorksheets(zip, canStream, this.common);
-		exportTables(zip, this.common);
-		exportImages(zip, this.common);
-		exportDrawings(zip, this.common);
-		exportStyles(zip, this.relations, this.styles);
-		exportSharedStrings(zip, canStream, this.relations, this.common);
+		saveWorksheets(zip, canStream, this.common);
+		saveTables(zip, this.common);
+		saveImages(zip, this.common);
+		saveDrawings(zip, this.common);
+		saveStyles(zip, this.relations, this.styles);
+		saveSharedStrings(zip, canStream, this.relations, this.common);
 		zip.file('[Content_Types].xml', createContentTypes(this.common));
 		zip.file('_rels/.rels', createWorkbookRelationship());
-		zip.file('xl/workbook.xml', this._export());
-		zip.file('xl/_rels/workbook.xml.rels', this.relations.export());
+		zip.file('xl/workbook.xml', this._save());
+		zip.file('xl/_rels/workbook.xml.rels', this.relations.save());
 	}
-	_export() {
+	_save() {
 		return toXMLString({
 			name: 'workbook',
 			ns: 'spreadsheetml',
@@ -187,20 +187,20 @@ function prepareWorksheets(common) {
 	});
 }
 
-function exportWorksheets(zip, canStream, common) {
+function saveWorksheets(zip, canStream, common) {
 	_.forEach(common.worksheets, worksheet => {
-		zip.file(worksheet.path, worksheet._export(canStream));
-		zip.file(worksheet.relationsPath, worksheet.relations.export());
+		zip.file(worksheet.path, worksheet._save(canStream));
+		zip.file(worksheet.relationsPath, worksheet.relations.save());
 	});
 }
 
-function exportTables(zip, common) {
+function saveTables(zip, common) {
 	_.forEach(common.tables, table => {
-		zip.file(table.path, table._export());
+		zip.file(table.path, table._save());
 	});
 }
 
-function exportImages(zip, common) {
+function saveImages(zip, common) {
 	_.forEach(common.getImages(), image => {
 		zip.file(image.path, image.data, {base64: true, binary: true});
 		image.data = null;
@@ -208,22 +208,22 @@ function exportImages(zip, common) {
 	common.removeImages();
 }
 
-function exportDrawings(zip, common) {
+function saveDrawings(zip, common) {
 	_.forEach(common.drawings, drawing => {
-		zip.file(drawing.path, drawing.export());
-		zip.file(drawing.relationsPath, drawing.relations.export());
+		zip.file(drawing.path, drawing.save());
+		zip.file(drawing.relationsPath, drawing.relations.save());
 	});
 }
 
-function exportStyles(zip, relations, styles) {
+function saveStyles(zip, relations, styles) {
 	relations.addRelation(styles, 'stylesheet');
-	zip.file('xl/styles.xml', styles.export());
+	zip.file('xl/styles.xml', styles.save());
 }
 
-function exportSharedStrings(zip, canStream, relations, common) {
+function saveSharedStrings(zip, canStream, relations, common) {
 	if (!common.sharedStrings.isEmpty()) {
 		relations.addRelation(common.sharedStrings, 'sharedStrings');
-		zip.file('xl/sharedStrings.xml', common.sharedStrings.export(canStream));
+		zip.file('xl/sharedStrings.xml', common.sharedStrings.save(canStream));
 	}
 }
 

@@ -7,11 +7,11 @@ const mergedCells = require('./mergedCells');
 const print = require('./print');
 const drawing = require('./drawing');
 const tables = require('./tables');
-const prepareExport = require('./prepareExport');
-const worksheetExport = require('./export');
+const prepareSave = require('./prepareSave');
+const worksheetSave = require('./save');
 const Relations = require('../relations');
 
-class Worksheet extends sheetView(hyperlinks(mergedCells(drawing(tables(print(worksheetExport(prepareExport(Object)))))))) {
+class Worksheet extends sheetView(hyperlinks(mergedCells(drawing(tables(print(worksheetSave(prepareSave(Object)))))))) {
 	constructor(workbook, config = {}) {
 		super(workbook, config);
 		this.workbook = workbook;

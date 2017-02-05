@@ -25,7 +25,7 @@ module.exports = SuperClass => class MergedCells extends SuperClass {
 			table._prepare(data);
 		});
 	}
-	_exportTables() {
+	_saveTables() {
 		const relations = this.relations;
 
 		if (this._tables.length > 0) {

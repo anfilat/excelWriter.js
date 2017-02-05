@@ -30,7 +30,7 @@ class AnchorOneCell {
 		this.width = util.pixelsToEMUs(config.width || 0);
 		this.height = util.pixelsToEMUs(config.height || 0);
 	}
-	exportWithContent(content) {
+	saveWithContent(content) {
 		return toXMLString({
 			name: 'xdr:oneCellAnchor',
 			children: [

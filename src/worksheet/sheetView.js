@@ -129,7 +129,7 @@ module.exports = SuperClass => class SheetView extends SuperClass {
 		};
 		return this;
 	}
-	_exportSheetView() {
+	_saveSheetView() {
 		const attributes = [
 			['workbookViewId', 0]
 		];
@@ -152,7 +152,7 @@ module.exports = SuperClass => class SheetView extends SuperClass {
 					name: 'sheetView',
 					attributes,
 					children: [
-						exportPane(this._pane)
+						savePane(this._pane)
 					]
 				})
 			]
@@ -160,7 +160,7 @@ module.exports = SuperClass => class SheetView extends SuperClass {
 	}
 };
 
-function exportPane(pane) {
+function savePane(pane) {
 	if (pane) {
 		return toXMLString({
 			name: 'pane',

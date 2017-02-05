@@ -22,7 +22,7 @@ function merge(formatTo, formatFrom) {
 	return _.assign(formatTo, formatFrom);
 }
 
-function exportFormat(format) {
+function saveFormat(format) {
 	return toXMLString({
 		name: 'protection',
 		attributes: _.toPairs(format)
@@ -32,5 +32,5 @@ function exportFormat(format) {
 module.exports = {
 	canon,
 	merge,
-	exportFormat
+	saveFormat
 };

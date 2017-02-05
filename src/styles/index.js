@@ -84,18 +84,18 @@ class Styles {
 	setDefaultTableStyle(name) {
 		this.tables.defaultTableStyle = name;
 	}
-	export() {
+	save() {
 		return toXMLString({
 			name: 'styleSheet',
 			ns: 'spreadsheetml',
 			children: [
-				this.numberFormats.export(),
-				this.fonts.export(),
-				this.fills.export(),
-				this.borders.export(),
-				this.cells.export(),
-				this.tableElements.export(),
-				this.tables.export()
+				this.numberFormats.save(),
+				this.fonts.save(),
+				this.fills.save(),
+				this.borders.save(),
+				this.cells.save(),
+				this.tableElements.save(),
+				this.tables.save()
 			]
 		});
 	}

@@ -5,16 +5,16 @@ const _ = require('lodash');
 const util = require('../util');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class WorksheetExport extends SuperClass {
-	_export(canStream) {
+module.exports = SuperClass => class WorksheetSave extends SuperClass {
+	_save(canStream) {
 		if (canStream) {
 			return new WorksheetStream({
 				worksheet: this
 			});
 		} else {
-			return exportBeforeRows(this) +
-				exportData(this) +
-				exportAfterRows(this);
+			return saveBeforeRows(this) +
+				saveData(this) +
+				saveAfterRows(this);
 		}
 	}
 };
@@ -33,7 +33,7 @@ WorksheetStream.prototype._read = function (size) {
 	let stop = false;
 
 	if (this.status === 0) {
-		stop = !this.push(exportBeforeRows(worksheet));
+		stop = !this.push(saveBeforeRows(worksheet));
 
 		this.status = 1;
 		this.index = 0;
@@ -47,7 +47,7 @@ WorksheetStream.prototype._read = function (size) {
 
 		while (this.index < this.len && !stop) {
 			while (this.index < this.len && s.length < size) {
-				s += exportRow(data[this.index], preparedRows[this.index], this.index);
+				s += saveRow(data[this.index], preparedRows[this.index], this.index);
 				data[this.index] = null;
 				this.index++;
 			}
@@ -61,47 +61,47 @@ WorksheetStream.prototype._read = function (size) {
 	}
 
 	if (this.status === 2) {
-		this.push(exportAfterRows(worksheet));
+		this.push(saveAfterRows(worksheet));
 		this.push(null);
 	}
 };
 
-function exportBeforeRows(worksheet) {
+function saveBeforeRows(worksheet) {
 	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
 		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' +
-		exportDimension(worksheet.maxX, worksheet.maxY) +
-		worksheet._exportSheetView() +
-		exportColumns(worksheet.preparedColumns) +
+		saveDimension(worksheet.maxX, worksheet.maxY) +
+		worksheet._saveSheetView() +
+		saveColumns(worksheet.preparedColumns) +
 		'<sheetData>';
 }
 
-function exportAfterRows(worksheet) {
+function saveAfterRows(worksheet) {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		worksheet._exportMergeCells() +
-		worksheet._exportHyperlinks() +
-		worksheet._exportPrint() +
-		worksheet._exportTables() +
+		worksheet._saveMergeCells() +
+		worksheet._saveHyperlinks() +
+		worksheet._savePrint() +
+		worksheet._saveTables() +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
-		worksheet._exportDrawing() +
+		worksheet._saveDrawing() +
 		'</worksheet>';
 }
 
-function exportData(worksheet) {
+function saveData(worksheet) {
 	const data = worksheet.preparedData;
 	const preparedRows = worksheet.preparedRows;
 	let children = '';
 
 	for (let i = 0, len = data.length; i < len; i++) {
-		children += exportRow(data[i], preparedRows[i], i);
+		children += saveRow(data[i], preparedRows[i], i);
 		data[i] = null;
 	}
 	return children;
 }
 
-function exportRow(dataRow, row, rowIndex) {
+function saveRow(dataRow, row, rowIndex) {
 	let rowLen;
 	let rowChildren = [];
 	let colIndex;
@@ -159,7 +159,7 @@ function getRowAttributes(row, rowIndex) {
 	return attributes;
 }
 
-function exportDimension(maxX, maxY) {
+function saveDimension(maxX, maxY) {
 	const attributes = [];
 
 	if (maxX !== 0) {
@@ -178,7 +178,7 @@ function exportDimension(maxX, maxY) {
 	});
 }
 
-function exportColumns(columns) {
+function saveColumns(columns) {
 	if (columns.length) {
 		const children = _.map(columns, function (column, index) {
 			column = column || {};

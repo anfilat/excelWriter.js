@@ -4,13 +4,13 @@ const _ = require('lodash');
 const toXMLString = require('../XMLString');
 
 class StylePart {
-	constructor(styles, exportName, formatName) {
+	constructor(styles, saveName, formatName) {
 		this.styles = styles;
-		this.exportName = exportName;
+		this.saveName = saveName;
 		this.formatName = formatName;
 		this.lastName = 1;
 		this.lastId = 0;
-		this.exportEmpty = true;
+		this.saveEmpty = true;
 		this.formats = [];
 		this.formatsByData = Object.create(null);
 		this.formatsByNames = Object.create(null);
@@ -75,25 +75,25 @@ class StylePart {
 
 		return styleFormat ? styleFormat.formatId : null;
 	}
-	export() {
-		if (this.exportEmpty !== false || this.formats.length) {
+	save() {
+		if (this.saveEmpty !== false || this.formats.length) {
 			const attributes = [
 				['count', this.formats.length]
 			];
-			const children = _.map(this.formats, format => this.exportFormat(format.format, format));
+			const children = _.map(this.formats, format => this.saveFormat(format.format, format));
 
-			this.exportCollectionExt(attributes, children);
+			this.saveCollectionExt(attributes, children);
 
 			return toXMLString({
-				name: this.exportName,
+				name: this.saveName,
 				attributes,
 				children
 			});
 		}
 		return '';
 	}
-	exportCollectionExt() {}
-	exportFormat() {
+	saveCollectionExt() {}
+	saveFormat() {
 		return '';
 	}
 }

@@ -49,7 +49,7 @@ module.exports = SuperClass => class DrawingsExt extends SuperClass {
 			this._setDrawing(image.image, config, 'anchor');
 		}
 	}
-	_exportDrawing() {
+	_saveDrawing() {
 		if (this._drawings) {
 			return toXMLString({
 				name: 'drawing',

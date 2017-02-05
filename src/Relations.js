@@ -31,7 +31,7 @@ class RelationshipManager {
 
 		return relation ? relation.relationId : null;
 	}
-	export() {
+	save() {
 		const common = this.common;
 		const children = _.map(this.relations, relation => {
 			const attributes = [

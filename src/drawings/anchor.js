@@ -38,7 +38,7 @@ class Anchor {
 			yOff: util.pixelsToEMUs(-config.bottom || 0)
 		};
 	}
-	exportWithContent(content) {
+	saveWithContent(content) {
 		return toXMLString({
 			name: 'xdr:twoCellAnchor',
 			children: [

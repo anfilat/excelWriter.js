@@ -3,7 +3,7 @@
 const _ = require('lodash');
 const toXMLString = require('../XMLString');
 
-function exportColor(color) {
+function saveColor(color) {
 	if (_.isString(color)) {
 		return toXMLString({
 			name: 'color',
@@ -31,5 +31,5 @@ function exportColor(color) {
 }
 
 module.exports = {
-	exportColor: exportColor
+	saveColor
 };

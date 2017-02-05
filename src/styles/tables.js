@@ -14,7 +14,7 @@ const SIZED_ELEMENTS = ['firstRowStripe', 'secondRowStripe', 'firstColumnStripe'
 class Tables extends StylePart {
 	constructor(styles) {
 		super(styles, 'tableStyles', 'table');
-		this.exportEmpty = false;
+		this.saveEmpty = false;
 	}
 	canon(format) {
 		const result = {};
@@ -42,13 +42,13 @@ class Tables extends StylePart {
 
 		return result;
 	}
-	exportCollectionExt(attributes) {
+	saveCollectionExt(attributes) {
 		if (this.styles.defaultTableStyle) {
 			attributes.push(['defaultTableStyle', this.styles.defaultTableStyle]);
 		}
 	}
-//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
-	exportFormat(format, styleFormat) {
+	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
+	saveFormat(format, styleFormat) {
 		const styles = this.styles;
 		const attributes = [
 			['name', styleFormat.name],

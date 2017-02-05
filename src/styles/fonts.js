@@ -60,7 +60,7 @@ class Fonts extends StylePart {
 		}
 		return result;
 	}
-	static exportFormat(format) {
+	static saveFormat(format) {
 		const children = [];
 		let attrs;
 
@@ -129,7 +129,7 @@ class Fonts extends StylePart {
 			children.push(toXMLString({name: 'outline'}));
 		}
 		if (format.color) {
-			children.push(formatUtils.exportColor(format.color));
+			children.push(formatUtils.saveColor(format.color));
 		}
 
 		return toXMLString({
@@ -146,8 +146,8 @@ class Fonts extends StylePart {
 		result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
 		return result;
 	}
-	exportFormat(format, styleFormat) {
-		return Fonts.exportFormat(format, styleFormat);
+	saveFormat(format, styleFormat) {
+		return Fonts.saveFormat(format, styleFormat);
 	}
 }
 

@@ -15,7 +15,7 @@ class Cells extends StylePart {
 
 		this.init();
 		this.lastId = this.formats.length;
-		this.exportEmpty = false;
+		this.saveEmpty = false;
 	}
 	init() {
 		this.formats.push(
@@ -120,17 +120,17 @@ class Cells extends StylePart {
 		}
 		return formatTo;
 	}
-	exportFormat(format) {
+	saveFormat(format) {
 		const styles = this.styles;
 		const attributes = [];
 		const children = [];
 
 		if (format.alignment) {
-			children.push(alignment.exportFormat(format.alignment));
+			children.push(alignment.saveFormat(format.alignment));
 			attributes.push(['applyAlignment', 'true']);
 		}
 		if (format.protection) {
-			children.push(protection.exportFormat(format.protection));
+			children.push(protection.saveFormat(format.protection));
 			attributes.push(['applyProtection', 'true']);
 		}
 

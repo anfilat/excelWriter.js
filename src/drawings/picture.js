@@ -31,7 +31,7 @@ class Picture {
 				break;
 		}
 	}
-	export() {
+	save() {
 		const picture = toXMLString({
 			name: 'xdr:pic',
 			children: [
@@ -102,7 +102,7 @@ class Picture {
 			]
 		});
 
-		return this.anchor.exportWithContent(picture);
+		return this.anchor.saveWithContent(picture);
 	}
 }
 

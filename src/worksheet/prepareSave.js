@@ -2,7 +2,7 @@
 
 const _ = require('lodash');
 
-module.exports = SuperClass => class PrepareExport extends SuperClass {
+module.exports = SuperClass => class PrepareSave extends SuperClass {
 	_prepare() {
 		let maxX = 0;
 		let preparedDataRow;

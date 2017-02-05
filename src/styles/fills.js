@@ -54,13 +54,13 @@ class Fills extends StylePart {
 		}
 		return result;
 	}
-	static exportFormat(format) {
+	static saveFormat(format) {
 		let children;
 
 		if (format.fillType === 'pattern') {
-			children = [exportPatternFill(format)];
+			children = [savePatternFill(format)];
 		} else {
-			children = [exportGradientFill(format)];
+			children = [saveGradientFill(format)];
 		}
 
 		return toXMLString({
@@ -74,12 +74,12 @@ class Fills extends StylePart {
 	merge(formatTo, formatFrom) {
 		return formatFrom || formatTo;
 	}
-	exportFormat(format) {
-		return Fills.exportFormat(format);
+	saveFormat(format) {
+		return Fills.saveFormat(format);
 	}
 }
 
-function exportPatternFill(format) {
+function savePatternFill(format) {
 	const attributes = [
 		['patternType', format.patternType]
 	];
@@ -105,7 +105,7 @@ function exportPatternFill(format) {
 	});
 }
 
-function exportGradientFill(format) {
+function saveGradientFill(format) {
 	const attributes = [];
 	const children = [];
 	let attrs;

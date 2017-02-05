@@ -46,7 +46,7 @@ module.exports = SuperClass => class MergedCells extends SuperClass {
 			}
 		}
 	}
-	_exportMergeCells() {
+	_saveMergeCells() {
 		if (this._mergedCells.length > 0) {
 			const children = _.map(this._mergedCells, function (mergeCell) {
 				return toXMLString({

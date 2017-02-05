@@ -26,7 +26,7 @@ class SharedStrings extends Readable {
 	isEmpty() {
 		return this._stringArray.length === 0;
 	}
-	export(canStream) {
+	save(canStream) {
 		this._strings = null;
 
 		if (canStream) {

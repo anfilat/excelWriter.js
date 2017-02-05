@@ -90,14 +90,14 @@ module.exports = SuperClass => class Print extends SuperClass {
 		}
 		return this;
 	}
-	_exportPrint() {
-		return exportPageMargins(this._margin) +
-			exportPageSetup(this._orientation) +
-			exportHeaderFooter(this._headers, this._footers);
+	_savePrint() {
+		return savePageMargins(this._margin) +
+			savePageSetup(this._orientation) +
+			saveHeaderFooter(this._headers, this._footers);
 	}
 };
 
-function exportPageMargins(margin) {
+function savePageMargins(margin) {
 	if (margin) {
 		return toXMLString({
 			name: 'pageMargins',
@@ -114,7 +114,7 @@ function exportPageMargins(margin) {
 	return '';
 }
 
-function exportPageSetup(orientation) {
+function savePageSetup(orientation) {
 	if (orientation) {
 		return toXMLString({
 			name: 'pageSetup',
@@ -126,15 +126,15 @@ function exportPageSetup(orientation) {
 	return '';
 }
 
-function exportHeaderFooter(headers, footers) {
+function saveHeaderFooter(headers, footers) {
 	if (headers.length > 0 || footers.length > 0) {
 		const children = [];
 
 		if (headers.length > 0) {
-			children.push(exportHeader(headers));
+			children.push(saveHeader(headers));
 		}
 		if (footers.length > 0) {
-			children.push(exportFooter(footers));
+			children.push(saveFooter(footers));
 		}
 
 		return toXMLString({
@@ -145,14 +145,14 @@ function exportHeaderFooter(headers, footers) {
 	return '';
 }
 
-function exportHeader(headers) {
+function saveHeader(headers) {
 	return toXMLString({
 		name: 'oddHeader',
 		value: compilePageDetailPackage(headers)
 	});
 }
 
-function exportFooter(footers) {
+function saveFooter(footers) {
 	return toXMLString({
 		name: 'oddFooter',
 		value: compilePageDetailPackage(footers)
