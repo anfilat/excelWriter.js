@@ -3,25 +3,25 @@
 
 'use strict';
 
-const runTest = require('../runTest');
+const {compare, write} = require('../runTest');
 
 const fileName = process.argv[2];
-const compare = process.argv[3];
+const compareIt = process.argv[3];
 
 if (fileName) {
 	const test = require('./' + fileName);
 
-	if (compare) {
-		runTest.compare(test, fileName)
-			.then(function (testName) {
+	if (compareIt) {
+		compare(test, fileName)
+			.then(testName => {
 				console.log(testName, 'passed');
 			})
-			.catch(function (error) {
+			.catch(error => {
 				console.log(error.message, 'failed');
 			});
 	} else {
-		runTest.write(test, fileName)
-			.on('finish', function () {
+		write(test, fileName)
+			.on('finish', () => {
 				console.log('Excel file written.');
 			});
 	}

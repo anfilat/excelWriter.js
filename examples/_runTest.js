@@ -18,8 +18,8 @@ module.exports = function (test) {
 	}
 
 	excelWriter.saveAsNodeStream(workbook)
-		.pipe(fs.createWriteStream('xlsx/' + fileName + '.xlsx'))
-		.on('finish', function () {
+		.pipe(fs.createWriteStream(`xlsx/${fileName}.xlsx`))
+		.on('finish', () => {
 			console.log('Excel file written.');
 		});
 };

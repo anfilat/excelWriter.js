@@ -26,8 +26,8 @@ console.log('Memory before - ', process.memoryUsage());
 console.time('time');
 
 excel.saveAsNodeStream(run(testData))
-	.pipe(fs.createWriteStream('xlsx/' + fileName + '.xlsx'))
-	.on('finish', function () {
+	.pipe(fs.createWriteStream(`xlsx/${fileName}.xlsx`))
+	.on('finish', () => {
 		console.timeEnd('time');
 		console.log('Memory after - ', process.memoryUsage());
 		console.log('Excel file written.');
@@ -37,7 +37,7 @@ function generateData() {
 	const size = 1000000;
 	const testData = new Array(size);
 
-	_.times(size, function (i) {
+	_.times(size, i => {
 		testData[i] = [
 			1000 + i,
 			_.capitalize(loremIpsum({count: 7, units: 'words'}) + '.'),

@@ -7,9 +7,9 @@ const path = require('path');
 const JSZip = require('jszip');
 const excelWriter = require('./src');
 
-function compare(test, fileName) {
+exports.compare = function (test, fileName) {
 	const testName = path.parse(fileName).name;
-	const xlsxFileName = 'xlsx/' + testName + '.xlsx';
+	const xlsxFileName = `xlsx/${testName}.xlsx`;
 	const workbook = test(excelWriter);
 
 	JSZip.defaults.date = new Date('2016-01-04');
@@ -24,11 +24,11 @@ function compare(test, fileName) {
 				throw new Error(testName);
 			}
 		});
-}
+};
 
-function write(test, fileName) {
+exports.write = function (test, fileName) {
 	const testName = path.parse(fileName).name;
-	const xlsxFileName = 'xlsx/' + testName + '.xlsx';
+	const xlsxFileName = `xlsx/${testName}.xlsx`;
 	const workbook = test(excelWriter);
 
 	JSZip.defaults.date = new Date('2016-01-04');
@@ -41,9 +41,4 @@ function write(test, fileName) {
 
 	return excelWriter.saveAsNodeStream(workbook)
 		.pipe(fs.createWriteStream(xlsxFileName));
-}
-
-module.exports = {
-	write,
-	compare
 };
