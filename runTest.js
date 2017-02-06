@@ -1,18 +1,16 @@
 /*eslint no-sync: "off"*/
+/*eslint global-require: "off"*/
 
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const JSZip = require('jszip');
-const excelWriter = require('./src');
+let excelWriter;
 
-exports.compare = function (test, fileName) {
+function compare(test, fileName) {
 	const testName = path.parse(fileName).name;
 	const xlsxFileName = `xlsx/${testName}.xlsx`;
 	const workbook = test(excelWriter);
-
-	JSZip.defaults.date = new Date('2016-01-04');
 
 	return excelWriter.save(workbook, {type: 'nodebuffer'})
 		.then(result => {
@@ -24,14 +22,12 @@ exports.compare = function (test, fileName) {
 				throw new Error(testName);
 			}
 		});
-};
+}
 
-exports.write = function (test, fileName) {
+function write(test, fileName) {
 	const testName = path.parse(fileName).name;
 	const xlsxFileName = `xlsx/${testName}.xlsx`;
 	const workbook = test(excelWriter);
-
-	JSZip.defaults.date = new Date('2016-01-04');
 
 	try {
 		fs.statSync('xlsx');
@@ -41,4 +37,20 @@ exports.write = function (test, fileName) {
 
 	return excelWriter.saveAsNodeStream(workbook)
 		.pipe(fs.createWriteStream(xlsxFileName));
+}
+
+module.exports = function (testDist) {
+	if (testDist) {
+		global._ = require('lodash');
+		global.JSZip = require('jszip');
+		excelWriter = require('./dist/excelWriter.min.js');
+
+		global.JSZip.defaults.date = new Date('2016-01-04');
+	} else {
+		const JSZip = require('jszip');
+		excelWriter = require('./src');
+
+		JSZip.defaults.date = new Date('2016-01-04');
+	}
+	return {compare, write};
 };

@@ -6,7 +6,7 @@
 
 const fs = require('fs');
 const _ = require('lodash');
-const runTest = require('./runTest');
+const {compare} = require('./runTest')(!!process.argv[2]);
 
 process.chdir('./test');
 
@@ -15,7 +15,7 @@ _(fs.readdirSync('.'))
 	.forEach(fileName => {
 		const test = require(`./test/${fileName}`);
 
-		runTest.compare(test, fileName)
+		compare(test, fileName)
 			.catch(function (error) {
 				console.log(error.message, 'failed');
 			});

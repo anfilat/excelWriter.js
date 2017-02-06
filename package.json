@@ -28,10 +28,10 @@
     "browserify": "^13.0.0",
     "browserify-shim": "^3.8.12",
     "eslintify": "^3.0.0",
+    "babelify": "*",
+    "babel-preset-es2015": "*",
+    "babel-plugin-transform-runtime": "*",
     "uglify-js": "~2.7.0"
-  },
-  "browserify": {
-    "transform": ["eslintify", "browserify-shim"]
   },
   "browserify-shim": {
     "lodash": "global:_",
@@ -40,6 +40,6 @@
   "scripts": {
     "lint": "eslint src test examples || exit 0",
     "test": "node test.js || exit 0",
-    "build": "node build.js || exit 0"
+    "build": "node build.js && node test.js dist || exit 0"
   }
 }

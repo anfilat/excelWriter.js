@@ -5,9 +5,10 @@
  */
 const _ = require('lodash');
 const util = require('../util');
+const Hyperlinks = require('./hyperlinks');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class SheetView extends SuperClass {
+class SheetView extends Hyperlinks {
 	constructor(workbook, config) {
 		super(workbook, config);
 		this._pane = null;
@@ -158,7 +159,7 @@ module.exports = SuperClass => class SheetView extends SuperClass {
 			]
 		});
 	}
-};
+}
 
 function savePane(pane) {
 	if (pane) {
@@ -175,3 +176,5 @@ function savePane(pane) {
 	}
 	return '';
 }
+
+module.exports = SheetView;

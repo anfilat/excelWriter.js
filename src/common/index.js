@@ -1,17 +1,16 @@
 'use strict';
 
-const paths = require('./paths');
-const images = require('./images');
+const Images = require('./images');
 const SharedStrings = require('./sharedStrings');
 const Styles = require('../styles');
 
-class Common extends images(paths(Object)) {
+class Common extends Images {
 	constructor() {
 		super();
 
 		this.idSpaces = Object.create(null);
 
-		this.sharedStrings = new SharedStrings({common: this});
+		this.sharedStrings = new SharedStrings(this);
 		this.addPath(this.sharedStrings, 'sharedStrings.xml');
 
 		this.styles = new Styles(this);

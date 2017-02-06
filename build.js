@@ -15,6 +15,9 @@ writeBundle(writeMinify);
 function writeBundle(next) {
 	browserify('./src/index.js', {standalone: 'excelWriter'})
 		.ignore('stream')
+		.transform('eslintify')
+		.transform('browserify-shim')
+		.transform('babelify', {presets: ['es2015'], plugins: ['transform-runtime']})
 		.bundle((err, bundle) => {
 			if (err) {
 				console.log(err);

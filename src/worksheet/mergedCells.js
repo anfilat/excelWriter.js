@@ -2,11 +2,12 @@
 
 const _ = require('lodash');
 const util = require('../util');
+const DrawingsExt = require('./drawing');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class MergedCells extends SuperClass {
-	constructor(workbook, config) {
-		super(workbook, config);
+class MergedCells extends DrawingsExt {
+	constructor() {
+		super();
 		this._mergedCells = [];
 	}
 	mergeCells(cell1, cell2) {
@@ -67,4 +68,6 @@ module.exports = SuperClass => class MergedCells extends SuperClass {
 		}
 		return '';
 	}
-};
+}
+
+module.exports = MergedCells;

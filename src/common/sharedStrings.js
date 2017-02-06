@@ -1,15 +1,16 @@
+/*eslint global-require: "off"*/
+
 'use strict';
 
-const Readable = require('stream').Readable;
+const Readable = require('stream').Readable || null;
 const _ = require('lodash');
 const util = require('../util');
 
 const spaceRE = /^\s|\s$/;
 
-class SharedStrings extends Readable {
-	constructor(options) {
-		super(options);
-		this.objectId = options.common.uniqueId('SharedStrings');
+class SharedStrings {
+	constructor(common) {
+		this.objectId = common.uniqueId('SharedStrings');
 		this._strings = new Map();
 		this._stringArray = [];
 	}
@@ -30,8 +31,9 @@ class SharedStrings extends Readable {
 		this._strings = null;
 
 		if (canStream) {
-			this.status = 0;
-			return this;
+			return new SharedStringsStream({
+				strings: this._stringArray
+			});
 		}
 		return getXMLBegin(this._stringArray.length) +
 			_.map(this._stringArray, string => {
@@ -44,15 +46,23 @@ class SharedStrings extends Readable {
 			}).join('') +
 			getXMLEnd();
 	}
+}
+
+class SharedStringsStream extends Readable {
+	constructor(options) {
+		super(options);
+		this.strings = options.strings;
+		this.status = 0;
+	}
 	_read(size) {
 		let stop = false;
 
 		if (this.status === 0) {
-			stop = !this.push(getXMLBegin(this._stringArray.length));
+			stop = !this.push(getXMLBegin(this.strings.length));
 
 			this.status = 1;
 			this.index = 0;
-			this.len = this._stringArray.length;
+			this.len = this.strings.length;
 		}
 
 		if (this.status === 1) {
@@ -61,14 +71,14 @@ class SharedStrings extends Readable {
 
 			while (this.index < this.len && !stop) {
 				while (this.index < this.len && s.length < size) {
-					str = _.escape(this._stringArray[this.index]);
+					str = _.escape(this.strings[this.index]);
 
 					if (spaceRE.test(str)) {
 						s += `<si><t xml:space="preserve">${str}</t></si>`;
 					} else {
 						s += `<si><t>${str}</t></si>`;
 					}
-					this._stringArray[this.index] = null;
+					this.strings[this.index] = null;
 					this.index++;
 				}
 				stop = !this.push(s);

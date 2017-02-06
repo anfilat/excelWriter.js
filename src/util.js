@@ -47,12 +47,6 @@ function letterToPosition(cell) {
 }
 
 module.exports = {
-	inherits: function (ctor, superCtor) {
-		const Obj = function () {};
-		Obj.prototype = superCtor.prototype;
-		ctor.prototype = new Obj();
-	},
-
 	pixelsToEMUs: function (pixels) {
 		return Math.round(pixels * 914400 / 96);
 	},

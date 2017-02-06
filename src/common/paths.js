@@ -1,8 +1,7 @@
 'use strict';
 
-module.exports = SuperClass => class Paths extends SuperClass {
+class Paths {
 	constructor() {
-		super();
 		this._paths = new Map();
 	}
 	addPath(object, path) {
@@ -11,4 +10,6 @@ module.exports = SuperClass => class Paths extends SuperClass {
 	getPath(object) {
 		return this._paths.get(object.objectId);
 	}
-};
+}
+
+module.exports = Paths;

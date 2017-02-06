@@ -1,17 +1,10 @@
 'use strict';
 
 const _ = require('lodash');
-const sheetView = require('./sheetView');
-const hyperlinks = require('./hyperlinks');
-const mergedCells = require('./mergedCells');
-const print = require('./print');
-const drawing = require('./drawing');
-const tables = require('./tables');
-const prepareSave = require('./prepareSave');
-const worksheetSave = require('./save');
+const WorksheetSave = require('./save');
 const Relations = require('../relations');
 
-class Worksheet extends sheetView(hyperlinks(mergedCells(drawing(tables(print(worksheetSave(prepareSave(Object)))))))) {
+class Worksheet extends WorksheetSave {
 	constructor(workbook, config = {}) {
 		super(workbook, config);
 		this.workbook = workbook;

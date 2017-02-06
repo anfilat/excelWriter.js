@@ -1,5 +1,6 @@
 'use strict';
 
+const Readable = require('stream').Readable;
 const _ = require('lodash');
 const JSZip = require('jszip');
 const Workbook = require('./workbook');
@@ -16,7 +17,7 @@ module.exports = {
 	 */
 	save: function (workbook, options) {
 		const zip = new JSZip();
-		const canStream = JSZip.support.nodestream;
+		const canStream = !!Readable;
 
 		workbook._generateFiles(zip, canStream);
 		return zip.generateAsync(_.defaults(options, {
@@ -28,7 +29,7 @@ module.exports = {
 
 	saveAsNodeStream: function (workbook, options) {
 		const zip = new JSZip();
-		const canStream = JSZip.support.nodestream;
+		const canStream = !!Readable;
 
 		workbook._generateFiles(zip, canStream);
 		return zip.generateNodeStream(_.defaults(options, {

@@ -1,11 +1,14 @@
+/*eslint global-require: "off"*/
+
 'use strict';
 
-const Readable = require('stream').Readable;
+const Readable = require('stream').Readable || null;
 const _ = require('lodash');
+const PrepareSave = require('./prepareSave');
 const util = require('../util');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class WorksheetSave extends SuperClass {
+class WorksheetSave extends PrepareSave {
 	_save(canStream) {
 		if (canStream) {
 			return new WorksheetStream({
@@ -17,54 +20,52 @@ module.exports = SuperClass => class WorksheetSave extends SuperClass {
 				saveAfterRows(this);
 		}
 	}
-};
-
-function WorksheetStream(options) {
-	Readable.call(this, options);
-
-	this.worksheet = options.worksheet;
-	this.status = 0;
 }
 
-util.inherits(WorksheetStream, Readable || {});
-
-WorksheetStream.prototype._read = function (size) {
-	const worksheet = this.worksheet;
-	let stop = false;
-
-	if (this.status === 0) {
-		stop = !this.push(saveBeforeRows(worksheet));
-
-		this.status = 1;
-		this.index = 0;
-		this.len = worksheet.preparedData.length;
+class WorksheetStream extends Readable {
+	constructor(options) {
+		super(options);
+		this.worksheet = options.worksheet;
+		this.status = 0;
 	}
+	_read(size) {
+		const worksheet = this.worksheet;
+		let stop = false;
 
-	if (this.status === 1) {
-		const data = worksheet.preparedData;
-		const preparedRows = worksheet.preparedRows;
-		let s = '';
+		if (this.status === 0) {
+			stop = !this.push(saveBeforeRows(worksheet));
 
-		while (this.index < this.len && !stop) {
-			while (this.index < this.len && s.length < size) {
-				s += saveRow(data[this.index], preparedRows[this.index], this.index);
-				data[this.index] = null;
-				this.index++;
+			this.status = 1;
+			this.index = 0;
+			this.len = worksheet.preparedData.length;
+		}
+
+		if (this.status === 1) {
+			const data = worksheet.preparedData;
+			const preparedRows = worksheet.preparedRows;
+			let s = '';
+
+			while (this.index < this.len && !stop) {
+				while (this.index < this.len && s.length < size) {
+					s += saveRow(data[this.index], preparedRows[this.index], this.index);
+					data[this.index] = null;
+					this.index++;
+				}
+				stop = !this.push(s);
+				s = '';
 			}
-			stop = !this.push(s);
-			s = '';
+
+			if (this.index === this.len) {
+				this.status = 2;
+			}
 		}
 
-		if (this.index === this.len) {
-			this.status = 2;
+		if (this.status === 2) {
+			this.push(saveAfterRows(worksheet));
+			this.push(null);
 		}
 	}
-
-	if (this.status === 2) {
-		this.push(saveAfterRows(worksheet));
-		this.push(null);
-	}
-};
+}
 
 function saveBeforeRows(worksheet) {
 	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
@@ -219,3 +220,5 @@ function saveColumns(columns) {
 	}
 	return '';
 }
+
+module.exports = WorksheetSave;

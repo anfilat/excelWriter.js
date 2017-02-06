@@ -1,6 +1,8 @@
 'use strict';
 
-module.exports = SuperClass => class Images extends SuperClass {
+const Paths = require('./paths');
+
+class Images extends Paths {
 	constructor() {
 		super();
 		this._images = Object.create(null);
@@ -65,4 +67,6 @@ module.exports = SuperClass => class Images extends SuperClass {
 	getExtensions() {
 		return this._extensions;
 	}
-};
+}
+
+module.exports = Images;

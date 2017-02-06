@@ -1,12 +1,13 @@
 'use strict';
 
 const _ = require('lodash');
+const Print = require('./print');
 const Table = require('../table');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class MergedCells extends SuperClass {
-	constructor(workbook, config) {
-		super(workbook, config);
+class Tables extends Print {
+	constructor() {
+		super();
 		this._tables = [];
 	}
 	addTable(config) {
@@ -48,4 +49,6 @@ module.exports = SuperClass => class MergedCells extends SuperClass {
 		}
 		return '';
 	}
-};
+}
+
+module.exports = Tables;

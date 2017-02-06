@@ -3,9 +3,8 @@
 const _ = require('lodash');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class Print extends SuperClass {
-	constructor(workbook, config) {
-		super(workbook, config);
+class Print {
+	constructor() {
 		this._headers = [];
 		this._footers = [];
 	}
@@ -95,7 +94,7 @@ module.exports = SuperClass => class Print extends SuperClass {
 			savePageSetup(this._orientation) +
 			saveHeaderFooter(this._headers, this._footers);
 	}
-};
+}
 
 function savePageMargins(margin) {
 	if (margin) {
@@ -197,3 +196,5 @@ function compilePageDetailPiece(data) {
 		}, '');
 	}
 }
+
+module.exports = Print;

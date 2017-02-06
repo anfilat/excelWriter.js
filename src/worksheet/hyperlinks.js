@@ -2,11 +2,12 @@
 
 const _ = require('lodash');
 const util = require('../util');
+const MergedCells = require('./mergedCells');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class Hyperlinks extends SuperClass {
-	constructor(workbook, config) {
-		super(workbook, config);
+class Hyperlinks extends MergedCells {
+	constructor() {
+		super();
 		this._hyperlinks = [];
 	}
 	setHyperlink(hyperlink) {
@@ -64,4 +65,6 @@ module.exports = SuperClass => class Hyperlinks extends SuperClass {
 		}
 		return '';
 	}
-};
+}
+
+module.exports = Hyperlinks;

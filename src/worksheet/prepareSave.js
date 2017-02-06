@@ -1,8 +1,9 @@
 'use strict';
 
 const _ = require('lodash');
+const SheetView = require('./sheetView');
 
-module.exports = SuperClass => class PrepareSave extends SuperClass {
+class PrepareSave extends SheetView {
 	_prepare() {
 		let maxX = 0;
 		let preparedDataRow;
@@ -30,7 +31,7 @@ module.exports = SuperClass => class PrepareSave extends SuperClass {
 		this.maxX = maxX;
 		this.maxY = this.preparedData.length;
 	}
-};
+}
 
 function prepareColumns(worksheet) {
 	const styles = worksheet.common.styles;
@@ -202,3 +203,5 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 		worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 	}
 }
+
+module.exports = PrepareSave;

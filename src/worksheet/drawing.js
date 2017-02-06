@@ -1,12 +1,13 @@
 'use strict';
 
 const _ = require('lodash');
+const Tables = require('./tables');
 const Drawings = require('../drawings');
 const toXMLString = require('../XMLString');
 
-module.exports = SuperClass => class DrawingsExt extends SuperClass {
-	constructor(workbook, config) {
-		super(workbook, config);
+class DrawingsExt extends Tables {
+	constructor() {
+		super();
 		this._drawings = null;
 	}
 	setImage(image, config) {
@@ -60,4 +61,6 @@ module.exports = SuperClass => class DrawingsExt extends SuperClass {
 		}
 		return '';
 	}
-};
+}
+
+module.exports = DrawingsExt;
