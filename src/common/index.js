@@ -4,14 +4,15 @@ const Images = require('./images');
 const SharedStrings = require('./sharedStrings');
 const Styles = require('../styles');
 
-class Common extends Images {
+class Common {
 	constructor() {
-		super();
-
 		this.idSpaces = Object.create(null);
+		this._paths = new Map();
 
-		this.sharedStrings = new SharedStrings(this);
-		this.addPath(this.sharedStrings, 'sharedStrings.xml');
+		this.images = new Images(this);
+
+		this.strings = new SharedStrings(this);
+		this.addPath(this.strings, 'sharedStrings.xml');
 
 		this.styles = new Styles(this);
 		this.addPath(this.styles, 'styles.xml');
@@ -20,6 +21,7 @@ class Common extends Images {
 		this.tables = [];
 		this.drawings = [];
 	}
+
 	uniqueId(space) {
 		return space + this.uniqueIdForSpace(space);
 	}
@@ -29,9 +31,14 @@ class Common extends Images {
 		}
 		return this.idSpaces[space]++;
 	}
-	addString(string) {
-		return this.sharedStrings.add(string);
+
+	addPath(object, path) {
+		this._paths.set(object.objectId, path);
 	}
+	getPath(object) {
+		return this._paths.get(object.objectId);
+	}
+
 	addWorksheet(worksheet) {
 		const index = this.worksheets.length + 1;
 		const path = 'worksheets/sheet' + index + '.xml';

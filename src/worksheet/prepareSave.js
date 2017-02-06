@@ -75,6 +75,7 @@ function prepareRows(worksheet) {
 function prepareDataRow(worksheet, rowIndex) {
 	const common = worksheet.common;
 	const styles = common.styles;
+	const strings = common.strings;
 	const preparedDataRow = [];
 	let row = worksheet.preparedRows[rowIndex];
 	let dataRow = worksheet.data[rowIndex];
@@ -138,7 +139,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			}
 
 			if (cellType === 'string') {
-				cellValue = common.addString(cellValue);
+				cellValue = strings.add(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
 				const date = 25569.0 + ((_.isDate(cellValue) ? cellValue.valueOf() : cellValue) - worksheet.timezoneOffset) /
@@ -146,7 +147,7 @@ function prepareDataRow(worksheet, rowIndex) {
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
-					cellValue = common.addString(String(cellValue));
+					cellValue = strings.add(String(cellValue));
 					isString = true;
 				}
 			} else if (cellType === 'formula') {

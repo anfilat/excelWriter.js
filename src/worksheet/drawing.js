@@ -30,7 +30,7 @@ class DrawingsExt extends Tables {
 		}
 
 		if (_.isObject(image)) {
-			name = this.common.addImage(image.data, image.type);
+			name = this.common.images.addImage(image.data, image.type);
 		} else {
 			name = image;
 		}

@@ -1,8 +1,6 @@
-/*eslint global-require: "off"*/
-
 'use strict';
 
-const Readable = require('stream').Readable || null;
+const Readable = require('stream').Readable;
 const _ = require('lodash');
 const util = require('../util');
 
@@ -13,10 +11,11 @@ class SharedStrings {
 		this.objectId = common.uniqueId('SharedStrings');
 		this._strings = new Map();
 		this._stringArray = [];
+		this.count = 0;
 	}
 	add(string) {
 		if (!this._strings.has(string)) {
-			const stringId = this._stringArray.length;
+			const stringId = this.count++;
 
 			this._strings.set(string, stringId);
 			this._stringArray[stringId] = string;
@@ -24,8 +23,8 @@ class SharedStrings {
 
 		return this._strings.get(string);
 	}
-	isEmpty() {
-		return this._stringArray.length === 0;
+	isStrings() {
+		return this.count > 0;
 	}
 	save(canStream) {
 		this._strings = null;
@@ -35,8 +34,8 @@ class SharedStrings {
 				strings: this._stringArray
 			});
 		}
-		return getXMLBegin(this._stringArray.length) +
-			_.map(this._stringArray, string => {
+		const result = getXMLBegin(this.count) +
+			this._stringArray.map(string => {
 				string = _.escape(string);
 
 				if (spaceRE.test(string)) {
@@ -45,10 +44,12 @@ class SharedStrings {
 				return `<si><t>${string}</t></si>`;
 			}).join('') +
 			getXMLEnd();
+		this._stringArray = null;
+		return result;
 	}
 }
 
-class SharedStringsStream extends Readable {
+class SharedStringsStream extends (Readable || null) {
 	constructor(options) {
 		super(options);
 		this.strings = options.strings;

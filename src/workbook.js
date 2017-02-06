@@ -11,9 +11,11 @@ class Workbook {
 	constructor() {
 		this.common = new Common();
 		this.styles = this.common.styles;
+		this.images = this.common.images;
 		this.relations = new Relations(this.common);
 
 		this.objectId = this.common.uniqueId('Workbook');
+		this.relations.addRelation(this.styles, 'stylesheet');
 	}
 	addWorksheet(config) {
 		config = _.defaults(config, {
@@ -54,17 +56,17 @@ class Workbook {
 		return this;
 	}
 	addImage(data, type, name) {
-		return this.common.addImage(data, type, name);
+		return this.images.addImage(data, type, name);
 	}
 	_generateFiles(zip, canStream) {
 		prepareWorksheets(this.common);
 
 		saveWorksheets(zip, canStream, this.common);
 		saveTables(zip, this.common);
-		saveImages(zip, this.common);
+		saveImages(zip, this.images);
 		saveDrawings(zip, this.common);
-		saveStyles(zip, this.relations, this.styles);
-		saveSharedStrings(zip, canStream, this.relations, this.common);
+		saveStyles(zip, this.styles);
+		saveStrings(zip, canStream, this.relations, this.common);
 		zip.file('[Content_Types].xml', createContentTypes(this.common));
 		zip.file('_rels/.rels', createWorkbookRelationship());
 		zip.file('xl/workbook.xml', this._save());
@@ -200,12 +202,12 @@ function saveTables(zip, common) {
 	});
 }
 
-function saveImages(zip, common) {
-	_.forEach(common.getImages(), image => {
+function saveImages(zip, images) {
+	_.forEach(images.getImages(), image => {
 		zip.file(image.path, image.data, {base64: true, binary: true});
 		image.data = null;
 	});
-	common.removeImages();
+	images.removeImages();
 }
 
 function saveDrawings(zip, common) {
@@ -215,15 +217,14 @@ function saveDrawings(zip, common) {
 	});
 }
 
-function saveStyles(zip, relations, styles) {
-	relations.addRelation(styles, 'stylesheet');
+function saveStyles(zip, styles) {
 	zip.file('xl/styles.xml', styles.save());
 }
 
-function saveSharedStrings(zip, canStream, relations, common) {
-	if (!common.sharedStrings.isEmpty()) {
-		relations.addRelation(common.sharedStrings, 'sharedStrings');
-		zip.file('xl/sharedStrings.xml', common.sharedStrings.save(canStream));
+function saveStrings(zip, canStream, relations, common) {
+	if (common.strings.isStrings()) {
+		relations.addRelation(common.strings, 'sharedStrings');
+		zip.file('xl/sharedStrings.xml', common.strings.save(canStream));
 	}
 }
 
@@ -251,7 +252,7 @@ function createContentTypes(common) {
 			['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml']
 		]
 	}));
-	if (!common.sharedStrings.isEmpty()) {
+	if (common.strings.isStrings()) {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [
@@ -286,7 +287,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.getExtensions(), (contentType, extension) => {
+	_.forEach(common.images.getExtensions(), (contentType, extension) => {
 		children.push(toXMLString({
 			name: 'Default',
 			attributes: [

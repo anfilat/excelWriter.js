@@ -1,8 +1,6 @@
-/*eslint global-require: "off"*/
-
 'use strict';
 
-const Readable = require('stream').Readable || null;
+const Readable = require('stream').Readable;
 const _ = require('lodash');
 const PrepareSave = require('./prepareSave');
 const util = require('../util');
@@ -22,7 +20,7 @@ class WorksheetSave extends PrepareSave {
 	}
 }
 
-class WorksheetStream extends Readable {
+class WorksheetStream extends (Readable || null) {
 	constructor(options) {
 		super(options);
 		this.worksheet = options.worksheet;

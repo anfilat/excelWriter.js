@@ -59,42 +59,33 @@ function toXMLString(config) {
 module.exports = toXMLString;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./util":27}],3:[function(require,module,exports){
+},{"./util":26}],3:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Paths = require('./paths');
-
-var Images = function (_Paths) {
-	_inherits(Images, _Paths);
-
-	function Images() {
+var Images = function () {
+	function Images(common) {
 		_classCallCheck(this, Images);
 
-		var _this = _possibleConstructorReturn(this, (Images.__proto__ || Object.getPrototypeOf(Images)).call(this));
-
-		_this._images = Object.create(null);
-		_this._imageByNames = Object.create(null);
-		_this._extensions = Object.create(null);
-		return _this;
+		this.common = common;
+		this._images = Object.create(null);
+		this._imageByNames = Object.create(null);
+		this._extensions = Object.create(null);
 	}
 
 	_createClass(Images, [{
 		key: 'addImage',
-		value: function addImage(data, type, name) {
+		value: function addImage(data) {
+			var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+			var name = arguments[2];
+
 			var image = this._images[data];
 
 			if (!image) {
-				type = type || '';
-
-				var id = this.uniqueIdForSpace('image');
+				var id = this.common.uniqueIdForSpace('image');
 				var path = 'xl/media/image' + id + '.' + type;
 				var contentType = void 0;
 
@@ -123,7 +114,7 @@ var Images = function (_Paths) {
 					extension: type,
 					path: path
 				};
-				this.addPath(image, '/' + path);
+				this.common.addPath(image, '/' + path);
 				this._images[data] = image;
 				this._imageByNames[name] = image;
 				this._extensions[type] = contentType;
@@ -157,45 +148,39 @@ var Images = function (_Paths) {
 	}]);
 
 	return Images;
-}(Paths);
+}();
 
 module.exports = Images;
 
-},{"./paths":5}],4:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var Images = require('./images');
 var SharedStrings = require('./sharedStrings');
 var Styles = require('../styles');
 
-var Common = function (_Images) {
-	_inherits(Common, _Images);
-
+var Common = function () {
 	function Common() {
 		_classCallCheck(this, Common);
 
-		var _this = _possibleConstructorReturn(this, (Common.__proto__ || Object.getPrototypeOf(Common)).call(this));
+		this.idSpaces = Object.create(null);
+		this._paths = new Map();
 
-		_this.idSpaces = Object.create(null);
+		this.images = new Images(this);
 
-		_this.sharedStrings = new SharedStrings(_this);
-		_this.addPath(_this.sharedStrings, 'sharedStrings.xml');
+		this.strings = new SharedStrings(this);
+		this.addPath(this.strings, 'sharedStrings.xml');
 
-		_this.styles = new Styles(_this);
-		_this.addPath(_this.styles, 'styles.xml');
+		this.styles = new Styles(this);
+		this.addPath(this.styles, 'styles.xml');
 
-		_this.worksheets = [];
-		_this.tables = [];
-		_this.drawings = [];
-		return _this;
+		this.worksheets = [];
+		this.tables = [];
+		this.drawings = [];
 	}
 
 	_createClass(Common, [{
@@ -212,9 +197,14 @@ var Common = function (_Images) {
 			return this.idSpaces[space]++;
 		}
 	}, {
-		key: 'addString',
-		value: function addString(string) {
-			return this.sharedStrings.add(string);
+		key: 'addPath',
+		value: function addPath(object, path) {
+			this._paths.set(object.objectId, path);
+		}
+	}, {
+		key: 'getPath',
+		value: function getPath(object) {
+			return this._paths.get(object.objectId);
 		}
 	}, {
 		key: 'addWorksheet',
@@ -263,45 +253,12 @@ var Common = function (_Images) {
 	}]);
 
 	return Common;
-}(Images);
+}();
 
 module.exports = Common;
 
-},{"../styles":19,"./images":3,"./sharedStrings":6}],5:[function(require,module,exports){
-'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Paths = function () {
-	function Paths() {
-		_classCallCheck(this, Paths);
-
-		this._paths = new Map();
-	}
-
-	_createClass(Paths, [{
-		key: 'addPath',
-		value: function addPath(object, path) {
-			this._paths.set(object.objectId, path);
-		}
-	}, {
-		key: 'getPath',
-		value: function getPath(object) {
-			return this._paths.get(object.objectId);
-		}
-	}]);
-
-	return Paths;
-}();
-
-module.exports = Paths;
-
-},{}],6:[function(require,module,exports){
+},{"../styles":18,"./images":3,"./sharedStrings":5}],5:[function(require,module,exports){
 (function (global){
-/*eslint global-require: "off"*/
-
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -312,7 +269,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Readable = require('stream').Readable || null;
+var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
 
@@ -325,13 +282,14 @@ var SharedStrings = function () {
 		this.objectId = common.uniqueId('SharedStrings');
 		this._strings = new Map();
 		this._stringArray = [];
+		this.count = 0;
 	}
 
 	_createClass(SharedStrings, [{
 		key: 'add',
 		value: function add(string) {
 			if (!this._strings.has(string)) {
-				var stringId = this._stringArray.length;
+				var stringId = this.count++;
 
 				this._strings.set(string, stringId);
 				this._stringArray[stringId] = string;
@@ -340,9 +298,9 @@ var SharedStrings = function () {
 			return this._strings.get(string);
 		}
 	}, {
-		key: 'isEmpty',
-		value: function isEmpty() {
-			return this._stringArray.length === 0;
+		key: 'isStrings',
+		value: function isStrings() {
+			return this.count > 0;
 		}
 	}, {
 		key: 'save',
@@ -354,7 +312,7 @@ var SharedStrings = function () {
 					strings: this._stringArray
 				});
 			}
-			return getXMLBegin(this._stringArray.length) + _.map(this._stringArray, function (string) {
+			var result = getXMLBegin(this.count) + this._stringArray.map(function (string) {
 				string = _.escape(string);
 
 				if (spaceRE.test(string)) {
@@ -362,14 +320,16 @@ var SharedStrings = function () {
 				}
 				return '<si><t>' + string + '</t></si>';
 			}).join('') + getXMLEnd();
+			this._stringArray = null;
+			return result;
 		}
 	}]);
 
 	return SharedStrings;
 }();
 
-var SharedStringsStream = function (_Readable) {
-	_inherits(SharedStringsStream, _Readable);
+var SharedStringsStream = function (_ref) {
+	_inherits(SharedStringsStream, _ref);
 
 	function SharedStringsStream(options) {
 		_classCallCheck(this, SharedStringsStream);
@@ -427,7 +387,7 @@ var SharedStringsStream = function (_Readable) {
 	}]);
 
 	return SharedStringsStream;
-}(Readable);
+}(Readable || null);
 
 function getXMLBegin(length) {
 	return util.xmlPrefix + '<sst xmlns="' + util.schemas.spreadsheetml + '" count="' + length + '" uniqueCount="' + length + '">';
@@ -440,7 +400,7 @@ function getXMLEnd() {
 module.exports = SharedStrings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../util":27,"stream":1}],7:[function(require,module,exports){
+},{"../util":26,"stream":1}],6:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -537,7 +497,7 @@ var Anchor = function () {
 module.exports = Anchor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27}],8:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],7:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -582,7 +542,7 @@ var AnchorAbsolute = function () {
 
 module.exports = AnchorAbsolute;
 
-},{"../XMLString":2,"../util":27}],9:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],8:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -659,7 +619,7 @@ var AnchorOneCell = function () {
 module.exports = AnchorOneCell;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27}],10:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],9:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -685,7 +645,7 @@ var Drawings = function () {
 	_createClass(Drawings, [{
 		key: 'addImage',
 		value: function addImage(name, config, anchorType) {
-			var image = this.common.getImage(name);
+			var image = this.common.images.getImage(name);
 			var imageRelationId = this.relations.addRelation(image, 'image');
 			var picture = new Picture(this.common, {
 				image: image,
@@ -718,7 +678,7 @@ var Drawings = function () {
 
 module.exports = Drawings;
 
-},{"../XMLString":2,"../relations":13,"../util":27,"./picture":11}],11:[function(require,module,exports){
+},{"../XMLString":2,"../relations":12,"../util":26,"./picture":10}],10:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -813,7 +773,7 @@ var Picture = function () {
 
 module.exports = Picture;
 
-},{"../XMLString":2,"../util":27,"./anchor":7,"./anchorAbsolute":8,"./anchorOneCell":9}],12:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./anchor":6,"./anchorAbsolute":7,"./anchorOneCell":8}],11:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -856,7 +816,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./workbook":28,"stream":1}],13:[function(require,module,exports){
+},{"./workbook":27,"stream":1}],12:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -933,7 +893,7 @@ var RelationshipManager = function () {
 module.exports = RelationshipManager;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":27}],14:[function(require,module,exports){
+},{"./XMLString":2,"./util":26}],13:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -998,7 +958,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],15:[function(require,module,exports){
+},{"../XMLString":2}],14:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1123,7 +1083,7 @@ var Borders = function (_StylePart) {
 module.exports = Borders;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22,"./utils":25}],16:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":21,"./utils":24}],15:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1319,7 +1279,7 @@ var Cells = function (_StylePart) {
 module.exports = Cells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./alignment":14,"./protection":21,"./stylePart":22}],17:[function(require,module,exports){
+},{"../XMLString":2,"./alignment":13,"./protection":20,"./stylePart":21}],16:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1483,7 +1443,7 @@ function saveGradientFill(format) {
 module.exports = Fills;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22}],18:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":21}],17:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1661,7 +1621,7 @@ var Fonts = function (_StylePart) {
 module.exports = Fonts;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22,"./utils":25}],19:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":21,"./utils":24}],18:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1799,7 +1759,7 @@ var Styles = function () {
 module.exports = Styles;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./borders":15,"./cells":16,"./fills":17,"./fonts":18,"./numberFormats":20,"./tableElements":23,"./tables":24}],20:[function(require,module,exports){
+},{"../XMLString":2,"./borders":14,"./cells":15,"./fills":16,"./fonts":17,"./numberFormats":19,"./tableElements":22,"./tables":23}],19:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1885,7 +1845,7 @@ var NumberFormats = function (_StylePart) {
 module.exports = NumberFormats;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22}],21:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":21}],20:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1925,7 +1885,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],22:[function(require,module,exports){
+},{"../XMLString":2}],21:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2058,7 +2018,7 @@ var StylePart = function () {
 module.exports = StylePart;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],23:[function(require,module,exports){
+},{"../XMLString":2}],22:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2143,7 +2103,7 @@ var TableElements = function (_StylePart) {
 
 module.exports = TableElements;
 
-},{"../XMLString":2,"./alignment":14,"./borders":15,"./fills":17,"./fonts":18,"./numberFormats":20,"./stylePart":22}],24:[function(require,module,exports){
+},{"../XMLString":2,"./alignment":13,"./borders":14,"./fills":16,"./fonts":17,"./numberFormats":19,"./stylePart":21}],23:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2251,7 +2211,7 @@ var Tables = function (_StylePart) {
 module.exports = Tables;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22}],25:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":21}],24:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2288,7 +2248,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],26:[function(require,module,exports){
+},{"../XMLString":2}],25:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2501,7 +2461,7 @@ function saveTableStyleInfo(common, themeStyle) {
 module.exports = Table;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":27}],27:[function(require,module,exports){
+},{"./XMLString":2,"./util":26}],26:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2591,7 +2551,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2614,9 +2574,11 @@ var Workbook = function () {
 
 		this.common = new Common();
 		this.styles = this.common.styles;
+		this.images = this.common.images;
 		this.relations = new Relations(this.common);
 
 		this.objectId = this.common.uniqueId('Workbook');
+		this.relations.addRelation(this.styles, 'stylesheet');
 	}
 
 	_createClass(Workbook, [{
@@ -2680,7 +2642,7 @@ var Workbook = function () {
 	}, {
 		key: 'addImage',
 		value: function addImage(data, type, name) {
-			return this.common.addImage(data, type, name);
+			return this.images.addImage(data, type, name);
 		}
 	}, {
 		key: '_generateFiles',
@@ -2689,10 +2651,10 @@ var Workbook = function () {
 
 			saveWorksheets(zip, canStream, this.common);
 			saveTables(zip, this.common);
-			saveImages(zip, this.common);
+			saveImages(zip, this.images);
 			saveDrawings(zip, this.common);
-			saveStyles(zip, this.relations, this.styles);
-			saveSharedStrings(zip, canStream, this.relations, this.common);
+			saveStyles(zip, this.styles);
+			saveStrings(zip, canStream, this.relations, this.common);
 			zip.file('[Content_Types].xml', createContentTypes(this.common));
 			zip.file('_rels/.rels', createWorkbookRelationship());
 			zip.file('xl/workbook.xml', this._save());
@@ -2821,12 +2783,12 @@ function saveTables(zip, common) {
 	});
 }
 
-function saveImages(zip, common) {
-	_.forEach(common.getImages(), function (image) {
+function saveImages(zip, images) {
+	_.forEach(images.getImages(), function (image) {
 		zip.file(image.path, image.data, { base64: true, binary: true });
 		image.data = null;
 	});
-	common.removeImages();
+	images.removeImages();
 }
 
 function saveDrawings(zip, common) {
@@ -2836,15 +2798,14 @@ function saveDrawings(zip, common) {
 	});
 }
 
-function saveStyles(zip, relations, styles) {
-	relations.addRelation(styles, 'stylesheet');
+function saveStyles(zip, styles) {
 	zip.file('xl/styles.xml', styles.save());
 }
 
-function saveSharedStrings(zip, canStream, relations, common) {
-	if (!common.sharedStrings.isEmpty()) {
-		relations.addRelation(common.sharedStrings, 'sharedStrings');
-		zip.file('xl/sharedStrings.xml', common.sharedStrings.save(canStream));
+function saveStrings(zip, canStream, relations, common) {
+	if (common.strings.isStrings()) {
+		relations.addRelation(common.strings, 'sharedStrings');
+		zip.file('xl/sharedStrings.xml', common.strings.save(canStream));
 	}
 }
 
@@ -2863,7 +2824,7 @@ function createContentTypes(common) {
 		name: 'Override',
 		attributes: [['PartName', '/xl/workbook.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml']]
 	}));
-	if (!common.sharedStrings.isEmpty()) {
+	if (common.strings.isStrings()) {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [['PartName', '/xl/sharedStrings.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml']]
@@ -2886,7 +2847,7 @@ function createContentTypes(common) {
 			attributes: [['PartName', '/xl/tables/table' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml']]
 		}));
 	});
-	_.forEach(common.getExtensions(), function (contentType, extension) {
+	_.forEach(common.images.getExtensions(), function (contentType, extension) {
 		children.push(toXMLString({
 			name: 'Default',
 			attributes: [['Extension', extension], ['ContentType', contentType]]
@@ -2920,7 +2881,7 @@ function createWorkbookRelationship() {
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":4,"./relations":13,"./util":27,"./worksheet":31}],29:[function(require,module,exports){
+},{"./XMLString":2,"./common":4,"./relations":12,"./util":26,"./worksheet":30}],28:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2977,7 +2938,7 @@ var DrawingsExt = function (_Tables) {
 			}
 
 			if (_.isObject(image)) {
-				name = this.common.addImage(image.data, image.type);
+				name = this.common.images.addImage(image.data, image.type);
 			} else {
 				name = image;
 			}
@@ -3018,7 +2979,7 @@ var DrawingsExt = function (_Tables) {
 module.exports = DrawingsExt;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../drawings":10,"./tables":37}],30:[function(require,module,exports){
+},{"../XMLString":2,"../drawings":9,"./tables":36}],29:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3113,7 +3074,7 @@ var Hyperlinks = function (_MergedCells) {
 module.exports = Hyperlinks;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./mergedCells":32}],31:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./mergedCells":31}],30:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3265,7 +3226,7 @@ var Worksheet = function (_WorksheetSave) {
 module.exports = Worksheet;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../relations":13,"./save":35}],32:[function(require,module,exports){
+},{"../relations":12,"./save":34}],31:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3363,7 +3324,7 @@ var MergedCells = function (_DrawingsExt) {
 module.exports = MergedCells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./drawing":29}],33:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./drawing":28}],32:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3465,6 +3426,7 @@ function prepareRows(worksheet) {
 function prepareDataRow(worksheet, rowIndex) {
 	var common = worksheet.common;
 	var styles = common.styles;
+	var strings = common.strings;
 	var preparedDataRow = [];
 	var row = worksheet.preparedRows[rowIndex];
 	var dataRow = worksheet.data[rowIndex];
@@ -3528,14 +3490,14 @@ function prepareDataRow(worksheet, rowIndex) {
 			}
 
 			if (cellType === 'string') {
-				cellValue = common.addString(cellValue);
+				cellValue = strings.add(cellValue);
 				isString = true;
 			} else if (cellType === 'date' || cellType === 'time') {
 				var date = 25569.0 + ((_.isDate(cellValue) ? cellValue.valueOf() : cellValue) - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
 				if (_.isFinite(date)) {
 					cellValue = date;
 				} else {
-					cellValue = common.addString(String(cellValue));
+					cellValue = strings.add(String(cellValue));
 					isString = true;
 				}
 			} else if (cellType === 'formula') {
@@ -3595,7 +3557,7 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 module.exports = PrepareSave;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./sheetView":36}],34:[function(require,module,exports){
+},{"./sheetView":35}],33:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3814,10 +3776,8 @@ function compilePageDetailPiece(data) {
 module.exports = Print;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],35:[function(require,module,exports){
+},{"../XMLString":2}],34:[function(require,module,exports){
 (function (global){
-/*eslint global-require: "off"*/
-
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -3828,7 +3788,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var Readable = require('stream').Readable || null;
+var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var PrepareSave = require('./prepareSave');
 var util = require('../util');
@@ -3859,8 +3819,8 @@ var WorksheetSave = function (_PrepareSave) {
 	return WorksheetSave;
 }(PrepareSave);
 
-var WorksheetStream = function (_Readable) {
-	_inherits(WorksheetStream, _Readable);
+var WorksheetStream = function (_ref) {
+	_inherits(WorksheetStream, _ref);
 
 	function WorksheetStream(options) {
 		_classCallCheck(this, WorksheetStream);
@@ -3914,7 +3874,7 @@ var WorksheetStream = function (_Readable) {
 	}]);
 
 	return WorksheetStream;
-}(Readable);
+}(Readable || null);
 
 function saveBeforeRows(worksheet) {
 	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml + '" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' + saveDimension(worksheet.maxX, worksheet.maxY) + worksheet._saveSheetView() + saveColumns(worksheet.preparedColumns) + '<sheetData>';
@@ -4057,7 +4017,7 @@ function saveColumns(columns) {
 module.exports = WorksheetSave;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./prepareSave":33,"stream":1}],36:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./prepareSave":32,"stream":1}],35:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -4258,7 +4218,7 @@ function savePane(pane) {
 module.exports = SheetView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":27,"./hyperlinks":30}],37:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"./hyperlinks":29}],36:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -4336,5 +4296,5 @@ var Tables = function (_Print) {
 module.exports = Tables;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../table":26,"./print":34}]},{},[12])(12)
+},{"../XMLString":2,"../table":25,"./print":33}]},{},[11])(11)
 });

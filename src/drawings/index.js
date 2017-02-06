@@ -14,7 +14,7 @@ class Drawings {
 		this.relations = new Relations(common);
 	}
 	addImage(name, config, anchorType) {
-		const image = this.common.getImage(name);
+		const image = this.common.images.getImage(name);
 		const imageRelationId = this.relations.addRelation(image, 'image');
 		const picture = new Picture(this.common, {
 			image,

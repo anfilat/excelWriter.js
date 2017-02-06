@@ -1,22 +1,18 @@
 'use strict';
 
-const Paths = require('./paths');
-
-class Images extends Paths {
-	constructor() {
-		super();
+class Images {
+	constructor(common) {
+		this.common = common;
 		this._images = Object.create(null);
 		this._imageByNames = Object.create(null);
 		this._extensions = Object.create(null);
 	}
-	addImage(data, type, name) {
+	addImage(data, type = '', name) {
 		let image = this._images[data];
 
 		if (!image) {
-			type = type || '';
-
-			const id = this.uniqueIdForSpace('image');
-			const path = 'xl/media/image' + id + '.' + type;
+			const id = this.common.uniqueIdForSpace('image');
+			const path = `xl/media/image${id}.${type}`;
 			let contentType;
 
 			name = name || 'excelWriter' + id;
@@ -44,7 +40,7 @@ class Images extends Paths {
 				extension: type,
 				path
 			};
-			this.addPath(image, '/' + path);
+			this.common.addPath(image, '/' + path);
 			this._images[data] = image;
 			this._imageByNames[name] = image;
 			this._extensions[type] = contentType;
