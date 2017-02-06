@@ -17,7 +17,7 @@ function writeBundle(next) {
 		.ignore('stream')
 		.transform('eslintify')
 		.transform('browserify-shim')
-		.transform('babelify', {presets: ['es2015'], plugins: ['transform-runtime']})
+		.transform('babelify', {presets: ['es2015']})
 		.bundle((err, bundle) => {
 			if (err) {
 				console.log(err);

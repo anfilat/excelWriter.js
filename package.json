@@ -30,7 +30,6 @@
     "eslintify": "^3.0.0",
     "babelify": "*",
     "babel-preset-es2015": "*",
-    "babel-plugin-transform-runtime": "*",
     "uglify-js": "~2.7.0"
   },
   "browserify-shim": {
