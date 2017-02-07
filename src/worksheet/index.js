@@ -81,12 +81,13 @@ class Worksheet extends WorksheetSave {
 		this.columns[--columnIndex] = column;
 		return this;
 	}
-	setData(startRow, data) {
+	setData(offset, data) {
+		let startRow = this.data.length;
+
 		if (!data) {
-			data = startRow;
-			startRow = 0;
+			data = offset;
 		} else {
-			--startRow;
+			startRow += offset;
 		}
 		_.forEach(data, (row, i) => {
 			this.data[startRow + i] = row;

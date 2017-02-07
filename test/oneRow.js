@@ -85,7 +85,7 @@ module.exports = function (excel) {
 
 	workbook.addWorksheet()
 		.setData(worksheetData)
-		.setData(7, worksheetData)
+		.setData(2, worksheetData)
 		.setColumns(columns)
 		.setColumn(5, {
 			width: 12,
