@@ -1,9 +1,11 @@
 'use strict';
 
+const _ = require('lodash');
 const StylePart = require('./stylePart');
 const {saveColor} = require('./utils');
 const toXMLString = require('../XMLString');
 
+const MAIN_BORDERS = ['left', 'right', 'top', 'bottom'];
 const BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.borders.aspx
@@ -22,18 +24,27 @@ class Borders extends StylePart {
 	static canon(format) {
 		const result = {};
 
-		BORDERS.forEach(name => {
-			const border = format[name];
-
-			if (border) {
+		if (_.has(format, 'style') || _.has(format, 'color')) {
+			MAIN_BORDERS.forEach(name => {
 				result[name] = {
-					style: border.style,
-					color: border.color
+					style: format.style,
+					color: format.color
 				};
-			} else {
-				result[name] = {};
-			}
-		});
+			});
+		} else {
+			BORDERS.forEach(name => {
+				const border = format[name];
+
+				if (border) {
+					result[name] = {
+						style: border.style,
+						color: border.color
+					};
+				} else {
+					result[name] = {};
+				}
+			});
+		}
 		return result;
 	}
 	static saveFormat(format) {

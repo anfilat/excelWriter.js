@@ -72,12 +72,7 @@ function run(testData) {
 			style: {
 				font: {bold: true, underline: true, color: {theme: 3}},
 				horizontal: 'center',
-				border: {
-					bottom: {color: 'FFFF0000', style: 'thin'},
-					top: {color: 'FFFF0000', style: 'thin'},
-					left: {color: 'FFFF0000', style: 'thin'},
-					right: {color: 'FFFF0000', style: 'thin'}
-				},
+				border: {color: 'FFFF0000', style: 'thin'},
 				pattern: {color: 'FFC0F0C0'}
 			},
 			data: [

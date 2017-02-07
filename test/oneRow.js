@@ -3,12 +3,7 @@
 module.exports = function (excel) {
 	const workbook = excel.createWorkbook();
 	workbook.addFontFormat({bold: true, underline: true, color: {theme: 3}}, 'font');
-	const headerBorder = workbook.addBorderFormat({
-		bottom: {color: 'FFFF0000', style: 'thin'},
-		top: {color: 'FFFF0000', style: 'thin'},
-		left: {color: 'FFFF0000', style: 'thin'},
-		right: {color: 'FFFF0000', style: 'thin'}
-	});
+	const headerBorder = workbook.addBorderFormat({color: 'FFFF0000', style: 'thin'});
 	const greenFill = workbook.addPatternFormat({color: 'FF00FF00'});
 	const currency = workbook.addNumberFormat('$ #,##0.00;$ #,##0.00;-', 'currency');
 	const header = workbook.addFormat({
