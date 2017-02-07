@@ -2,6 +2,7 @@
 
 const _ = require('lodash');
 const StylePart = require('./stylePart');
+const {canonColor, saveColor} = require('./utils');
 const toXMLString = require('../XMLString');
 
 const PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gray125', 'gray0625',
@@ -83,13 +84,13 @@ function savePatternFill(format) {
 		toXMLString({
 			name: 'fgColor',
 			attributes: [
-				['rgb', format.fgColor]
+				['rgb', canonColor(format.fgColor)]
 			]
 		}),
 		toXMLString({
 			name: 'bgColor',
 			attributes: [
-				['rgb', format.bgColor]
+				['rgb', canonColor(format.bgColor)]
 			]
 		})
 	];
@@ -103,8 +104,6 @@ function savePatternFill(format) {
 
 function saveGradientFill(format) {
 	const attributes = [];
-	const children = [];
-	let attrs;
 
 	if (format.degree) {
 		attributes.push(['degree', format.degree]);
@@ -116,23 +115,22 @@ function saveGradientFill(format) {
 		attributes.push(['bottom', format.bottom]);
 	}
 
-	attrs = [['rgb', format.start]];
-	children.push(toXMLString({
-		name: 'stop',
-		attributes: [
-			['position', 0]
-		],
-		children : [toXMLString({name: 'color',	attributes: attrs})]
-	}));
-
-	attrs = [['rgb', format.end]];
-	children.push(toXMLString({
-		name: 'stop',
-		attributes: [
-			['position', 1]
-		],
-		children : [toXMLString({name: 'color',	attributes: attrs})]
-	}));
+	const children = [
+		toXMLString({
+			name: 'stop',
+			attributes: [
+				['position', 0]
+			],
+			children: [saveColor(format.start)]
+		}),
+		toXMLString({
+			name: 'stop',
+			attributes: [
+				['position', 1]
+			],
+			children: [saveColor(format.end)]
+		})
+	];
 
 	return toXMLString({
 		name: 'gradientFill',

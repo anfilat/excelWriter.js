@@ -3,8 +3,8 @@
 module.exports = function (excel) {
 	const workbook = excel.createWorkbook();
 	workbook.addFontFormat({bold: true, underline: true, color: {theme: 3}}, 'font');
-	const headerBorder = workbook.addBorderFormat({color: 'FFFF0000', style: 'thin'});
-	const greenFill = workbook.addPatternFormat({color: 'FF00FF00'});
+	const headerBorder = workbook.addBorderFormat({color: '#FF0000', style: 'thin'});
+	const greenFill = workbook.addPatternFormat({color: '#00FF00'});
 	const currency = workbook.addNumberFormat('$ #,##0.00;$ #,##0.00;-', 'currency');
 	const header = workbook.addFormat({
 		font: 'font',
@@ -16,12 +16,12 @@ module.exports = function (excel) {
 	const fillFormat = workbook.addFormat({
 		font: {
 			italic: true,
-			color: 'FFFF0000'
+			color: '#FF0000'
 		},
 		border: {
 			right: {color: 'FF8888FF', style: 'thin'}
 		},
-		pattern: {type: 'darkHorizontal', color: 'FF88FF88', backColor: 'FF8888F0'},
+		pattern: {type: 'darkHorizontal', color: '#88FF88', backColor: '#8888F0'},
 		locked: false,
 		hidden: true
 	});
@@ -34,7 +34,7 @@ module.exports = function (excel) {
 			width: 50,
 			style: {
 				fillOut: true,
-				gradient: {left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, start: 'FFFFFF00', end: 'FF5B9BD5'}
+				gradient: {left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, start: '#FFFF00', end: '#5B9BD5'}
 			}
 		},
 		{style: {format: 'currency'}},
@@ -47,7 +47,7 @@ module.exports = function (excel) {
 			style: fillFormat,
 			data: [
 				2541,
-				{value: 'Nullam aliquet mi et nunc tempus rutrum.', style: {pattern: {color: 'FF999999'}}},
+				{value: 'Nullam aliquet mi et nunc tempus rutrum.', style: {pattern: {color: '#999999'}}},
 				undefined,
 				'__proto__',
 				1342372604000,

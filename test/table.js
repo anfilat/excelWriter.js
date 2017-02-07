@@ -12,8 +12,8 @@ module.exports = function (excel) {
 	];
 	const workbook = excel.createWorkbook();
 	const wholeTable = workbook.addTableElementFormat({
-		pattern: {color: 'FF0088FF', type: 'solid'},
-		font: {italic: true, color: 'FF880000'}
+		pattern: {color: '#0088FF', type: 'solid'},
+		font: {italic: true, color: '#880000'}
 	});
 
 	workbook.addTableElementFormat({
@@ -24,9 +24,9 @@ module.exports = function (excel) {
 	workbook.addTableFormat({
 		wholeTable: wholeTable,
 		headerRow: 'headerRow',
-		totalRow: {gradient: {degree: 0, start: 'FF778877', end: 'FF558899'}},
-		firstRowStripe: {style: {pattern: {color: 'FF338833'}}, size: 2},
-		secondRowStripe: {pattern: {color: 'FF3388CC'}}
+		totalRow: {gradient: {degree: 0, start: '#778877', end: '#558899'}},
+		firstRowStripe: {style: {pattern: {color: '#338833'}}, size: 2},
+		secondRowStripe: {pattern: {color: '#3388CC'}}
 	}, 'SlightlyOffColorBlue');
 
 	workbook.setDefaultTableStyle('SlightlyOffColorBlue');

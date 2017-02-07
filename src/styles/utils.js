@@ -3,12 +3,16 @@
 const _ = require('lodash');
 const toXMLString = require('../XMLString');
 
+function canonColor(color) {
+	return color[0] === '#' ? 'FF' + color.substr(1) : color;
+}
+
 function saveColor(color) {
 	if (_.isString(color)) {
 		return toXMLString({
 			name: 'color',
 			attributes: [
-				['rgb', color]
+				['rgb', canonColor(color)]
 			]
 		});
 	} else {
@@ -31,5 +35,6 @@ function saveColor(color) {
 }
 
 module.exports = {
+	canonColor,
 	saveColor
 };

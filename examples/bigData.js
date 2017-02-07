@@ -60,7 +60,7 @@ function run(testData) {
 			type: 'number',
 			style: {
 				format: '$ #,##0.00;$ #,##0.00;-',
-				font: {color: 'FFE90AF5'}
+				font: {color: '#E90AF5'}
 			}
 		},
 		{type: 'string', width: 20},
@@ -72,8 +72,8 @@ function run(testData) {
 			style: {
 				font: {bold: true, underline: true, color: {theme: 3}},
 				horizontal: 'center',
-				border: {color: 'FFFF0000', style: 'thin'},
-				pattern: {color: 'FFC0F0C0'}
+				border: {color: '#FF0000', style: 'thin'},
+				pattern: {color: '#C0F0C0'}
 			},
 			data: [
 				{value: 'ID', type: 'string'},
@@ -100,9 +100,9 @@ function run(testData) {
 			style: {
 				font: {
 					italic: true,
-					color: 'FFFF0000'
+					color: '#FF0000'
 				},
-				pattern: {color: 'FF00FF00'}
+				pattern: {color: '#00FF00'}
 			}
 		})
 		.setHyperlink({

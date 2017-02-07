@@ -1312,6 +1312,11 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
+
+var _require = require('./utils'),
+    canonColor = _require.canonColor,
+    saveColor = _require.saveColor;
+
 var toXMLString = require('../XMLString');
 
 var PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gray125', 'gray0625', 'darkHorizontal', 'darkVertical', 'darkDown', 'darkUp', 'darkGrid', 'darkTrellis', 'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp', 'lightGrid', 'lightTrellis'];
@@ -1404,10 +1409,10 @@ function savePatternFill(format) {
 	var attributes = [['patternType', format.patternType]];
 	var children = [toXMLString({
 		name: 'fgColor',
-		attributes: [['rgb', format.fgColor]]
+		attributes: [['rgb', canonColor(format.fgColor)]]
 	}), toXMLString({
 		name: 'bgColor',
-		attributes: [['rgb', format.bgColor]]
+		attributes: [['rgb', canonColor(format.bgColor)]]
 	})];
 
 	return toXMLString({
@@ -1419,8 +1424,6 @@ function savePatternFill(format) {
 
 function saveGradientFill(format) {
 	var attributes = [];
-	var children = [];
-	var attrs = void 0;
 
 	if (format.degree) {
 		attributes.push(['degree', format.degree]);
@@ -1432,19 +1435,15 @@ function saveGradientFill(format) {
 		attributes.push(['bottom', format.bottom]);
 	}
 
-	attrs = [['rgb', format.start]];
-	children.push(toXMLString({
+	var children = [toXMLString({
 		name: 'stop',
 		attributes: [['position', 0]],
-		children: [toXMLString({ name: 'color', attributes: attrs })]
-	}));
-
-	attrs = [['rgb', format.end]];
-	children.push(toXMLString({
+		children: [saveColor(format.start)]
+	}), toXMLString({
 		name: 'stop',
 		attributes: [['position', 1]],
-		children: [toXMLString({ name: 'color', attributes: attrs })]
-	}));
+		children: [saveColor(format.end)]
+	})];
 
 	return toXMLString({
 		name: 'gradientFill',
@@ -1456,7 +1455,7 @@ function saveGradientFill(format) {
 module.exports = Fills;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":21}],17:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":21,"./utils":24}],17:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2233,11 +2232,15 @@ module.exports = Tables;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var toXMLString = require('../XMLString');
 
+function canonColor(color) {
+	return color[0] === '#' ? 'FF' + color.substr(1) : color;
+}
+
 function saveColor(color) {
 	if (_.isString(color)) {
 		return toXMLString({
 			name: 'color',
-			attributes: [['rgb', color]]
+			attributes: [['rgb', canonColor(color)]]
 		});
 	} else {
 		var attributes = [];
@@ -2259,6 +2262,7 @@ function saveColor(color) {
 }
 
 module.exports = {
+	canonColor: canonColor,
 	saveColor: saveColor
 };
 
@@ -3216,14 +3220,15 @@ var Worksheet = function (_WorksheetSave) {
 		}
 	}, {
 		key: 'setData',
-		value: function setData(startRow, data) {
+		value: function setData(offset, data) {
 			var _this4 = this;
 
+			var startRow = this.data.length;
+
 			if (!data) {
-				data = startRow;
-				startRow = 0;
+				data = offset;
 			} else {
-				--startRow;
+				startRow += offset;
 			}
 			_.forEach(data, function (row, i) {
 				_this4.data[startRow + i] = row;
