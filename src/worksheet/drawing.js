@@ -39,12 +39,10 @@ class DrawingsExt extends Tables {
 		return this;
 	}
 	_insertDrawing(colIndex, rowIndex, image) {
-		let config;
-
 		if (typeof image === 'string' || image.data) {
 			this._setDrawing(image, {c: colIndex + 1, r: rowIndex + 1}, 'anchor');
 		} else {
-			config = image.config || {};
+			const config = image.config || {};
 			config.cell = {c: colIndex + 1, r: rowIndex + 1};
 
 			this._setDrawing(image.image, config, 'anchor');

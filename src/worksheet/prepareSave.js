@@ -6,7 +6,6 @@ const SheetView = require('./sheetView');
 class PrepareSave extends SheetView {
 	_prepare() {
 		let maxX = 0;
-		let preparedDataRow;
 
 		this.preparedData = [];
 		this.preparedColumns = [];
@@ -17,7 +16,7 @@ class PrepareSave extends SheetView {
 		prepareRows(this);
 
 		for (let rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
-			preparedDataRow = prepareDataRow(this, rowIndex);
+			const preparedDataRow = prepareDataRow(this, rowIndex);
 
 			if (preparedDataRow.length > maxX) {
 				maxX = preparedDataRow.length;
@@ -37,10 +36,8 @@ function prepareColumns(worksheet) {
 	const styles = worksheet.common.styles;
 
 	_.forEach(worksheet.columns, (column, index) => {
-		let preparedColumn;
-
 		if (column) {
-			preparedColumn = _.clone(column);
+			const preparedColumn = _.clone(column);
 
 			if (column.style) {
 				preparedColumn.style = styles.addFormat(column.style);
@@ -59,10 +56,8 @@ function prepareRows(worksheet) {
 	const styles = worksheet.common.styles;
 
 	_.forEach(worksheet.rows, (row, index) => {
-		let preparedRow;
-
 		if (row) {
-			preparedRow = _.clone(row);
+			const preparedRow = _.clone(row);
 
 			if (row.style) {
 				preparedRow.style = styles.addFormat(row.style);
@@ -179,8 +174,7 @@ function prepareDataRow(worksheet, rowIndex) {
 	return preparedDataRow;
 }
 
-function mergeDataRowToRow(worksheet, row, dataRow) {
-	row = row || {};
+function mergeDataRowToRow(worksheet, row = {}, dataRow) {
 	row.height = dataRow.height || row.height;
 	row.style = dataRow.style ? worksheet.common.styles.addFormat(dataRow.style) : row.style;
 	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;

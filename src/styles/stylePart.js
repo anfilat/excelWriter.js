@@ -80,7 +80,7 @@ class StylePart {
 			const attributes = [
 				['count', this.formats.length]
 			];
-			const children = _.map(this.formats, format => this.saveFormat(format.format, format));
+			const children = this.formats.map(format => this.saveFormat(format.format, format));
 
 			this.saveCollectionExt(attributes, children);
 

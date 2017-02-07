@@ -10,6 +10,8 @@ Dual licenced under the MIT license or GPLv3
 (function (global){
 'use strict';
 
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('./util');
 
@@ -23,32 +25,29 @@ var util = require('./util');
  * }} config
  */
 function toXMLString(config) {
-	var name = config.name;
-	var string = '<' + name;
+	var string = '<' + config.name;
 	var content = '';
-	var attr = void 0;
-	var i = void 0,
-	    l = void 0;
 
 	if (config.ns) {
 		string = util.xmlPrefix + string + ' xmlns="' + util.schemas[config.ns] + '"';
 	}
 	if (config.attributes) {
-		for (i = 0, l = config.attributes.length; i < l; i++) {
-			attr = config.attributes[i];
+		config.attributes.forEach(function (_ref) {
+			var _ref2 = _slicedToArray(_ref, 2),
+			    key = _ref2[0],
+			    value = _ref2[1];
 
-			string += ' ' + attr[0] + '="' + _.escape(attr[1]) + '"';
-		}
+			string += ' ' + key + '="' + _.escape(value) + '"';
+		});
 	}
-	if (!_.isUndefined(config.value)) {
+	if (config.value !== undefined) {
 		content += _.escape(config.value);
 	}
 	if (config.children) {
 		content += config.children.join('');
 	}
-
 	if (content) {
-		string += '>' + content + '</' + name + '>';
+		string += '>' + content + '</' + config.name + '>';
 	} else {
 		string += '/>';
 	}
@@ -508,15 +507,23 @@ var util = require('../util');
 var toXMLString = require('../XMLString');
 
 var AnchorAbsolute = function () {
-	function AnchorAbsolute(config) {
+	function AnchorAbsolute() {
+		var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+		    _ref$left = _ref.left,
+		    left = _ref$left === undefined ? 0 : _ref$left,
+		    _ref$top = _ref.top,
+		    top = _ref$top === undefined ? 0 : _ref$top,
+		    _ref$width = _ref.width,
+		    width = _ref$width === undefined ? 0 : _ref$width,
+		    _ref$height = _ref.height,
+		    height = _ref$height === undefined ? 0 : _ref$height;
+
 		_classCallCheck(this, AnchorAbsolute);
 
-		config = config || {};
-
-		this.x = util.pixelsToEMUs(config.left || 0);
-		this.y = util.pixelsToEMUs(config.top || 0);
-		this.width = util.pixelsToEMUs(config.width || 0);
-		this.height = util.pixelsToEMUs(config.height || 0);
+		this.x = util.pixelsToEMUs(left);
+		this.y = util.pixelsToEMUs(top);
+		this.width = util.pixelsToEMUs(width);
+		this.height = util.pixelsToEMUs(height);
 	}
 
 	_createClass(AnchorAbsolute, [{
@@ -725,7 +732,7 @@ var Picture = function () {
 	}, {
 		key: 'save',
 		value: function save() {
-			var picture = toXMLString({
+			return this.anchor.saveWithContent(toXMLString({
 				name: 'xdr:pic',
 				children: [toXMLString({
 					name: 'xdr:nvPicPr',
@@ -762,9 +769,7 @@ var Picture = function () {
 						attributes: [['prst', 'rect']]
 					})]
 				})]
-			});
-
-			return this.anchor.saveWithContent(picture);
+			}));
 		}
 	}]);
 
@@ -959,7 +964,6 @@ module.exports = {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2}],14:[function(require,module,exports){
-(function (global){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -970,9 +974,11 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
-var formatUtils = require('./utils');
+
+var _require = require('./utils'),
+    saveColor = _require.saveColor;
+
 var toXMLString = require('../XMLString');
 
 var BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
@@ -1004,11 +1010,12 @@ var Borders = function (_StylePart) {
 		}
 	}, {
 		key: 'merge',
-		value: function merge(formatTo, formatFrom) {
-			formatTo = formatTo || {};
+		value: function merge() {
+			var formatTo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+			var formatFrom = arguments[1];
 
 			if (formatFrom) {
-				_.forEach(BORDERS, function (name) {
+				BORDERS.forEach(function (name) {
 					var borderFrom = formatFrom[name];
 
 					if (borderFrom && (borderFrom.style || borderFrom.color)) {
@@ -1033,7 +1040,7 @@ var Borders = function (_StylePart) {
 		value: function canon(format) {
 			var result = {};
 
-			_.forEach(BORDERS, function (name) {
+			BORDERS.forEach(function (name) {
 				var border = format[name];
 
 				if (border) {
@@ -1050,7 +1057,7 @@ var Borders = function (_StylePart) {
 	}, {
 		key: 'saveFormat',
 		value: function saveFormat(format) {
-			var children = _.map(BORDERS, function (name) {
+			var children = BORDERS.map(function (name) {
 				var border = format[name];
 				var attributes = void 0;
 				var children = void 0;
@@ -1060,7 +1067,7 @@ var Borders = function (_StylePart) {
 						attributes = [['style', border.style]];
 					}
 					if (border.color) {
-						children = [formatUtils.saveColor(border.color)];
+						children = [saveColor(border.color)];
 					}
 				}
 				return toXMLString({
@@ -1082,7 +1089,6 @@ var Borders = function (_StylePart) {
 
 module.exports = Borders;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"./stylePart":21,"./utils":24}],15:[function(require,module,exports){
 (function (global){
 'use strict';
@@ -1369,13 +1375,7 @@ var Fills = function (_StylePart) {
 	}, {
 		key: 'saveFormat',
 		value: function saveFormat(format) {
-			var children = void 0;
-
-			if (format.fillType === 'pattern') {
-				children = [savePatternFill(format)];
-			} else {
-				children = [saveGradientFill(format)];
-			}
+			var children = format.fillType === 'pattern' ? [savePatternFill(format)] : [saveGradientFill(format)];
 
 			return toXMLString({
 				name: 'fill',
@@ -1457,7 +1457,10 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
-var formatUtils = require('./utils');
+
+var _require = require('./utils'),
+    saveColor = _require.saveColor;
+
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fonts.aspx
@@ -1546,7 +1549,6 @@ var Fonts = function (_StylePart) {
 		key: 'saveFormat',
 		value: function saveFormat(format) {
 			var children = [];
-			var attrs = void 0;
 
 			if (format.size) {
 				children.push(toXMLString({
@@ -1581,7 +1583,7 @@ var Fonts = function (_StylePart) {
 				}));
 			}
 			if (format.underline) {
-				attrs = null;
+				var attrs = null;
 
 				if (format.underline !== true) {
 					attrs = [['val', format.underline]];
@@ -1605,7 +1607,7 @@ var Fonts = function (_StylePart) {
 				children.push(toXMLString({ name: 'outline' }));
 			}
 			if (format.color) {
-				children.push(formatUtils.saveColor(format.color));
+				children.push(saveColor(format.color));
 			}
 
 			return toXMLString({
@@ -1988,7 +1990,7 @@ var StylePart = function () {
 
 			if (this.saveEmpty !== false || this.formats.length) {
 				var attributes = [['count', this.formats.length]];
-				var children = _.map(this.formats, function (format) {
+				var children = this.formats.map(function (format) {
 					return _this.saveFormat(format.format, format);
 				});
 
@@ -2492,12 +2494,9 @@ function positionToLetter(x, y) {
 function letterToPosition(cell) {
 	var x = 0;
 	var y = 0;
-	var i = void 0;
-	var len = void 0;
-	var charCode = void 0;
 
-	for (i = 0, len = cell.length; i < len; i++) {
-		charCode = cell.charCodeAt(i);
+	for (var i = 0, len = cell.length; i < len; i++) {
+		var charCode = cell.charCodeAt(i);
 		if (charCode >= 65) {
 			x = x * 26 + charCode - 64;
 		} else {
@@ -2515,13 +2514,13 @@ module.exports = {
 	pixelsToEMUs: function pixelsToEMUs(pixels) {
 		return Math.round(pixels * 914400 / 96);
 	},
-
 	canonCell: function canonCell(cell) {
 		if (_.isObject(cell)) {
 			return positionToLetter(cell.c || 1, cell.r || 1);
 		}
 		return cell;
 	},
+
 
 	positionToLetter: positionToLetter,
 	letterToPosition: letterToPosition,
@@ -2575,9 +2574,10 @@ var Workbook = function () {
 		this.common = new Common();
 		this.styles = this.common.styles;
 		this.images = this.common.images;
-		this.relations = new Relations(this.common);
 
 		this.objectId = this.common.uniqueId('Workbook');
+
+		this.relations = new Relations(this.common);
 		this.relations.addRelation(this.styles, 'stylesheet');
 	}
 
@@ -2677,14 +2677,15 @@ var Workbook = function () {
 
 function bookViewsXML(common) {
 	var activeTab = 0;
-	var activeWorksheetId = void 0;
 
 	if (common.activeWorksheet) {
-		activeWorksheetId = common.activeWorksheet.objectId;
+		(function () {
+			var activeWorksheetId = common.activeWorksheet.objectId;
 
-		activeTab = Math.max(activeTab, _.findIndex(common.worksheets, function (worksheet) {
-			return worksheet.objectId === activeWorksheetId;
-		}));
+			activeTab = Math.max(activeTab, _.findIndex(common.worksheets, function (worksheet) {
+				return worksheet.objectId === activeWorksheetId;
+			}));
+		})();
 	}
 
 	return toXMLString({
@@ -2723,7 +2724,7 @@ function definedNamesXML(common) {
 	});
 
 	if (isPrintTitles) {
-		var _ret = function () {
+		var _ret2 = function () {
 			var children = [];
 
 			_.forEach(common.worksheets, function (worksheet, index) {
@@ -2759,7 +2760,7 @@ function definedNamesXML(common) {
 			};
 		}();
 
-		if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+		if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
 	}
 	return '';
 }
@@ -2949,12 +2950,10 @@ var DrawingsExt = function (_Tables) {
 	}, {
 		key: '_insertDrawing',
 		value: function _insertDrawing(colIndex, rowIndex, image) {
-			var config = void 0;
-
 			if (typeof image === 'string' || image.data) {
 				this._setDrawing(image, { c: colIndex + 1, r: rowIndex + 1 }, 'anchor');
 			} else {
-				config = image.config || {};
+				var config = image.config || {};
 				config.cell = { c: colIndex + 1, r: rowIndex + 1 };
 
 				this._setDrawing(image.image, config, 'anchor');
@@ -3044,11 +3043,11 @@ var Hyperlinks = function (_MergedCells) {
 	}, {
 		key: '_saveHyperlinks',
 		value: function _saveHyperlinks() {
-			var relations = this.relations;
+			var _this2 = this;
 
 			if (this._hyperlinks.length > 0) {
 				var children = _.map(this._hyperlinks, function (hyperlink) {
-					var attributes = [['ref', util.canonCell(hyperlink.cell)], ['r:id', relations.getRelationshipId(hyperlink)]];
+					var attributes = [['ref', util.canonCell(hyperlink.cell)], ['r:id', _this2.relations.getRelationshipId(hyperlink)]];
 
 					if (hyperlink.tooltip) {
 						attributes.push(['tooltip', hyperlink.tooltip]);
@@ -3264,21 +3263,17 @@ var MergedCells = function (_DrawingsExt) {
 	}, {
 		key: '_insertMergeCells',
 		value: function _insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan) {
-			var i = void 0,
-			    j = void 0;
-			var row = void 0;
-
 			if (colSpan) {
-				for (j = 0; j < colSpan; j++) {
+				for (var j = 0; j < colSpan; j++) {
 					dataRow.splice(colIndex + 1, 0, { style: null, type: 'empty' });
 				}
 			}
 			if (rowSpan) {
 				colSpan += 1;
 
-				for (i = 0; i < rowSpan; i++) {
+				for (var i = 0; i < rowSpan; i++) {
 					//todo: original data changed
-					row = this.data[rowIndex + i + 1];
+					var row = this.data[rowIndex + i + 1];
 
 					if (!row) {
 						row = [];
@@ -3286,12 +3281,12 @@ var MergedCells = function (_DrawingsExt) {
 					}
 
 					if (row.length > colIndex) {
-						for (j = 0; j < colSpan; j++) {
+						for (var _j = 0; _j < colSpan; _j++) {
 							row.splice(colIndex, 0, { style: null, type: 'empty' });
 						}
 					} else {
-						for (j = 0; j < colSpan; j++) {
-							row[colIndex + j] = { style: null, type: 'empty' };
+						for (var _j2 = 0; _j2 < colSpan; _j2++) {
+							row[colIndex + _j2] = { style: null, type: 'empty' };
 						}
 					}
 				}
@@ -3354,7 +3349,6 @@ var PrepareSave = function (_SheetView) {
 		key: '_prepare',
 		value: function _prepare() {
 			var maxX = 0;
-			var preparedDataRow = void 0;
 
 			this.preparedData = [];
 			this.preparedColumns = [];
@@ -3365,7 +3359,7 @@ var PrepareSave = function (_SheetView) {
 			prepareRows(this);
 
 			for (var rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
-				preparedDataRow = prepareDataRow(this, rowIndex);
+				var preparedDataRow = prepareDataRow(this, rowIndex);
 
 				if (preparedDataRow.length > maxX) {
 					maxX = preparedDataRow.length;
@@ -3388,10 +3382,8 @@ function prepareColumns(worksheet) {
 	var styles = worksheet.common.styles;
 
 	_.forEach(worksheet.columns, function (column, index) {
-		var preparedColumn = void 0;
-
 		if (column) {
-			preparedColumn = _.clone(column);
+			var preparedColumn = _.clone(column);
 
 			if (column.style) {
 				preparedColumn.style = styles.addFormat(column.style);
@@ -3410,10 +3402,8 @@ function prepareRows(worksheet) {
 	var styles = worksheet.common.styles;
 
 	_.forEach(worksheet.rows, function (row, index) {
-		var preparedRow = void 0;
-
 		if (row) {
-			preparedRow = _.clone(row);
+			var preparedRow = _.clone(row);
 
 			if (row.style) {
 				preparedRow.style = styles.addFormat(row.style);
@@ -3529,8 +3519,10 @@ function prepareDataRow(worksheet, rowIndex) {
 	return preparedDataRow;
 }
 
-function mergeDataRowToRow(worksheet, row, dataRow) {
-	row = row || {};
+function mergeDataRowToRow(worksheet) {
+	var row = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+	var dataRow = arguments[2];
+
 	row.height = dataRow.height || row.height;
 	row.style = dataRow.style ? worksheet.common.styles.addFormat(dataRow.style) : row.style;
 	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
@@ -3903,24 +3895,20 @@ function saveData(worksheet) {
 }
 
 function saveRow(dataRow, row, rowIndex) {
-	var rowLen = void 0;
 	var rowChildren = [];
-	var colIndex = void 0;
-	var value = void 0;
-	var attrs = void 0;
 
 	if (dataRow) {
-		rowLen = dataRow.length;
+		var rowLen = dataRow.length;
 		rowChildren = new Array(rowLen);
 
-		for (colIndex = 0; colIndex < rowLen; colIndex++) {
-			value = dataRow[colIndex];
+		for (var colIndex = 0; colIndex < rowLen; colIndex++) {
+			var value = dataRow[colIndex];
 
 			if (!value) {
 				continue;
 			}
 
-			attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
+			var attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
 			if (value.styleId) {
 				attrs += ' s="' + value.styleId + '"';
 			}
@@ -4270,13 +4258,13 @@ var Tables = function (_Print) {
 	}, {
 		key: '_saveTables',
 		value: function _saveTables() {
-			var relations = this.relations;
+			var _this2 = this;
 
 			if (this._tables.length > 0) {
 				var children = _.map(this._tables, function (table) {
 					return toXMLString({
 						name: 'tablePart',
-						attributes: [['r:id', relations.getRelationshipId(table)]]
+						attributes: [['r:id', _this2.relations.getRelationshipId(table)]]
 					});
 				});
 

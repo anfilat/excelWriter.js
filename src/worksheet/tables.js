@@ -27,14 +27,12 @@ class Tables extends Print {
 		});
 	}
 	_saveTables() {
-		const relations = this.relations;
-
 		if (this._tables.length > 0) {
 			const children = _.map(this._tables,
 				table => toXMLString({
 					name: 'tablePart',
 					attributes: [
-						['r:id', relations.getRelationshipId(table)]
+						['r:id', this.relations.getRelationshipId(table)]
 					]
 				})
 			);

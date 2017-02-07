@@ -12,9 +12,10 @@ class Workbook {
 		this.common = new Common();
 		this.styles = this.common.styles;
 		this.images = this.common.images;
-		this.relations = new Relations(this.common);
 
 		this.objectId = this.common.uniqueId('Workbook');
+
+		this.relations = new Relations(this.common);
 		this.relations.addRelation(this.styles, 'stylesheet');
 	}
 	addWorksheet(config) {
@@ -90,10 +91,9 @@ class Workbook {
 
 function bookViewsXML(common) {
 	let activeTab = 0;
-	let activeWorksheetId;
 
 	if (common.activeWorksheet) {
-		activeWorksheetId = common.activeWorksheet.objectId;
+		const activeWorksheetId = common.activeWorksheet.objectId;
 
 		activeTab = Math.max(activeTab,
 			_.findIndex(common.worksheets, worksheet => worksheet.objectId === activeWorksheetId));

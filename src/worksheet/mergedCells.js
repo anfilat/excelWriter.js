@@ -15,20 +15,17 @@ class MergedCells extends DrawingsExt {
 		return this;
 	}
 	_insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan) {
-		let i, j;
-		let row;
-
 		if (colSpan) {
-			for (j = 0; j < colSpan; j++) {
+			for (let j = 0; j < colSpan; j++) {
 				dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
 			}
 		}
 		if (rowSpan) {
 			colSpan += 1;
 
-			for (i = 0; i < rowSpan; i++) {
+			for (let i = 0; i < rowSpan; i++) {
 				//todo: original data changed
-				row = this.data[rowIndex + i + 1];
+				let row = this.data[rowIndex + i + 1];
 
 				if (!row) {
 					row = [];
@@ -36,11 +33,11 @@ class MergedCells extends DrawingsExt {
 				}
 
 				if (row.length > colIndex) {
-					for (j = 0; j < colSpan; j++) {
+					for (let j = 0; j < colSpan; j++) {
 						row.splice(colIndex, 0, {style: null, type: 'empty'});
 					}
 				} else {
-					for (j = 0; j < colSpan; j++) {
+					for (let j = 0; j < colSpan; j++) {
 						row[colIndex + j] = {style: null, type: 'empty'};
 					}
 				}
@@ -49,14 +46,14 @@ class MergedCells extends DrawingsExt {
 	}
 	_saveMergeCells() {
 		if (this._mergedCells.length > 0) {
-			const children = _.map(this._mergedCells, function (mergeCell) {
-				return toXMLString({
+			const children = _.map(this._mergedCells,
+				mergeCell => toXMLString({
 					name: 'mergeCell',
 					attributes: [
 						['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]
 					]
-				});
-			});
+				})
+			);
 
 			return toXMLString({
 				name: 'mergeCells',

@@ -13,31 +13,25 @@ const util = require('./util');
  * }} config
  */
 function toXMLString(config) {
-	const name = config.name;
-	let string = '<' + name;
+	let string = '<' + config.name;
 	let content = '';
-	let attr;
-	let i, l;
 
 	if (config.ns) {
-		string = util.xmlPrefix + string +	' xmlns="' + util.schemas[config.ns] + '"';
+		string = util.xmlPrefix + string + ' xmlns="' + util.schemas[config.ns] + '"';
 	}
 	if (config.attributes) {
-		for (i = 0, l = config.attributes.length; i < l; i++) {
-			attr = config.attributes[i];
-
-			string += ' ' + attr[0] + '="' + _.escape(attr[1]) + '"';
-		}
+		config.attributes.forEach(([key, value]) => {
+			string += ` ${key}="${_.escape(value)}"`;
+		});
 	}
-	if (!_.isUndefined(config.value)) {
+	if (config.value !== undefined) {
 		content += _.escape(config.value);
 	}
 	if (config.children) {
 		content += config.children.join('');
 	}
-
 	if (content) {
-		string += '>' + content + '</' + name + '>';
+		string += '>' + content + '</' + config.name + '>';
 	} else {
 		string += '/>';
 	}

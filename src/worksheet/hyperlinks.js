@@ -40,13 +40,11 @@ class Hyperlinks extends MergedCells {
 		});
 	}
 	_saveHyperlinks() {
-		const relations = this.relations;
-
 		if (this._hyperlinks.length > 0) {
-			const children = _.map(this._hyperlinks, function (hyperlink) {
+			const children = _.map(this._hyperlinks, hyperlink => {
 				const attributes = [
 					['ref', util.canonCell(hyperlink.cell)],
-					['r:id', relations.getRelationshipId(hyperlink)]
+					['r:id', this.relations.getRelationshipId(hyperlink)]
 				];
 
 				if (hyperlink.tooltip) {

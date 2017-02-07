@@ -4,13 +4,11 @@ const util = require('../util');
 const toXMLString = require('../XMLString');
 
 class AnchorAbsolute {
-	constructor(config)	{
-		config = config || {};
-
-		this.x = util.pixelsToEMUs(config.left || 0);
-		this.y = util.pixelsToEMUs(config.top || 0);
-		this.width = util.pixelsToEMUs(config.width || 0);
-		this.height = util.pixelsToEMUs(config.height || 0);
+	constructor({left = 0, top = 0, width = 0, height = 0} = {})	{
+		this.x = util.pixelsToEMUs(left);
+		this.y = util.pixelsToEMUs(top);
+		this.width = util.pixelsToEMUs(width);
+		this.height = util.pixelsToEMUs(height);
 	}
 	saveWithContent(content) {
 		return toXMLString({

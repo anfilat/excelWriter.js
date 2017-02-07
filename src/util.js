@@ -27,12 +27,9 @@ function positionToLetter(x, y) {
 function letterToPosition(cell) {
 	let x = 0;
 	let y = 0;
-	let i;
-	let len;
-	let charCode;
 
-	for (i = 0, len = cell.length; i < len; i++) {
-		charCode = cell.charCodeAt(i);
+	for (let i = 0, len = cell.length; i < len; i++) {
+		const charCode = cell.charCodeAt(i);
 		if (charCode >= 65) {
 			x = x * 26 + charCode - 64;
 		} else {
@@ -47,11 +44,11 @@ function letterToPosition(cell) {
 }
 
 module.exports = {
-	pixelsToEMUs: function (pixels) {
+	pixelsToEMUs(pixels) {
 		return Math.round(pixels * 914400 / 96);
 	},
 
-	canonCell: function (cell) {
+	canonCell(cell) {
 		if (_.isObject(cell)) {
 			return positionToLetter(cell.c || 1, cell.r || 1);
 		}

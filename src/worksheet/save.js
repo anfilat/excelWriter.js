@@ -101,24 +101,20 @@ function saveData(worksheet) {
 }
 
 function saveRow(dataRow, row, rowIndex) {
-	let rowLen;
 	let rowChildren = [];
-	let colIndex;
-	let value;
-	let attrs;
 
 	if (dataRow) {
-		rowLen = dataRow.length;
+		const rowLen = dataRow.length;
 		rowChildren = new Array(rowLen);
 
-		for (colIndex = 0; colIndex < rowLen; colIndex++) {
-			value = dataRow[colIndex];
+		for (let colIndex = 0; colIndex < rowLen; colIndex++) {
+			const value = dataRow[colIndex];
 
 			if (!value) {
 				continue;
 			}
 
-			attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
+			let attrs = ' r="' + util.positionToLetter(colIndex + 1, rowIndex + 1) + '"';
 			if (value.styleId) {
 				attrs += ' s="' + value.styleId + '"';
 			}
@@ -179,7 +175,7 @@ function saveDimension(maxX, maxY) {
 
 function saveColumns(columns) {
 	if (columns.length) {
-		const children = _.map(columns, function (column, index) {
+		const children = _.map(columns, (column, index) => {
 			column = column || {};
 
 			const attributes = [

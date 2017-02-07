@@ -2,7 +2,7 @@
 
 const _ = require('lodash');
 const StylePart = require('./stylePart');
-const formatUtils = require('./utils');
+const {saveColor} = require('./utils');
 const toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fonts.aspx
@@ -62,7 +62,6 @@ class Fonts extends StylePart {
 	}
 	static saveFormat(format) {
 		const children = [];
-		let attrs;
 
 		if (format.size) {
 			children.push(toXMLString({
@@ -103,7 +102,7 @@ class Fonts extends StylePart {
 			}));
 		}
 		if (format.underline) {
-			attrs = null;
+			let attrs = null;
 
 			if (format.underline !== true) {
 				attrs = [
@@ -129,7 +128,7 @@ class Fonts extends StylePart {
 			children.push(toXMLString({name: 'outline'}));
 		}
 		if (format.color) {
-			children.push(formatUtils.saveColor(format.color));
+			children.push(saveColor(format.color));
 		}
 
 		return toXMLString({

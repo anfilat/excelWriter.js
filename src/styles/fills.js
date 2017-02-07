@@ -55,13 +55,9 @@ class Fills extends StylePart {
 		return result;
 	}
 	static saveFormat(format) {
-		let children;
-
-		if (format.fillType === 'pattern') {
-			children = [savePatternFill(format)];
-		} else {
-			children = [saveGradientFill(format)];
-		}
+		const children = format.fillType === 'pattern'
+			? [savePatternFill(format)]
+			: [saveGradientFill(format)];
 
 		return toXMLString({
 			name: 'fill',

@@ -1,8 +1,7 @@
 'use strict';
 
-const _ = require('lodash');
 const StylePart = require('./stylePart');
-const formatUtils = require('./utils');
+const {saveColor} = require('./utils');
 const toXMLString = require('../XMLString');
 
 const BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
@@ -23,7 +22,7 @@ class Borders extends StylePart {
 	static canon(format) {
 		const result = {};
 
-		_.forEach(BORDERS, name => {
+		BORDERS.forEach(name => {
 			const border = format[name];
 
 			if (border) {
@@ -38,7 +37,7 @@ class Borders extends StylePart {
 		return result;
 	}
 	static saveFormat(format) {
-		const children = _.map(BORDERS, function (name) {
+		const children = BORDERS.map(name => {
 			const border = format[name];
 			let attributes;
 			let children;
@@ -48,7 +47,7 @@ class Borders extends StylePart {
 					attributes = [['style', border.style]];
 				}
 				if (border.color) {
-					children = [formatUtils.saveColor(border.color)];
+					children = [saveColor(border.color)];
 				}
 			}
 			return toXMLString({
@@ -66,11 +65,9 @@ class Borders extends StylePart {
 	canon(format) {
 		return Borders.canon(format);
 	}
-	merge(formatTo, formatFrom) {
-		formatTo = formatTo || {};
-
+	merge(formatTo = {}, formatFrom) {
 		if (formatFrom) {
-			_.forEach(BORDERS, name => {
+			BORDERS.forEach(name => {
 				const borderFrom = formatFrom[name];
 
 				if (borderFrom && (borderFrom.style || borderFrom.color)) {
