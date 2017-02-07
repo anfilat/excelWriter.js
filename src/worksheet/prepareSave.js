@@ -193,9 +193,11 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 		const colSpan = (value.colspan || 1) - 1;
 		const rowSpan = (value.rowspan || 1) - 1;
 
-		worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
-			{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
-		worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+		if (colSpan || rowSpan) {
+			worksheet.mergeCells({c: colIndex + 1, r: rowIndex + 1},
+				{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan});
+			worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+		}
 	}
 }
 

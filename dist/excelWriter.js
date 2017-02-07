@@ -964,6 +964,7 @@ module.exports = {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2}],14:[function(require,module,exports){
+(function (global){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -974,6 +975,7 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
+var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
 
 var _require = require('./utils'),
@@ -981,6 +983,7 @@ var _require = require('./utils'),
 
 var toXMLString = require('../XMLString');
 
+var MAIN_BORDERS = ['left', 'right', 'top', 'bottom'];
 var BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.borders.aspx
@@ -1040,18 +1043,27 @@ var Borders = function (_StylePart) {
 		value: function canon(format) {
 			var result = {};
 
-			BORDERS.forEach(function (name) {
-				var border = format[name];
-
-				if (border) {
+			if (_.has(format, 'style') || _.has(format, 'color')) {
+				MAIN_BORDERS.forEach(function (name) {
 					result[name] = {
-						style: border.style,
-						color: border.color
+						style: format.style,
+						color: format.color
 					};
-				} else {
-					result[name] = {};
-				}
-			});
+				});
+			} else {
+				BORDERS.forEach(function (name) {
+					var border = format[name];
+
+					if (border) {
+						result[name] = {
+							style: border.style,
+							color: border.color
+						};
+					} else {
+						result[name] = {};
+					}
+				});
+			}
 			return result;
 		}
 	}, {
@@ -1089,6 +1101,7 @@ var Borders = function (_StylePart) {
 
 module.exports = Borders;
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"./stylePart":21,"./utils":24}],15:[function(require,module,exports){
 (function (global){
 'use strict';
@@ -3541,8 +3554,10 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 		var colSpan = (value.colspan || 1) - 1;
 		var rowSpan = (value.rowspan || 1) - 1;
 
-		worksheet.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
-		worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+		if (colSpan || rowSpan) {
+			worksheet.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
+			worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+		}
 	}
 }
 
