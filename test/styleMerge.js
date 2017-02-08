@@ -8,10 +8,16 @@ module.exports = function (excel) {
 		])
 		.setData([
 			[
-				{value: 'First'}
+				{value: 'Text 1'}
 			],
 			[
-				{value: 'Second', style: {border: {color: '#FF0000', style: 'thick'}}}
+				{value: 'Text2', style: {border: {color: '#FF0000', style: 'thick'}}}
+			],
+			[
+				{value: 'Text3', style: {border: {color: '#00FF00'}}}
+			],
+			[
+				{value: 'Text4', style: {border: {style: 'thick'}}}
 			]
 		])
 		.end();

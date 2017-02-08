@@ -76,18 +76,16 @@ class Borders extends StylePart {
 	canon(format) {
 		return Borders.canon(format);
 	}
-	merge(formatTo = {}, formatFrom) {
+	merge(formatTo = Borders.canon({}), formatFrom) {
 		if (formatFrom) {
 			BORDERS.forEach(name => {
 				const borderFrom = formatFrom[name];
 
-				if (borderFrom && (borderFrom.style || borderFrom.color)) {
-					formatTo[name] = {
-						style: borderFrom.style,
-						color: borderFrom.color
-					};
-				} else if (!formatTo[name]) {
-					formatTo[name] = {};
+				if (borderFrom && borderFrom.style) {
+					formatTo[name].style = borderFrom.style;
+				}
+				if (borderFrom && borderFrom.color) {
+					formatTo[name].color = borderFrom.color;
 				}
 			});
 		}
