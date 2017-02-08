@@ -7,7 +7,7 @@ const Styles = require('../styles');
 class Common {
 	constructor() {
 		this.idSpaces = Object.create(null);
-		this._paths = new Map();
+		this._paths = Object.create(null);
 
 		this.images = new Images(this);
 
@@ -33,10 +33,10 @@ class Common {
 	}
 
 	addPath(object, path) {
-		this._paths.set(object.objectId, path);
+		this._paths[object.objectId] = path;
 	}
 	getPath(object) {
-		return this._paths.get(object.objectId);
+		return this._paths[object.objectId];
 	}
 
 	addWorksheet(worksheet) {

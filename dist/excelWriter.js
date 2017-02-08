@@ -167,7 +167,7 @@ var Common = function () {
 		_classCallCheck(this, Common);
 
 		this.idSpaces = Object.create(null);
-		this._paths = new Map();
+		this._paths = Object.create(null);
 
 		this.images = new Images(this);
 
@@ -198,12 +198,12 @@ var Common = function () {
 	}, {
 		key: 'addPath',
 		value: function addPath(object, path) {
-			this._paths.set(object.objectId, path);
+			this._paths[object.objectId] = path;
 		}
 	}, {
 		key: 'getPath',
 		value: function getPath(object) {
-			return this._paths.get(object.objectId);
+			return this._paths[object.objectId];
 		}
 	}, {
 		key: 'addWorksheet',
@@ -279,7 +279,7 @@ var SharedStrings = function () {
 		_classCallCheck(this, SharedStrings);
 
 		this.objectId = common.uniqueId('SharedStrings');
-		this._strings = new Map();
+		this._strings = Object.create(null);
 		this._stringArray = [];
 		this.count = 0;
 	}
@@ -287,14 +287,16 @@ var SharedStrings = function () {
 	_createClass(SharedStrings, [{
 		key: 'add',
 		value: function add(string) {
-			if (!this._strings.has(string)) {
-				var stringId = this.count++;
+			var stringId = this._strings[string];
 
-				this._strings.set(string, stringId);
+			if (stringId === undefined) {
+				stringId = this.count++;
+
+				this._strings[string] = stringId;
 				this._stringArray[stringId] = string;
 			}
 
-			return this._strings.get(string);
+			return stringId;
 		}
 	}, {
 		key: 'isStrings',

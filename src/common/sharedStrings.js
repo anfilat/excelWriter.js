@@ -9,19 +9,21 @@ const spaceRE = /^\s|\s$/;
 class SharedStrings {
 	constructor(common) {
 		this.objectId = common.uniqueId('SharedStrings');
-		this._strings = new Map();
+		this._strings = Object.create(null);
 		this._stringArray = [];
 		this.count = 0;
 	}
 	add(string) {
-		if (!this._strings.has(string)) {
-			const stringId = this.count++;
+		let stringId = this._strings[string];
 
-			this._strings.set(string, stringId);
+		if (stringId === undefined) {
+			stringId = this.count++;
+
+			this._strings[string] = stringId;
 			this._stringArray[stringId] = string;
 		}
 
-		return this._strings.get(string);
+		return stringId;
 	}
 	isStrings() {
 		return this.count > 0;
