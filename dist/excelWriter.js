@@ -1179,30 +1179,30 @@ var Cells = function (_StylePart) {
 	}, {
 		key: 'fullGet',
 		value: function fullGet(format) {
-			var result = {};
-
 			if (this.getId(format)) {
 				format = this.get(format);
-				if (format.format) {
-					result.format = this.styles.numberFormats.get(format.format);
-				}
-				if (format.font) {
-					result.font = _.clone(this.styles.fonts.get(format.font));
-				}
-				if (format.fill) {
-					result.fill = _.clone(this.styles.fills.get(format.fill));
-				}
-				if (format.border) {
-					result.border = _.clone(this.styles.borders.get(format.border));
-				}
-				if (format.alignment) {
-					result.alignment = _.clone(format.alignment);
-				}
-				if (format.protection) {
-					result.protection = _.clone(format.protection);
-				}
 			} else {
-				result = this.canon(format);
+				format = this.canon(format);
+			}
+
+			var result = {};
+			if (format.format) {
+				result.format = this.styles.numberFormats.get(format.format);
+			}
+			if (format.font) {
+				result.font = _.clone(this.styles.fonts.get(format.font));
+			}
+			if (format.fill) {
+				result.fill = _.clone(this.styles.fills.get(format.fill));
+			}
+			if (format.border) {
+				result.border = _.clone(this.styles.borders.get(format.border));
+			}
+			if (format.alignment) {
+				result.alignment = _.clone(format.alignment);
+			}
+			if (format.protection) {
+				result.protection = _.clone(format.protection);
 			}
 			return result;
 		}
