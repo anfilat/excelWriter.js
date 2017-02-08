@@ -75,17 +75,17 @@ function run(testData) {
 				border: {color: '#FF0000', style: 'thin'},
 				pattern: {color: '#C0F0C0'}
 			},
+			type: 'string',
 			data: [
-				{value: 'ID', type: 'string'},
-				{value: 'Name', type: 'string'},
-				{value: 'Price', type: 'string'},
+				'ID',
+				'Name',
+				'Price',
 				{
 					value: 'Location',
-					type: 'string',
 					hyperlink: {location: 'http://ya.ru', tooltip: 'yandex'}
 				},
-				{value: 'Start Date', type: 'string'},
-				{value: 'End Date', type: 'string'}
+				'Start Date',
+				'End Date'
 			]
 		}
 	].concat(testData);
