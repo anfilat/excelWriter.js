@@ -1,12 +1,24 @@
 'use strict';
 
 module.exports = function (excel) {
+	const row = [1234, {value: 'Incididunt et sunt ipsum aliqua excepteur nostrud.', colspan: 2}, 'Lorem nulla'];
+	const bottomRow = [3, 'elit culpa'];
+
 	return excel.createWorkbook()
 		.addWorksheet()
 		.setData([
-			[2541, 'Nullam aliquet mi et nunc tempus rutrum.', 260, 'Dolore anim'],
-			[2541, {value: 'Nullam aliquet mi et nunc tempus rutrum.', colspan: 2, rowspan: 3}, 'Dolore anim'],
-			[2541, 'Dolore anim']
+			[2541, 'Aliquip aliqua ex magna pariatur in enim.', 260, 'duis laborum'],
+			[2542, {value: 'Elit dolore in eiusmod exercitation reprehenderit eu.', colspan: 2, rowspan: 3}, 'dolor ut'],
+			bottomRow,
+			bottomRow
+		])
+		.setData([
+			row,
+			row
+		])
+		.setData([
+			bottomRow,
+			[2542, {value: 'Elit dolore in eiusmod exercitation reprehenderit eu.', colspan: 2, rowspan: 3}, 'dolor ut']
 		])
 		.setColumns([
 			{type: 'number', width: 10},

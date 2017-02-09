@@ -16,33 +16,28 @@ class MergedCells extends DrawingsExt {
 	}
 	_insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan) {
 		if (colSpan) {
-			for (let j = 0; j < colSpan; j++) {
-				dataRow.splice(colIndex + 1, 0, {style: null, type: 'empty'});
-			}
+			const cells = _.times(colSpan, () => ({style: null, type: 'empty'}));
+			dataRow = [...dataRow.slice(0, colIndex + 1), ...cells, ...dataRow.slice(colIndex + 1)];
 		}
 		if (rowSpan) {
 			colSpan += 1;
 
 			for (let i = 0; i < rowSpan; i++) {
-				//todo: original data changed
-				let row = this.data[rowIndex + i + 1];
-
-				if (!row) {
-					row = [];
-					this.data[rowIndex + i + 1] = row;
-				}
+				let row = this.data[rowIndex + i + 1] || [];
 
 				if (row.length > colIndex) {
-					for (let j = 0; j < colSpan; j++) {
-						row.splice(colIndex, 0, {style: null, type: 'empty'});
-					}
+					const cells = _.times(colSpan, () => ({style: null, type: 'empty'}));
+					row = [...row.slice(0, colIndex), ...cells, ...row.slice(colIndex)];
 				} else {
+					row = _.clone(row);
 					for (let j = 0; j < colSpan; j++) {
 						row[colIndex + j] = {style: null, type: 'empty'};
 					}
 				}
+				this.data[rowIndex + i + 1] = row;
 			}
 		}
+		return dataRow;
 	}
 	_saveMergeCells() {
 		if (this._mergedCells.length > 0) {

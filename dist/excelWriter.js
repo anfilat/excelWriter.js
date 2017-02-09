@@ -3249,6 +3249,8 @@ module.exports = Worksheet;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -3282,33 +3284,32 @@ var MergedCells = function (_DrawingsExt) {
 		key: '_insertMergeCells',
 		value: function _insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan) {
 			if (colSpan) {
-				for (var j = 0; j < colSpan; j++) {
-					dataRow.splice(colIndex + 1, 0, { style: null, type: 'empty' });
-				}
+				var cells = _.times(colSpan, function () {
+					return { style: null, type: 'empty' };
+				});
+				dataRow = [].concat(_toConsumableArray(dataRow.slice(0, colIndex + 1)), _toConsumableArray(cells), _toConsumableArray(dataRow.slice(colIndex + 1)));
 			}
 			if (rowSpan) {
 				colSpan += 1;
 
 				for (var i = 0; i < rowSpan; i++) {
-					//todo: original data changed
-					var row = this.data[rowIndex + i + 1];
-
-					if (!row) {
-						row = [];
-						this.data[rowIndex + i + 1] = row;
-					}
+					var row = this.data[rowIndex + i + 1] || [];
 
 					if (row.length > colIndex) {
-						for (var _j = 0; _j < colSpan; _j++) {
-							row.splice(colIndex, 0, { style: null, type: 'empty' });
-						}
+						var _cells = _.times(colSpan, function () {
+							return { style: null, type: 'empty' };
+						});
+						row = [].concat(_toConsumableArray(row.slice(0, colIndex)), _toConsumableArray(_cells), _toConsumableArray(row.slice(colIndex)));
 					} else {
-						for (var _j2 = 0; _j2 < colSpan; _j2++) {
-							row[colIndex + _j2] = { style: null, type: 'empty' };
+						row = _.clone(row);
+						for (var j = 0; j < colSpan; j++) {
+							row[colIndex + j] = { style: null, type: 'empty' };
 						}
 					}
+					this.data[rowIndex + i + 1] = row;
 				}
 			}
+			return dataRow;
 		}
 	}, {
 		key: '_saveMergeCells',
@@ -3478,7 +3479,8 @@ function prepareDataRow(worksheet, rowIndex) {
 					cellType = value.type;
 				}
 
-				insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex);
+				insertEmbedded(worksheet, value, colIndex, rowIndex);
+				dataRow = mergeCells(worksheet, dataRow, value, colIndex, rowIndex);
 			} else {
 				cellValue = value;
 				cellType = null;
@@ -3554,7 +3556,7 @@ function setRowStyleId(styles, row) {
 	}
 }
 
-function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
+function insertEmbedded(worksheet, value, colIndex, rowIndex) {
 	if (value.hyperlink) {
 		worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
 	}
@@ -3562,16 +3564,19 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 	if (value.image) {
 		worksheet._insertDrawing(colIndex, rowIndex, value.image);
 	}
+}
 
+function mergeCells(worksheet, dataRow, value, colIndex, rowIndex) {
 	if (value.colspan || value.rowspan) {
 		var colSpan = (value.colspan || 1) - 1;
 		var rowSpan = (value.rowspan || 1) - 1;
 
 		if (colSpan || rowSpan) {
 			worksheet.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
-			worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+			return worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 		}
 	}
+	return dataRow;
 }
 
 module.exports = PrepareSave;

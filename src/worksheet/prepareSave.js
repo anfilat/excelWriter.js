@@ -114,7 +114,8 @@ function prepareDataRow(worksheet, rowIndex) {
 					cellType = value.type;
 				}
 
-				insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex);
+				insertEmbedded(worksheet, value, colIndex, rowIndex);
+				dataRow = mergeCells(worksheet, dataRow, value, colIndex, rowIndex);
 			} else {
 				cellValue = value;
 				cellType = null;
@@ -187,7 +188,7 @@ function setRowStyleId(styles, row) {
 	}
 }
 
-function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
+function insertEmbedded(worksheet, value, colIndex, rowIndex) {
 	if (value.hyperlink) {
 		worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
 	}
@@ -195,7 +196,9 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 	if (value.image) {
 		worksheet._insertDrawing(colIndex, rowIndex, value.image);
 	}
+}
 
+function mergeCells(worksheet, dataRow, value, colIndex, rowIndex) {
 	if (value.colspan || value.rowspan) {
 		const colSpan = (value.colspan || 1) - 1;
 		const rowSpan = (value.rowspan || 1) - 1;
@@ -205,9 +208,10 @@ function insertEmbedded(worksheet, dataRow, value, colIndex, rowIndex) {
 				{c: colIndex + 1, r: rowIndex + 1},
 				{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan}
 			);
-			worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+			return worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
 		}
 	}
+	return dataRow;
 }
 
 module.exports = PrepareSave;
