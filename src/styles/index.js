@@ -38,24 +38,24 @@ class Styles {
 			return this.addFormat(style);
 		}
 	}
-	_merge(columnFormat, rowFormat, cellFormat) {
-		const count = Number(Boolean(columnFormat)) + Number(Boolean(rowFormat)) + Number(Boolean(cellFormat));
+	_merge(format1, format2, format3) {
+		const count = Number(Boolean(format1)) + Number(Boolean(format2)) + Number(Boolean(format3));
 
 		if (count === 0) {
 			return null;
 		} else if (count === 1) {
-			return this.cells.add(columnFormat || rowFormat || cellFormat);
+			return this.cells.add(format1 || format2 || format3);
 		} else {
 			let format = {};
 
-			if (columnFormat) {
-				format = this.cells.merge(format, this.cells.fullGet(columnFormat));
+			if (format1) {
+				format = this.cells.merge(format, this.cells.fullGet(format1));
 			}
-			if (rowFormat) {
-				format = this.cells.merge(format, this.cells.fullGet(rowFormat));
+			if (format2) {
+				format = this.cells.merge(format, this.cells.fullGet(format2));
 			}
-			if (cellFormat) {
-				format = this.cells.merge(format, this.cells.fullGet(cellFormat));
+			if (format3) {
+				format = this.cells.merge(format, this.cells.fullGet(format3));
 			}
 			return this.cells.add(format, null, {merge: true});
 		}

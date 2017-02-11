@@ -15,7 +15,7 @@ class PrepareSave extends SheetView {
 		prepareColumns(this);
 		prepareRows(this);
 
-		for (let rowIndex = 0, len = this.data.length; rowIndex < len; rowIndex++) {
+		for (let rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
 			const preparedDataRow = prepareDataRow(this, rowIndex);
 
 			if (preparedDataRow.length > maxX) {
@@ -75,16 +75,33 @@ function prepareDataRow(worksheet, rowIndex) {
 
 	if (dataRow) {
 		let rowStyle = null;
+		let inserts = [];
 
 		if (!_.isArray(dataRow)) {
 			row = mergeDataRowToRow(styles, row, dataRow);
-			dataRow = dataRow.data;
+			if (dataRow.inserts) {
+				inserts = dataRow.inserts;
+				dataRow = _.clone(dataRow.data);
+			} else {
+				dataRow = dataRow.data;
+			}
 		}
 		if (row) {
 			rowStyle = row.style || null;
 		}
+		dataRow = splitDataRow(worksheet, row, dataRow, rowIndex);
 
-		for (let colIndex = 0; colIndex < dataRow.length; colIndex++) {
+		for (let colIndex = 0; colIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
+			if (inserts[colIndex]) {
+				const insertCell = {style: inserts[colIndex].style, type: 'empty'};
+
+				if (dataRow.length > colIndex) {
+					dataRow.splice(colIndex, 0, insertCell);
+				} else {
+					dataRow[colIndex] = insertCell;
+				}
+			}
+
 			const column = worksheet.preparedColumns[colIndex];
 			const value = dataRow[colIndex];
 			let cellValue;
@@ -109,6 +126,9 @@ function prepareDataRow(worksheet, rowIndex) {
 				} else if (value.time) {
 					cellValue = value.time;
 					cellType = 'time';
+				} else if (_.isDate(value.value)) {
+					cellValue = value.value;
+					cellType = 'date';
 				} else {
 					cellValue = value.value;
 					cellType = value.type;
@@ -180,6 +200,64 @@ function mergeDataRowToRow(styles, row = {}, dataRow) {
 	return row;
 }
 
+function splitDataRow(worksheet, row, dataRow, rowIndex) {
+	let count = 1;
+	_.forEach(dataRow, value => {
+		if (_.isArray(value)) {
+			count = Math.max(value.length, count);
+		}
+	});
+
+	if (count === 1) {
+		return dataRow;
+	}
+
+	const styles = worksheet.common.styles;
+	const newRows = _.times(count, () => []);
+
+	_.forEach(dataRow, value => {
+		if (_.isArray(value)) {
+			_(value)
+				.initial()
+				.forEach((val, index) => {
+					newRows[index].push(val);
+				});
+			newRows[value.length - 1].push(value.length < count
+				? addRowspan(styles, _.last(value), count - value.length + 1)
+				: _.last(value));
+		} else {
+			newRows[0].push(addRowspan(styles, value, count));
+		}
+	});
+
+	const resultDataRow = newRows[0];
+
+	if (row) {
+		_.forEach(newRows, (newRow, index) => {
+			newRows[index] = _.clone(row);
+			newRows[index].data = newRow;
+		});
+	}
+
+	worksheet.data.splice(rowIndex, 1, ...newRows);
+
+	return resultDataRow;
+}
+
+function addRowspan(styles, value, rowspan) {
+	if (_.isObject(value) && !_.isDate(value)) {
+		value = _.clone(value);
+		value.rowspan = rowspan;
+		value.style = styles._merge({vertical: 'top'}, value.style);
+		return value;
+	}
+	return {
+		value,
+		rowspan,
+		style: {vertical: 'top'}
+	};
+}
+
 function setRowStyleId(styles, row) {
 	if (row.style) {
 		const rowStyle = styles._get(row.style).fillOut ? row.style : styles._addInvisibleFormat(row.style);
@@ -208,7 +286,7 @@ function mergeCells(worksheet, dataRow, value, colIndex, rowIndex) {
 				{c: colIndex + 1, r: rowIndex + 1},
 				{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan}
 			);
-			return worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan);
+			return worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
 		}
 	}
 	return dataRow;

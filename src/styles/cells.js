@@ -41,11 +41,11 @@ class Cells extends StylePart {
 		if (format.border) {
 			result.border = this.styles.borders.add(format.border);
 		}
-		const alignmentValue = alignment.canon(format);
+		const alignmentValue = flags && flags.merge ? alignment.canon(format.alignment) : alignment.canon(format);
 		if (alignmentValue) {
 			result.alignment = alignmentValue;
 		}
-		const protectionValue = protection.canon(format);
+		const protectionValue = flags && flags.merge ? protection.canon(format.protection) : protection.canon(format);
 		if (protectionValue) {
 			result.protection = protectionValue;
 		}

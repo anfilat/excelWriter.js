@@ -14,27 +14,32 @@ class MergedCells extends DrawingsExt {
 		this._mergedCells.push([cell1, cell2]);
 		return this;
 	}
-	_insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan) {
+	_insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, style) {
 		if (colSpan) {
-			const cells = _.times(colSpan, () => ({style: null, type: 'empty'}));
+			const cells = _.times(colSpan, () => ({style: style, type: 'empty'}));
 			dataRow = [...dataRow.slice(0, colIndex + 1), ...cells, ...dataRow.slice(colIndex + 1)];
 		}
 		if (rowSpan) {
 			colSpan += 1;
 
 			for (let i = 0; i < rowSpan; i++) {
-				let row = this.data[rowIndex + i + 1] || [];
+				let rowData = this.data[rowIndex + i + 1] || [];
+				let row;
 
-				if (row.length > colIndex) {
-					const cells = _.times(colSpan, () => ({style: null, type: 'empty'}));
-					row = [...row.slice(0, colIndex), ...cells, ...row.slice(colIndex)];
+				if (_.isArray(rowData)) {
+					row = {
+						data: rowData
+					};
+					this.data[rowIndex + i + 1] = row;
 				} else {
-					row = _.clone(row);
-					for (let j = 0; j < colSpan; j++) {
-						row[colIndex + j] = {style: null, type: 'empty'};
-					}
+					row = rowData;
+					rowData = rowData.data;
 				}
-				this.data[rowIndex + i + 1] = row;
+
+				row.inserts = row.inserts || [];
+				_.times(colSpan, index => {
+					row.inserts[colIndex + index] = {style};
+				});
 			}
 		}
 		return dataRow;
