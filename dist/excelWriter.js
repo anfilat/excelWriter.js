@@ -2970,13 +2970,17 @@ var DrawingsExt = function (_Tables) {
 	}, {
 		key: '_insertDrawing',
 		value: function _insertDrawing(colIndex, rowIndex, image) {
-			if (typeof image === 'string' || image.data) {
-				this._setDrawing(image, { c: colIndex + 1, r: rowIndex + 1 }, 'anchor');
-			} else {
-				var config = image.config || {};
-				config.cell = { c: colIndex + 1, r: rowIndex + 1 };
+			if (image) {
+				var cell = { c: colIndex + 1, r: rowIndex + 1 };
 
-				this._setDrawing(image.image, config, 'anchor');
+				if (typeof image === 'string' || image.data) {
+					this._setDrawing(image, cell, 'anchor');
+				} else {
+					var config = image.config || {};
+					config.cell = cell;
+
+					this._setDrawing(image.image, config, 'anchor');
+				}
 			}
 		}
 	}, {
@@ -3042,23 +3046,23 @@ var Hyperlinks = function (_MergedCells) {
 	}, {
 		key: '_insertHyperlink',
 		value: function _insertHyperlink(colIndex, rowIndex, hyperlink) {
-			var location = void 0;
-			var targetMode = void 0;
-			var tooltip = void 0;
+			if (hyperlink) {
+				var cell = { c: colIndex + 1, r: rowIndex + 1 };
 
-			if (typeof hyperlink === 'string') {
-				location = hyperlink;
-			} else {
-				location = hyperlink.location;
-				targetMode = hyperlink.targetMode;
-				tooltip = hyperlink.tooltip;
+				if (typeof hyperlink === 'string') {
+					this.setHyperlink({
+						cell: cell,
+						location: hyperlink
+					});
+				} else {
+					this.setHyperlink({
+						cell: cell,
+						location: hyperlink.location,
+						targetMode: hyperlink.targetMode,
+						tooltip: hyperlink.tooltip
+					});
+				}
 			}
-			this.setHyperlink({
-				cell: { c: colIndex + 1, r: rowIndex + 1 },
-				location: location,
-				targetMode: targetMode,
-				tooltip: tooltip
-			});
 		}
 	}, {
 		key: '_saveHyperlinks',
@@ -3431,7 +3435,6 @@ var PrepareSave = function (_SheetView) {
 	}, {
 		key: '_prepareDataRow',
 		value: function _prepareDataRow(rowIndex) {
-			var strings = this.common.strings;
 			var preparedDataRow = [];
 			var row = this.preparedRows[rowIndex];
 			var dataRow = this.data[rowIndex];
@@ -3456,95 +3459,31 @@ var PrepareSave = function (_SheetView) {
 				}
 				dataRow = this._splitDataRow(row, dataRow, rowIndex);
 
-				for (var colIndex = 0; colIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
-					if (inserts[colIndex]) {
-						var insertCell = { style: inserts[colIndex].style, type: 'empty' };
-
-						if (dataRow.length > colIndex) {
-							dataRow.splice(colIndex, 0, insertCell);
-						} else {
-							dataRow[colIndex] = insertCell;
-						}
-					}
-
+				for (var colIndex = 0, dataIndex = 0; dataIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
 					var column = this.preparedColumns[colIndex];
 					var columnStyle = !skipColumnsStyle && column ? column.style : null;
-					var value = dataRow[colIndex];
-					var cellValue = void 0;
-					var cellType = void 0;
-					var cellStyle = null;
-					var cellFormula = null;
-					var isString = false;
 
-					if (_.isDate(value)) {
-						cellValue = value;
-						cellType = 'date';
-					} else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-						if (value.style) {
-							cellStyle = value.style;
-						}
-						if (value.formula) {
-							cellValue = value.formula;
-							cellType = 'formula';
-						} else if (value.date) {
-							cellValue = value.date;
-							cellType = 'date';
-						} else if (value.time) {
-							cellValue = value.time;
-							cellType = 'time';
-						} else if (_.isDate(value.value)) {
-							cellValue = value.value;
-							cellType = 'date';
-						} else {
-							cellValue = value.value;
-							cellType = value.type;
-						}
-
-						this._insertEmbedded(value, colIndex, rowIndex);
-						dataRow = this._mergeCells(dataRow, value, colIndex, rowIndex);
+					var value = void 0;
+					if (inserts[colIndex]) {
+						value = { style: inserts[colIndex].style, type: 'empty' };
 					} else {
-						cellValue = value;
-						cellType = null;
+						value = dataRow[dataIndex];
+						dataIndex++;
 					}
 
-					cellStyle = this.styles._merge(columnStyle, rowStyle, cellStyle);
+					var _readCellValue2 = this._readCellValue(value),
+					    cellValue = _readCellValue2.cellValue,
+					    cellType = _readCellValue2.cellType,
+					    cellStyle = _readCellValue2.cellStyle,
+					    isObject = _readCellValue2.isObject;
 
-					if (!cellType) {
-						if (row && row.type) {
-							cellType = row.type;
-						} else if (column && column.type) {
-							cellType = column.type;
-						} else if (typeof cellValue === 'number') {
-							cellType = 'number';
-						} else if (typeof cellValue === 'string') {
-							cellType = 'string';
-						}
+					if (isObject) {
+						this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+						this._insertDrawing(colIndex, rowIndex, value.image);
+						dataRow = this._mergeCells(dataRow, colIndex, rowIndex, value);
 					}
 
-					if (cellType === 'string') {
-						cellValue = strings.add(cellValue);
-						isString = true;
-					} else if (cellType === 'date' || cellType === 'time') {
-						var dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
-						var date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
-
-						if (_.isFinite(date)) {
-							cellValue = date;
-						} else {
-							cellValue = strings.add(String(cellValue));
-							isString = true;
-						}
-					} else if (cellType === 'formula') {
-						cellFormula = _.escape(cellValue);
-						cellValue = null;
-					}
-
-					preparedDataRow[colIndex] = {
-						value: cellValue,
-						formula: cellFormula,
-						styleId: this.styles._getId(cellStyle),
-						isString: isString
-					};
+					preparedDataRow[colIndex] = this._getPreparedCell(this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)), this._getCellType(cellType, cellValue, row, column), cellValue);
 				}
 			}
 
@@ -3580,7 +3519,8 @@ var PrepareSave = function (_SheetView) {
 			var dataRow = arguments[1];
 			var rowIndex = arguments[2];
 
-			var count = this._dataRowHeight(dataRow);
+			var count = this._calcDataRowHeight(dataRow);
+
 			if (count === 1) {
 				return dataRow;
 			}
@@ -3607,8 +3547,8 @@ var PrepareSave = function (_SheetView) {
 			return newRows[0].data;
 		}
 	}, {
-		key: '_dataRowHeight',
-		value: function _dataRowHeight(dataRow) {
+		key: '_calcDataRowHeight',
+		value: function _calcDataRowHeight(dataRow) {
 			var count = 1;
 			_.forEach(dataRow, function (value) {
 				if (_.isArray(value)) {
@@ -3633,27 +3573,53 @@ var PrepareSave = function (_SheetView) {
 			};
 		}
 	}, {
-		key: '_setRowStyleId',
-		value: function _setRowStyleId(row) {
-			if (row.style) {
-				var rowStyle = this.styles._addFillOutFormat(row.style);
-				row.styleId = this.styles._getId(rowStyle);
-			}
-		}
-	}, {
-		key: '_insertEmbedded',
-		value: function _insertEmbedded(value, colIndex, rowIndex) {
-			if (value.hyperlink) {
-				this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+		key: '_readCellValue',
+		value: function _readCellValue(value) {
+			var cellValue = void 0;
+			var cellType = null;
+			var cellStyle = null;
+			var isObject = false;
+
+			if (_.isDate(value)) {
+				cellValue = value;
+				cellType = 'date';
+			} else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+				isObject = true;
+
+				if (value.style) {
+					cellStyle = value.style;
+				}
+
+				if (value.formula) {
+					cellValue = value.formula;
+					cellType = 'formula';
+				} else if (value.date) {
+					cellValue = value.date;
+					cellType = 'date';
+				} else if (value.time) {
+					cellValue = value.time;
+					cellType = 'time';
+				} else if (_.isDate(value.value)) {
+					cellValue = value.value;
+					cellType = 'date';
+				} else {
+					cellValue = value.value;
+					cellType = value.type;
+				}
+			} else {
+				cellValue = value;
 			}
 
-			if (value.image) {
-				this._insertDrawing(colIndex, rowIndex, value.image);
-			}
+			return {
+				cellValue: cellValue,
+				cellType: cellType,
+				cellStyle: cellStyle,
+				isObject: isObject
+			};
 		}
 	}, {
 		key: '_mergeCells',
-		value: function _mergeCells(dataRow, value, colIndex, rowIndex) {
+		value: function _mergeCells(dataRow, colIndex, rowIndex, value) {
 			if (value.colspan || value.rowspan) {
 				var colSpan = (value.colspan || 1) - 1;
 				var rowSpan = (value.rowspan || 1) - 1;
@@ -3664,6 +3630,60 @@ var PrepareSave = function (_SheetView) {
 				}
 			}
 			return dataRow;
+		}
+	}, {
+		key: '_getCellType',
+		value: function _getCellType(cellType, cellValue, row, column) {
+			if (cellType) {
+				return cellType;
+			} else if (row && row.type) {
+				return row.type;
+			} else if (column && column.type) {
+				return column.type;
+			} else if (typeof cellValue === 'number') {
+				return 'number';
+			} else if (typeof cellValue === 'string') {
+				return 'string';
+			}
+		}
+	}, {
+		key: '_getPreparedCell',
+		value: function _getPreparedCell(styleId, cellType, cellValue) {
+			var result = {
+				styleId: styleId,
+				value: null,
+				formula: null,
+				isString: false
+			};
+
+			if (cellType === 'string') {
+				result.value = this.common.strings.add(cellValue);
+				result.isString = true;
+			} else if (cellType === 'date' || cellType === 'time') {
+				var dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
+				var date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
+
+				if (_.isFinite(date)) {
+					result.value = date;
+				} else {
+					result.value = this.common.strings.add(String(cellValue));
+					result.isString = true;
+				}
+			} else if (cellType === 'formula') {
+				result.formula = _.escape(cellValue);
+			} else {
+				result.value = cellValue;
+			}
+
+			return result;
+		}
+	}, {
+		key: '_setRowStyleId',
+		value: function _setRowStyleId(row) {
+			if (row.style) {
+				var rowStyle = this.styles._addFillOutFormat(row.style);
+				row.styleId = this.styles._getId(rowStyle);
+			}
 		}
 	}]);
 

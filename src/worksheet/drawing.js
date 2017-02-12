@@ -39,13 +39,17 @@ class DrawingsExt extends Tables {
 		return this;
 	}
 	_insertDrawing(colIndex, rowIndex, image) {
-		if (typeof image === 'string' || image.data) {
-			this._setDrawing(image, {c: colIndex + 1, r: rowIndex + 1}, 'anchor');
-		} else {
-			const config = image.config || {};
-			config.cell = {c: colIndex + 1, r: rowIndex + 1};
+		if (image) {
+			const cell = {c: colIndex + 1, r: rowIndex + 1};
 
-			this._setDrawing(image.image, config, 'anchor');
+			if (typeof image === 'string' || image.data) {
+				this._setDrawing(image, cell, 'anchor');
+			} else {
+				const config = image.config || {};
+				config.cell = cell;
+
+				this._setDrawing(image.image, config, 'anchor');
+			}
 		}
 	}
 	_saveDrawing() {

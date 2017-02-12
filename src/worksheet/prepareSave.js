@@ -53,7 +53,6 @@ class PrepareSave extends SheetView {
 		this.data = null;
 	}
 	_prepareDataRow(rowIndex) {
-		const strings = this.common.strings;
 		const preparedDataRow = [];
 		let row = this.preparedRows[rowIndex];
 		let dataRow = this.data[rowIndex];
@@ -78,95 +77,31 @@ class PrepareSave extends SheetView {
 			}
 			dataRow = this._splitDataRow(row, dataRow, rowIndex);
 
-			for (let colIndex = 0; colIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
-				if (inserts[colIndex]) {
-					const insertCell = {style: inserts[colIndex].style, type: 'empty'};
-
-					if (dataRow.length > colIndex) {
-						dataRow.splice(colIndex, 0, insertCell);
-					} else {
-						dataRow[colIndex] = insertCell;
-					}
-				}
-
+			for (let colIndex = 0, dataIndex = 0; dataIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
 				const column = this.preparedColumns[colIndex];
 				const columnStyle = !skipColumnsStyle && column ? column.style : null;
-				const value = dataRow[colIndex];
-				let cellValue;
-				let cellType;
-				let cellStyle = null;
-				let cellFormula = null;
-				let isString = false;
 
-				if (_.isDate(value)) {
-					cellValue = value;
-					cellType = 'date';
-				} else if (value && typeof value === 'object') {
-					if (value.style) {
-						cellStyle = value.style;
-					}
-					if (value.formula) {
-						cellValue = value.formula;
-						cellType = 'formula';
-					} else if (value.date) {
-						cellValue = value.date;
-						cellType = 'date';
-					} else if (value.time) {
-						cellValue = value.time;
-						cellType = 'time';
-					} else if (_.isDate(value.value)) {
-						cellValue = value.value;
-						cellType = 'date';
-					} else {
-						cellValue = value.value;
-						cellType = value.type;
-					}
-
-					this._insertEmbedded(value, colIndex, rowIndex);
-					dataRow = this._mergeCells(dataRow, value, colIndex, rowIndex);
+				let value;
+				if (inserts[colIndex]) {
+					value = {style: inserts[colIndex].style, type: 'empty'};
 				} else {
-					cellValue = value;
-					cellType = null;
+					value = dataRow[dataIndex];
+					dataIndex++;
 				}
 
-				cellStyle = this.styles._merge(columnStyle, rowStyle, cellStyle);
+				const {cellValue, cellType, cellStyle, isObject} = this._readCellValue(value);
 
-				if (!cellType) {
-					if (row && row.type) {
-						cellType = row.type;
-					} else if (column && column.type) {
-						cellType = column.type;
-					} else if (typeof cellValue === 'number') {
-						cellType = 'number';
-					} else if (typeof cellValue === 'string') {
-						cellType = 'string';
-					}
+				if (isObject) {
+					this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+					this._insertDrawing(colIndex, rowIndex, value.image);
+					dataRow = this._mergeCells(dataRow, colIndex, rowIndex, value);
 				}
 
-				if (cellType === 'string') {
-					cellValue = strings.add(cellValue);
-					isString = true;
-				} else if (cellType === 'date' || cellType === 'time') {
-					const dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
-					const date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
-
-					if (_.isFinite(date)) {
-						cellValue = date;
-					} else {
-						cellValue = strings.add(String(cellValue));
-						isString = true;
-					}
-				} else if (cellType === 'formula') {
-					cellFormula = _.escape(cellValue);
-					cellValue = null;
-				}
-
-				preparedDataRow[colIndex] = {
-					value: cellValue,
-					formula: cellFormula,
-					styleId: this.styles._getId(cellStyle),
-					isString
-				};
+				preparedDataRow[colIndex] = this._getPreparedCell(
+					this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)),
+					this._getCellType(cellType, cellValue, row, column),
+					cellValue
+				);
 			}
 		}
 
@@ -187,7 +122,8 @@ class PrepareSave extends SheetView {
 		return row;
 	}
 	_splitDataRow(row = {}, dataRow, rowIndex) {
-		const count = this._dataRowHeight(dataRow);
+		const count = this._calcDataRowHeight(dataRow);
+
 		if (count === 1) {
 			return dataRow;
 		}
@@ -217,7 +153,7 @@ class PrepareSave extends SheetView {
 
 		return newRows[0].data;
 	}
-	_dataRowHeight(dataRow) {
+	_calcDataRowHeight(dataRow) {
 		let count = 1;
 		_.forEach(dataRow, value => {
 			if (_.isArray(value)) {
@@ -239,22 +175,50 @@ class PrepareSave extends SheetView {
 			style: {vertical: 'top'}
 		};
 	}
-	_setRowStyleId(row) {
-		if (row.style) {
-			const rowStyle = this.styles._addFillOutFormat(row.style);
-			row.styleId = this.styles._getId(rowStyle);
-		}
-	}
-	_insertEmbedded(value, colIndex, rowIndex) {
-		if (value.hyperlink) {
-			this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+	_readCellValue(value) {
+		let cellValue;
+		let cellType = null;
+		let cellStyle = null;
+		let isObject = false;
+
+		if (_.isDate(value)) {
+			cellValue = value;
+			cellType = 'date';
+		} else if (value && typeof value === 'object') {
+			isObject = true;
+
+			if (value.style) {
+				cellStyle = value.style;
+			}
+
+			if (value.formula) {
+				cellValue = value.formula;
+				cellType = 'formula';
+			} else if (value.date) {
+				cellValue = value.date;
+				cellType = 'date';
+			} else if (value.time) {
+				cellValue = value.time;
+				cellType = 'time';
+			} else if (_.isDate(value.value)) {
+				cellValue = value.value;
+				cellType = 'date';
+			} else {
+				cellValue = value.value;
+				cellType = value.type;
+			}
+		} else {
+			cellValue = value;
 		}
 
-		if (value.image) {
-			this._insertDrawing(colIndex, rowIndex, value.image);
-		}
+		return {
+			cellValue,
+			cellType,
+			cellStyle,
+			isObject
+		};
 	}
-	_mergeCells(dataRow, value, colIndex, rowIndex) {
+	_mergeCells(dataRow, colIndex, rowIndex, value) {
 		if (value.colspan || value.rowspan) {
 			const colSpan = (value.colspan || 1) - 1;
 			const rowSpan = (value.rowspan || 1) - 1;
@@ -268,6 +232,54 @@ class PrepareSave extends SheetView {
 			}
 		}
 		return dataRow;
+	}
+	_getCellType(cellType, cellValue, row, column) {
+		if (cellType) {
+			return cellType;
+		} else if (row && row.type) {
+			return row.type;
+		} else if (column && column.type) {
+			return column.type;
+		} else if (typeof cellValue === 'number') {
+			return 'number';
+		} else if (typeof cellValue === 'string') {
+			return 'string';
+		}
+	}
+	_getPreparedCell(styleId, cellType, cellValue) {
+		const result = {
+			styleId,
+			value: null,
+			formula: null,
+			isString: false
+		};
+
+		if (cellType === 'string') {
+			result.value = this.common.strings.add(cellValue);
+			result.isString = true;
+		} else if (cellType === 'date' || cellType === 'time') {
+			const dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
+			const date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
+
+			if (_.isFinite(date)) {
+				result.value = date;
+			} else {
+				result.value = this.common.strings.add(String(cellValue));
+				result.isString = true;
+			}
+		} else if (cellType === 'formula') {
+			result.formula = _.escape(cellValue);
+		} else {
+			result.value = cellValue;
+		}
+
+		return result;
+	}
+	_setRowStyleId(row) {
+		if (row.style) {
+			const rowStyle = this.styles._addFillOutFormat(row.style);
+			row.styleId = this.styles._getId(rowStyle);
+		}
 	}
 }
 

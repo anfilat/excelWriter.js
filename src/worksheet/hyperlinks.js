@@ -21,23 +21,23 @@ class Hyperlinks extends MergedCells {
 		return this;
 	}
 	_insertHyperlink(colIndex, rowIndex, hyperlink) {
-		let location;
-		let targetMode;
-		let tooltip;
+		if (hyperlink) {
+			const cell = {c: colIndex + 1, r: rowIndex + 1};
 
-		if (typeof hyperlink === 'string') {
-			location = hyperlink;
-		} else {
-			location = hyperlink.location;
-			targetMode = hyperlink.targetMode;
-			tooltip = hyperlink.tooltip;
+			if (typeof hyperlink === 'string') {
+				this.setHyperlink({
+					cell,
+					location: hyperlink
+				});
+			} else {
+				this.setHyperlink({
+					cell,
+					location: hyperlink.location,
+					targetMode: hyperlink.targetMode,
+					tooltip: hyperlink.tooltip
+				});
+			}
 		}
-		this.setHyperlink({
-			cell: {c: colIndex + 1, r: rowIndex + 1},
-			location,
-			targetMode,
-			tooltip
-		});
 	}
 	_saveHyperlinks() {
 		if (this._hyperlinks.length > 0) {
