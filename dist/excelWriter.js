@@ -1684,8 +1684,11 @@ var Styles = function () {
 			return this.cells.getId(name);
 		}
 	}, {
-		key: '_addInvisibleFormat',
-		value: function _addInvisibleFormat(format) {
+		key: '_addFillOutFormat',
+		value: function _addFillOutFormat(format) {
+			if (this._get(format).fillOut) {
+				return format;
+			}
 			var style = this.cells.cutVisible(this.cells.fullGet(format));
 
 			if (!_.isEmpty(style)) {
@@ -3118,6 +3121,7 @@ var Worksheet = function (_WorksheetSave) {
 
 		_this.workbook = workbook;
 		_this.common = workbook.common;
+		_this.styles = _this.common.styles;
 
 		_this.objectId = _this.common.uniqueId('Worksheet');
 		_this.data = [];
@@ -3286,37 +3290,26 @@ var MergedCells = function (_DrawingsExt) {
 			var _this2 = this;
 
 			if (colSpan) {
-				var cells = _.times(colSpan, function () {
+				dataRow = [].concat(_toConsumableArray(dataRow.slice(0, colIndex + 1)), _toConsumableArray(_.times(colSpan, function () {
 					return { style: style, type: 'empty' };
-				});
-				dataRow = [].concat(_toConsumableArray(dataRow.slice(0, colIndex + 1)), _toConsumableArray(cells), _toConsumableArray(dataRow.slice(colIndex + 1)));
+				})), _toConsumableArray(dataRow.slice(colIndex + 1)));
 			}
 			if (rowSpan) {
-				colSpan += 1;
+				_.forEach(_.range(rowIndex + 1, rowIndex + 1 + rowSpan), function (index) {
+					var row = _this2.data[index] || [];
 
-				var _loop = function _loop(i) {
-					var rowData = _this2.data[rowIndex + i + 1] || [];
-					var row = void 0;
-
-					if (_.isArray(rowData)) {
+					if (_.isArray(row)) {
 						row = {
-							data: rowData
+							data: row
 						};
-						_this2.data[rowIndex + i + 1] = row;
-					} else {
-						row = rowData;
-						rowData = rowData.data;
+						_this2.data[index] = row;
 					}
 
 					row.inserts = row.inserts || [];
-					_.times(colSpan, function (index) {
-						row.inserts[colIndex + index] = { style: style };
+					_.forEach(_.range(colIndex, colIndex + colSpan + 1), function (index) {
+						row.inserts[index] = { style: style };
 					});
-				};
-
-				for (var i = 0; i < rowSpan; i++) {
-					_loop(i);
-				}
+				});
 			}
 			return dataRow;
 		}
@@ -3378,299 +3371,304 @@ var PrepareSave = function (_SheetView) {
 	_createClass(PrepareSave, [{
 		key: '_prepare',
 		value: function _prepare() {
-			var maxX = 0;
-
-			this.preparedData = [];
-			this.preparedColumns = [];
-			this.preparedRows = [];
-
 			this._prepareTables();
-			prepareColumns(this);
-			prepareRows(this);
+			this._prepareColumns();
+			this._prepareRows();
+			this._prepareData();
+		}
+	}, {
+		key: '_prepareColumns',
+		value: function _prepareColumns() {
+			var _this2 = this;
 
+			this.preparedColumns = _.map(this.columns, function (column) {
+				if (column) {
+					var preparedColumn = _.clone(column);
+
+					if (column.style) {
+						var style = _this2.styles.addFormat(column.style);
+						preparedColumn.style = style;
+
+						var columnStyle = _this2.styles._addFillOutFormat(style);
+						preparedColumn.styleId = _this2.styles._getId(columnStyle);
+					}
+					return preparedColumn;
+				}
+			});
+			this.columns = null;
+		}
+	}, {
+		key: '_prepareRows',
+		value: function _prepareRows() {
+			var _this3 = this;
+
+			this.preparedRows = _.map(this.rows, function (row) {
+				if (row) {
+					var preparedRow = _.clone(row);
+
+					if (row.style) {
+						preparedRow.style = _this3.styles.addFormat(row.style);
+					}
+					return preparedRow;
+				}
+			});
+			this.rows = null;
+		}
+	}, {
+		key: '_prepareData',
+		value: function _prepareData() {
+			this.maxX = 0;
+			this.preparedData = [];
 			for (var rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
-				var preparedDataRow = prepareDataRow(this, rowIndex);
+				var preparedDataRow = this._prepareDataRow(rowIndex);
 
-				if (preparedDataRow.length > maxX) {
-					maxX = preparedDataRow.length;
+				this.preparedData[rowIndex] = preparedDataRow;
+				this.maxX = Math.max(this.maxX, preparedDataRow.length);
+			}
+			this.maxY = this.preparedData.length;
+			this.data = null;
+		}
+	}, {
+		key: '_prepareDataRow',
+		value: function _prepareDataRow(rowIndex) {
+			var strings = this.common.strings;
+			var preparedDataRow = [];
+			var row = this.preparedRows[rowIndex];
+			var dataRow = this.data[rowIndex];
+
+			if (dataRow) {
+				var rowStyle = null;
+				var skipColumnsStyle = false;
+				var inserts = [];
+
+				if (!_.isArray(dataRow)) {
+					row = this._mergeDataRowToRow(row, dataRow);
+					if (dataRow.inserts) {
+						inserts = dataRow.inserts;
+						dataRow = _.clone(dataRow.data);
+					} else {
+						dataRow = dataRow.data;
+					}
+				}
+				if (row) {
+					rowStyle = row.style || null;
+					skipColumnsStyle = row.skipColumnsStyle;
+				}
+				dataRow = this._splitDataRow(row, dataRow, rowIndex);
+
+				for (var colIndex = 0; colIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
+					if (inserts[colIndex]) {
+						var insertCell = { style: inserts[colIndex].style, type: 'empty' };
+
+						if (dataRow.length > colIndex) {
+							dataRow.splice(colIndex, 0, insertCell);
+						} else {
+							dataRow[colIndex] = insertCell;
+						}
+					}
+
+					var column = this.preparedColumns[colIndex];
+					var columnStyle = !skipColumnsStyle && column ? column.style : null;
+					var value = dataRow[colIndex];
+					var cellValue = void 0;
+					var cellType = void 0;
+					var cellStyle = null;
+					var cellFormula = null;
+					var isString = false;
+
+					if (_.isDate(value)) {
+						cellValue = value;
+						cellType = 'date';
+					} else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+						if (value.style) {
+							cellStyle = value.style;
+						}
+						if (value.formula) {
+							cellValue = value.formula;
+							cellType = 'formula';
+						} else if (value.date) {
+							cellValue = value.date;
+							cellType = 'date';
+						} else if (value.time) {
+							cellValue = value.time;
+							cellType = 'time';
+						} else if (_.isDate(value.value)) {
+							cellValue = value.value;
+							cellType = 'date';
+						} else {
+							cellValue = value.value;
+							cellType = value.type;
+						}
+
+						this._insertEmbedded(value, colIndex, rowIndex);
+						dataRow = this._mergeCells(dataRow, value, colIndex, rowIndex);
+					} else {
+						cellValue = value;
+						cellType = null;
+					}
+
+					cellStyle = this.styles._merge(columnStyle, rowStyle, cellStyle);
+
+					if (!cellType) {
+						if (row && row.type) {
+							cellType = row.type;
+						} else if (column && column.type) {
+							cellType = column.type;
+						} else if (typeof cellValue === 'number') {
+							cellType = 'number';
+						} else if (typeof cellValue === 'string') {
+							cellType = 'string';
+						}
+					}
+
+					if (cellType === 'string') {
+						cellValue = strings.add(cellValue);
+						isString = true;
+					} else if (cellType === 'date' || cellType === 'time') {
+						var dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
+						var date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
+
+						if (_.isFinite(date)) {
+							cellValue = date;
+						} else {
+							cellValue = strings.add(String(cellValue));
+							isString = true;
+						}
+					} else if (cellType === 'formula') {
+						cellFormula = _.escape(cellValue);
+						cellValue = null;
+					}
+
+					preparedDataRow[colIndex] = {
+						value: cellValue,
+						formula: cellFormula,
+						styleId: this.styles._getId(cellStyle),
+						isString: isString
+					};
 				}
 			}
 
-			this.data = null;
-			this.columns = null;
-			this.rows = null;
+			if (row) {
+				this._setRowStyleId(row);
+				this.preparedRows[rowIndex] = row;
+			}
 
-			this.maxX = maxX;
-			this.maxY = this.preparedData.length;
+			return preparedDataRow;
+		}
+	}, {
+		key: '_mergeDataRowToRow',
+		value: function _mergeDataRowToRow() {
+			var row = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+			var dataRow = arguments[1];
+
+			row.height = dataRow.height || row.height;
+			row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
+			row.type = dataRow.type || row.type;
+			row.style = dataRow.style ? this.styles.addFormat(dataRow.style) : row.style;
+			row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
+
+			return row;
+		}
+	}, {
+		key: '_splitDataRow',
+		value: function _splitDataRow() {
+			var row = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+			var _this4 = this,
+			    _data;
+
+			var dataRow = arguments[1];
+			var rowIndex = arguments[2];
+
+			var count = this._dataRowHeight(dataRow);
+			if (count === 1) {
+				return dataRow;
+			}
+
+			var newRows = _.times(count, function () {
+				var result = _.clone(row);
+				result.data = [];
+				return result;
+			});
+			_.forEach(dataRow, function (value) {
+				if (_.isArray(value)) {
+					_(value).initial().forEach(function (val, index) {
+						newRows[index].data.push(val);
+					});
+
+					var val = value.length < count ? _this4._addRowspan(_.last(value), count - value.length + 1) : _.last(value);
+					newRows[value.length - 1].data.push(val);
+				} else {
+					newRows[0].data.push(_this4._addRowspan(value, count));
+				}
+			});
+			(_data = this.data).splice.apply(_data, [rowIndex, 1].concat(_toConsumableArray(newRows)));
+
+			return newRows[0].data;
+		}
+	}, {
+		key: '_dataRowHeight',
+		value: function _dataRowHeight(dataRow) {
+			var count = 1;
+			_.forEach(dataRow, function (value) {
+				if (_.isArray(value)) {
+					count = Math.max(value.length, count);
+				}
+			});
+			return count;
+		}
+	}, {
+		key: '_addRowspan',
+		value: function _addRowspan(value, rowspan) {
+			if (_.isObject(value) && !_.isDate(value)) {
+				value = _.clone(value);
+				value.rowspan = rowspan;
+				value.style = this.styles._merge({ vertical: 'top' }, value.style);
+				return value;
+			}
+			return {
+				value: value,
+				rowspan: rowspan,
+				style: { vertical: 'top' }
+			};
+		}
+	}, {
+		key: '_setRowStyleId',
+		value: function _setRowStyleId(row) {
+			if (row.style) {
+				var rowStyle = this.styles._addFillOutFormat(row.style);
+				row.styleId = this.styles._getId(rowStyle);
+			}
+		}
+	}, {
+		key: '_insertEmbedded',
+		value: function _insertEmbedded(value, colIndex, rowIndex) {
+			if (value.hyperlink) {
+				this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
+			}
+
+			if (value.image) {
+				this._insertDrawing(colIndex, rowIndex, value.image);
+			}
+		}
+	}, {
+		key: '_mergeCells',
+		value: function _mergeCells(dataRow, value, colIndex, rowIndex) {
+			if (value.colspan || value.rowspan) {
+				var colSpan = (value.colspan || 1) - 1;
+				var rowSpan = (value.rowspan || 1) - 1;
+
+				if (colSpan || rowSpan) {
+					this.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
+					return this._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
+				}
+			}
+			return dataRow;
 		}
 	}]);
 
 	return PrepareSave;
 }(SheetView);
-
-function prepareColumns(worksheet) {
-	var styles = worksheet.common.styles;
-
-	_.forEach(worksheet.columns, function (column, index) {
-		if (column) {
-			var preparedColumn = _.clone(column);
-
-			if (column.style) {
-				var style = styles.addFormat(column.style);
-				var columnStyle = styles._get(style).fillOut ? style : styles._addInvisibleFormat(style);
-
-				preparedColumn.style = style;
-				preparedColumn.styleId = styles._getId(columnStyle);
-			}
-			worksheet.preparedColumns[index] = preparedColumn;
-		}
-	});
-}
-
-function prepareRows(worksheet) {
-	var styles = worksheet.common.styles;
-
-	_.forEach(worksheet.rows, function (row, index) {
-		if (row) {
-			var preparedRow = _.clone(row);
-
-			if (row.style) {
-				preparedRow.style = styles.addFormat(row.style);
-			}
-			worksheet.preparedRows[index] = preparedRow;
-		}
-	});
-}
-
-function prepareDataRow(worksheet, rowIndex) {
-	var styles = worksheet.common.styles;
-	var strings = worksheet.common.strings;
-	var preparedDataRow = [];
-	var row = worksheet.preparedRows[rowIndex];
-	var dataRow = worksheet.data[rowIndex];
-
-	if (dataRow) {
-		var rowStyle = null;
-		var skipColumnsStyle = false;
-		var inserts = [];
-
-		if (!_.isArray(dataRow)) {
-			row = mergeDataRowToRow(styles, row, dataRow);
-			if (dataRow.inserts) {
-				inserts = dataRow.inserts;
-				dataRow = _.clone(dataRow.data);
-			} else {
-				dataRow = dataRow.data;
-			}
-		}
-		if (row) {
-			rowStyle = row.style || null;
-			skipColumnsStyle = row.skipColumnsStyle;
-		}
-		dataRow = splitDataRow(worksheet, row, dataRow, rowIndex);
-
-		for (var colIndex = 0; colIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
-			if (inserts[colIndex]) {
-				var insertCell = { style: inserts[colIndex].style, type: 'empty' };
-
-				if (dataRow.length > colIndex) {
-					dataRow.splice(colIndex, 0, insertCell);
-				} else {
-					dataRow[colIndex] = insertCell;
-				}
-			}
-
-			var column = worksheet.preparedColumns[colIndex];
-			var columnStyle = !skipColumnsStyle && column ? column.style : null;
-			var value = dataRow[colIndex];
-			var cellValue = void 0;
-			var cellType = void 0;
-			var cellStyle = null;
-			var cellFormula = null;
-			var isString = false;
-
-			if (_.isDate(value)) {
-				cellValue = value;
-				cellType = 'date';
-			} else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-				if (value.style) {
-					cellStyle = value.style;
-				}
-				if (value.formula) {
-					cellValue = value.formula;
-					cellType = 'formula';
-				} else if (value.date) {
-					cellValue = value.date;
-					cellType = 'date';
-				} else if (value.time) {
-					cellValue = value.time;
-					cellType = 'time';
-				} else if (_.isDate(value.value)) {
-					cellValue = value.value;
-					cellType = 'date';
-				} else {
-					cellValue = value.value;
-					cellType = value.type;
-				}
-
-				insertEmbedded(worksheet, value, colIndex, rowIndex);
-				dataRow = mergeCells(worksheet, dataRow, value, colIndex, rowIndex);
-			} else {
-				cellValue = value;
-				cellType = null;
-			}
-
-			cellStyle = styles._merge(columnStyle, rowStyle, cellStyle);
-
-			if (!cellType) {
-				if (row && row.type) {
-					cellType = row.type;
-				} else if (column && column.type) {
-					cellType = column.type;
-				} else if (typeof cellValue === 'number') {
-					cellType = 'number';
-				} else if (typeof cellValue === 'string') {
-					cellType = 'string';
-				}
-			}
-
-			if (cellType === 'string') {
-				cellValue = strings.add(cellValue);
-				isString = true;
-			} else if (cellType === 'date' || cellType === 'time') {
-				var dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
-				var date = 25569.0 + (dateValue - worksheet.timezoneOffset) / (60 * 60 * 24 * 1000);
-
-				if (_.isFinite(date)) {
-					cellValue = date;
-				} else {
-					cellValue = strings.add(String(cellValue));
-					isString = true;
-				}
-			} else if (cellType === 'formula') {
-				cellFormula = _.escape(cellValue);
-				cellValue = null;
-			}
-
-			preparedDataRow[colIndex] = {
-				value: cellValue,
-				formula: cellFormula,
-				styleId: styles._getId(cellStyle),
-				isString: isString
-			};
-		}
-	}
-
-	worksheet.preparedData[rowIndex] = preparedDataRow;
-	if (row) {
-		setRowStyleId(styles, row);
-		worksheet.preparedRows[rowIndex] = row;
-	}
-
-	return preparedDataRow;
-}
-
-function mergeDataRowToRow(styles) {
-	var row = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-	var dataRow = arguments[2];
-
-	row.height = dataRow.height || row.height;
-	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
-	row.type = dataRow.type || row.type;
-	row.style = dataRow.style ? styles.addFormat(dataRow.style) : row.style;
-	row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
-
-	return row;
-}
-
-function splitDataRow(worksheet, row, dataRow, rowIndex) {
-	var _worksheet$data;
-
-	var count = 1;
-	_.forEach(dataRow, function (value) {
-		if (_.isArray(value)) {
-			count = Math.max(value.length, count);
-		}
-	});
-
-	if (count === 1) {
-		return dataRow;
-	}
-
-	var styles = worksheet.common.styles;
-	var newRows = _.times(count, function () {
-		return [];
-	});
-
-	_.forEach(dataRow, function (value) {
-		if (_.isArray(value)) {
-			_(value).initial().forEach(function (val, index) {
-				newRows[index].push(val);
-			});
-			newRows[value.length - 1].push(value.length < count ? addRowspan(styles, _.last(value), count - value.length + 1) : _.last(value));
-		} else {
-			newRows[0].push(addRowspan(styles, value, count));
-		}
-	});
-
-	var resultDataRow = newRows[0];
-
-	if (row) {
-		_.forEach(newRows, function (newRow, index) {
-			newRows[index] = _.clone(row);
-			newRows[index].data = newRow;
-		});
-	}
-
-	(_worksheet$data = worksheet.data).splice.apply(_worksheet$data, [rowIndex, 1].concat(_toConsumableArray(newRows)));
-
-	return resultDataRow;
-}
-
-function addRowspan(styles, value, rowspan) {
-	if (_.isObject(value) && !_.isDate(value)) {
-		value = _.clone(value);
-		value.rowspan = rowspan;
-		value.style = styles._merge({ vertical: 'top' }, value.style);
-		return value;
-	}
-	return {
-		value: value,
-		rowspan: rowspan,
-		style: { vertical: 'top' }
-	};
-}
-
-function setRowStyleId(styles, row) {
-	if (row.style) {
-		var rowStyle = styles._get(row.style).fillOut ? row.style : styles._addInvisibleFormat(row.style);
-
-		row.styleId = styles._getId(rowStyle);
-	}
-}
-
-function insertEmbedded(worksheet, value, colIndex, rowIndex) {
-	if (value.hyperlink) {
-		worksheet._insertHyperlink(colIndex, rowIndex, value.hyperlink);
-	}
-
-	if (value.image) {
-		worksheet._insertDrawing(colIndex, rowIndex, value.image);
-	}
-}
-
-function mergeCells(worksheet, dataRow, value, colIndex, rowIndex) {
-	if (value.colspan || value.rowspan) {
-		var colSpan = (value.colspan || 1) - 1;
-		var rowSpan = (value.rowspan || 1) - 1;
-
-		if (colSpan || rowSpan) {
-			worksheet.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
-			return worksheet._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
-		}
-	}
-	return dataRow;
-}
 
 module.exports = PrepareSave;
 

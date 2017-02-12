@@ -31,7 +31,10 @@ class Styles {
 	_getId(name) {
 		return this.cells.getId(name);
 	}
-	_addInvisibleFormat(format) {
+	_addFillOutFormat(format) {
+		if (this._get(format).fillOut) {
+			return format;
+		}
 		const style = this.cells.cutVisible(this.cells.fullGet(format));
 
 		if (!_.isEmpty(style)) {

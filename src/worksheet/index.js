@@ -9,6 +9,7 @@ class Worksheet extends WorksheetSave {
 		super(workbook, config);
 		this.workbook = workbook;
 		this.common = workbook.common;
+		this.styles = this.common.styles;
 
 		this.objectId = this.common.uniqueId('Worksheet');
 		this.data = [];

@@ -16,31 +16,28 @@ class MergedCells extends DrawingsExt {
 	}
 	_insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, style) {
 		if (colSpan) {
-			const cells = _.times(colSpan, () => ({style: style, type: 'empty'}));
-			dataRow = [...dataRow.slice(0, colIndex + 1), ...cells, ...dataRow.slice(colIndex + 1)];
+			dataRow = [
+				...dataRow.slice(0, colIndex + 1),
+				..._.times(colSpan, () => ({style, type: 'empty'})),
+				...dataRow.slice(colIndex + 1)
+			];
 		}
 		if (rowSpan) {
-			colSpan += 1;
+			_.forEach(_.range(rowIndex + 1, rowIndex + 1 + rowSpan), index => {
+				let row = this.data[index] || [];
 
-			for (let i = 0; i < rowSpan; i++) {
-				let rowData = this.data[rowIndex + i + 1] || [];
-				let row;
-
-				if (_.isArray(rowData)) {
+				if (_.isArray(row)) {
 					row = {
-						data: rowData
+						data: row
 					};
-					this.data[rowIndex + i + 1] = row;
-				} else {
-					row = rowData;
-					rowData = rowData.data;
+					this.data[index] = row;
 				}
 
 				row.inserts = row.inserts || [];
-				_.times(colSpan, index => {
-					row.inserts[colIndex + index] = {style};
+				_.forEach(_.range(colIndex, colIndex + colSpan + 1), index => {
+					row.inserts[index] = {style};
 				});
-			}
+			});
 		}
 		return dataRow;
 	}
