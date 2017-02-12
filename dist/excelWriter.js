@@ -3451,6 +3451,7 @@ function prepareDataRow(worksheet, rowIndex) {
 
 	if (dataRow) {
 		var rowStyle = null;
+		var skipColumnsStyle = false;
 		var inserts = [];
 
 		if (!_.isArray(dataRow)) {
@@ -3464,6 +3465,7 @@ function prepareDataRow(worksheet, rowIndex) {
 		}
 		if (row) {
 			rowStyle = row.style || null;
+			skipColumnsStyle = row.skipColumnsStyle;
 		}
 		dataRow = splitDataRow(worksheet, row, dataRow, rowIndex);
 
@@ -3479,6 +3481,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			}
 
 			var column = worksheet.preparedColumns[colIndex];
+			var columnStyle = !skipColumnsStyle && column ? column.style : null;
 			var value = dataRow[colIndex];
 			var cellValue = void 0;
 			var cellType = void 0;
@@ -3517,7 +3520,7 @@ function prepareDataRow(worksheet, rowIndex) {
 				cellType = null;
 			}
 
-			cellStyle = styles._merge(column ? column.style : null, rowStyle, cellStyle);
+			cellStyle = styles._merge(columnStyle, rowStyle, cellStyle);
 
 			if (!cellType) {
 				if (row && row.type) {
@@ -3575,6 +3578,7 @@ function mergeDataRowToRow(styles) {
 	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
 	row.type = dataRow.type || row.type;
 	row.style = dataRow.style ? styles.addFormat(dataRow.style) : row.style;
+	row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
 
 	return row;
 }

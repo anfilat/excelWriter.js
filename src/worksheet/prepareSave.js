@@ -75,6 +75,7 @@ function prepareDataRow(worksheet, rowIndex) {
 
 	if (dataRow) {
 		let rowStyle = null;
+		let skipColumnsStyle = false;
 		let inserts = [];
 
 		if (!_.isArray(dataRow)) {
@@ -88,6 +89,7 @@ function prepareDataRow(worksheet, rowIndex) {
 		}
 		if (row) {
 			rowStyle = row.style || null;
+			skipColumnsStyle = row.skipColumnsStyle;
 		}
 		dataRow = splitDataRow(worksheet, row, dataRow, rowIndex);
 
@@ -103,6 +105,7 @@ function prepareDataRow(worksheet, rowIndex) {
 			}
 
 			const column = worksheet.preparedColumns[colIndex];
+			const columnStyle = !skipColumnsStyle && column ? column.style : null;
 			const value = dataRow[colIndex];
 			let cellValue;
 			let cellType;
@@ -141,7 +144,7 @@ function prepareDataRow(worksheet, rowIndex) {
 				cellType = null;
 			}
 
-			cellStyle = styles._merge(column ? column.style : null, rowStyle, cellStyle);
+			cellStyle = styles._merge(columnStyle, rowStyle, cellStyle);
 
 			if (!cellType) {
 				if (row && row.type) {
@@ -196,6 +199,7 @@ function mergeDataRowToRow(styles, row = {}, dataRow) {
 	row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
 	row.type = dataRow.type || row.type;
 	row.style = dataRow.style ? styles.addFormat(dataRow.style) : row.style;
+	row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
 
 	return row;
 }
