@@ -3531,13 +3531,25 @@ var PrepareSave = function (_SheetView) {
 				return result;
 			});
 			_.forEach(dataRow, function (value) {
+				var list = void 0;
+				var style = null;
+
 				if (_.isArray(value)) {
-					_(value).initial().forEach(function (val, index) {
-						newRows[index].data.push(val);
+					list = value;
+				} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
+					list = value.value;
+					style = value.style;
+				}
+
+				if (list) {
+					_(list).initial().forEach(function (value, index) {
+						newRows[index].data.push({ value: value, style: style });
 					});
 
-					var val = value.length < count ? _this4._addRowspan(_.last(value), count - value.length + 1) : _.last(value);
-					newRows[value.length - 1].data.push(val);
+					var lastValue = { value: _.last(list), style: style };
+					var listLength = list.length;
+					var _value = listLength < count ? _this4._addRowspan(lastValue, count - listLength + 1) : lastValue;
+					newRows[list.length - 1].data.push(_value);
 				} else {
 					newRows[0].data.push(_this4._addRowspan(value, count));
 				}
@@ -3553,6 +3565,8 @@ var PrepareSave = function (_SheetView) {
 			_.forEach(dataRow, function (value) {
 				if (_.isArray(value)) {
 					count = Math.max(value.length, count);
+				} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
+					count = Math.max(value.value.length, count);
 				}
 			});
 			return count;

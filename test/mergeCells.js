@@ -40,8 +40,8 @@ module.exports = function (excel) {
 				style: {pattern: {color: '#b0ffb0'}, border: {color: '#000000', style: 'thin'}},
 				data: [
 					245,
-					['Esse consectetur ex', 'Dolore id sint', 'Anim irure pariatur'],
-					[358, 864],
+					{value: ['Esse consectetur ex', 'Dolore id sint', 'Anim irure pariatur'], style: {pattern: {color: '#b0b0ff'}}},
+					{value: [358, 864], style: {pattern: {color: '#ffb0ff'}}},
 					{value: 'Minim nisi', style: {vertical: 'center'}}
 				]
 			}

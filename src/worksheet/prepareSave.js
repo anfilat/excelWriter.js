@@ -134,17 +134,29 @@ class PrepareSave extends SheetView {
 			return result;
 		});
 		_.forEach(dataRow, value => {
+			let list;
+			let style = null;
+
 			if (_.isArray(value)) {
-				_(value)
+				list = value;
+			} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
+				list = value.value;
+				style = value.style;
+			}
+
+			if (list) {
+				_(list)
 					.initial()
-					.forEach((val, index) => {
-						newRows[index].data.push(val);
+					.forEach((value, index) => {
+						newRows[index].data.push({value, style});
 					});
 
-				const val = value.length < count
-					? this._addRowspan(_.last(value), count - value.length + 1)
-					: _.last(value);
-				newRows[value.length - 1].data.push(val);
+				const lastValue = {value: _.last(list), style};
+				const listLength = list.length;
+				const value = listLength < count
+					? this._addRowspan(lastValue, count - listLength + 1)
+					: lastValue;
+				newRows[list.length - 1].data.push(value);
 			} else {
 				newRows[0].data.push(this._addRowspan(value, count));
 			}
@@ -158,6 +170,8 @@ class PrepareSave extends SheetView {
 		_.forEach(dataRow, value => {
 			if (_.isArray(value)) {
 				count = Math.max(value.length, count);
+			} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
+				count = Math.max(value.value.length, count);
 			}
 		});
 		return count;
