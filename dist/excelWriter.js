@@ -3521,7 +3521,7 @@ var PrepareSave = function (_SheetView) {
 
 			var count = this._calcDataRowHeight(dataRow);
 
-			if (count === 1) {
+			if (count === 0) {
 				return dataRow;
 			}
 
@@ -3561,7 +3561,7 @@ var PrepareSave = function (_SheetView) {
 	}, {
 		key: '_calcDataRowHeight',
 		value: function _calcDataRowHeight(dataRow) {
-			var count = 1;
+			var count = 0;
 			_.forEach(dataRow, function (value) {
 				if (_.isArray(value)) {
 					count = Math.max(value.length, count);

@@ -124,7 +124,7 @@ class PrepareSave extends SheetView {
 	_splitDataRow(row = {}, dataRow, rowIndex) {
 		const count = this._calcDataRowHeight(dataRow);
 
-		if (count === 1) {
+		if (count === 0) {
 			return dataRow;
 		}
 
@@ -166,7 +166,7 @@ class PrepareSave extends SheetView {
 		return newRows[0].data;
 	}
 	_calcDataRowHeight(dataRow) {
-		let count = 1;
+		let count = 0;
 		_.forEach(dataRow, value => {
 			if (_.isArray(value)) {
 				count = Math.max(value.length, count);
