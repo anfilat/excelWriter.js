@@ -11,7 +11,7 @@ class PrepareSave extends SheetView {
 		this._prepareData();
 	}
 	_prepareColumns() {
-		this.preparedColumns = _.map(this.columns, column => {
+		this.preparedColumns = this.columns.map(column => {
 			if (column) {
 				const preparedColumn = _.clone(column);
 
@@ -24,11 +24,12 @@ class PrepareSave extends SheetView {
 				}
 				return preparedColumn;
 			}
+			return undefined;
 		});
 		this.columns = null;
 	}
 	_prepareRows() {
-		this.preparedRows = _.map(this.rows, row => {
+		this.preparedRows = this.rows.map(row => {
 			if (row) {
 				const preparedRow = _.clone(row);
 
@@ -37,6 +38,7 @@ class PrepareSave extends SheetView {
 				}
 				return preparedRow;
 			}
+			return undefined;
 		});
 		this.rows = null;
 	}
@@ -46,7 +48,7 @@ class PrepareSave extends SheetView {
 		for (let rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
 			const preparedDataRow = this._prepareDataRow(rowIndex);
 
-			this.preparedData[rowIndex] = preparedDataRow;
+			this.preparedData.push(preparedDataRow);
 			this.maxX = Math.max(this.maxX, preparedDataRow.length);
 		}
 		this.maxY = this.preparedData.length;

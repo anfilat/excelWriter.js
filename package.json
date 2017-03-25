@@ -30,7 +30,7 @@
     "eslintify": "^3.0.0",
     "babelify": "*",
     "babel-preset-es2015": "*",
-    "uglify-js": "~2.7.0"
+    "uglify-js": "~2.8.0"
   },
   "browserify-shim": {
     "lodash": "global:_",

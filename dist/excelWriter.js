@@ -86,25 +86,9 @@ var Images = function () {
 			if (!image) {
 				var id = this.common.uniqueIdForSpace('image');
 				var path = 'xl/media/image' + id + '.' + type;
-				var contentType = void 0;
+				var contentType = getContentType(type);
 
 				name = name || 'excelWriter' + id;
-				switch (type.toLowerCase()) {
-					case 'jpeg':
-					case 'jpg':
-						contentType = 'image/jpeg';
-						break;
-					case 'png':
-						contentType = 'image/png';
-						break;
-					case 'gif':
-						contentType = 'image/gif';
-						break;
-					default:
-						contentType = null;
-						break;
-				}
-
 				image = {
 					objectId: 'image' + id,
 					data: data,
@@ -148,6 +132,20 @@ var Images = function () {
 
 	return Images;
 }();
+
+function getContentType(type) {
+	switch (type.toLowerCase()) {
+		case 'jpeg':
+		case 'jpg':
+			return 'image/jpeg';
+		case 'png':
+			return 'image/png';
+		case 'gif':
+			return 'image/gif';
+		default:
+			return null;
+	}
+}
 
 module.exports = Images;
 
@@ -339,6 +337,8 @@ var SharedStringsStream = function (_ref) {
 
 		_this.strings = options.strings;
 		_this.status = 0;
+		_this.index = 0;
+		_this.len = _this.strings.length;
 		return _this;
 	}
 
@@ -348,31 +348,14 @@ var SharedStringsStream = function (_ref) {
 			var stop = false;
 
 			if (this.status === 0) {
-				stop = !this.push(getXMLBegin(this.strings.length));
+				stop = !this.push(getXMLBegin(this.len));
 
 				this.status = 1;
-				this.index = 0;
-				this.len = this.strings.length;
 			}
 
 			if (this.status === 1) {
-				var s = '';
-				var str = void 0;
-
 				while (this.index < this.len && !stop) {
-					while (this.index < this.len && s.length < size) {
-						str = _.escape(this.strings[this.index]);
-
-						if (spaceRE.test(str)) {
-							s += '<si><t xml:space="preserve">' + str + '</t></si>';
-						} else {
-							s += '<si><t>' + str + '</t></si>';
-						}
-						this.strings[this.index] = null;
-						this.index++;
-					}
-					stop = !this.push(s);
-					s = '';
+					stop = !this.push(this.packChunk(size));
 				}
 
 				if (this.index === this.len) {
@@ -384,6 +367,24 @@ var SharedStringsStream = function (_ref) {
 				this.push(getXMLEnd());
 				this.push(null);
 			}
+		}
+	}, {
+		key: 'packChunk',
+		value: function packChunk(size) {
+			var s = '';
+
+			while (this.index < this.len && s.length < size) {
+				var str = _.escape(this.strings[this.index]);
+
+				if (spaceRE.test(str)) {
+					s += '<si><t xml:space="preserve">' + str + '</t></si>';
+				} else {
+					s += '<si><t>' + str + '</t></si>';
+				}
+				this.strings[this.index] = null;
+				this.index++;
+			}
+			return s;
 		}
 	}]);
 
@@ -2348,52 +2349,48 @@ var Table = function () {
 	}, {
 		key: '_prepare',
 		value: function _prepare(worksheetData) {
-			var _this = this;
-
 			var SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
 			var SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
 
 			if (this.totalRow) {
-				(function () {
-					var tableName = _this.name;
-					var beginCell = util.letterToPosition(_this.beginCell);
-					var endCell = util.letterToPosition(_this.endCell);
-					var firstRow = beginCell.y - 1;
-					var firstColumn = beginCell.x - 1;
-					var lastRow = endCell.y - 1;
-					var headerRow = worksheetData[firstRow] || [];
-					var totalRow = worksheetData[lastRow + 1];
+				var tableName = this.name;
+				var beginCell = util.letterToPosition(this.beginCell);
+				var endCell = util.letterToPosition(this.endCell);
+				var firstRow = beginCell.y - 1;
+				var firstColumn = beginCell.x - 1;
+				var lastRow = endCell.y - 1;
+				var headerRow = worksheetData[firstRow] || [];
+				var totalRow = worksheetData[lastRow + 1];
 
-					if (!totalRow) {
-						totalRow = [];
-						worksheetData[lastRow + 1] = totalRow;
+				if (!totalRow) {
+					totalRow = [];
+					worksheetData[lastRow + 1] = totalRow;
+				}
+
+				_.forEach(this.totalRow, function (cell, i) {
+					var headerValue = headerRow[firstColumn + i];
+					var funcIndex = void 0;
+
+					if ((typeof headerValue === 'undefined' ? 'undefined' : _typeof(headerValue)) === 'object') {
+						headerValue = headerValue.value;
 					}
+					cell.name = headerValue;
+					if (cell.totalsRowLabel) {
+						totalRow[firstColumn + i] = {
+							value: cell.totalsRowLabel,
+							type: 'string'
+						};
+					} else if (cell.totalsRowFunction) {
+						funcIndex = _.indexOf(SUB_TOTAL_FUNCTIONS, cell.totalsRowFunction);
 
-					_.forEach(_this.totalRow, function (cell, i) {
-						var headerValue = headerRow[firstColumn + i];
-						var funcIndex = void 0;
-
-						if ((typeof headerValue === 'undefined' ? 'undefined' : _typeof(headerValue)) === 'object') {
-							headerValue = headerValue.value;
-						}
-						cell.name = headerValue;
-						if (cell.totalsRowLabel) {
+						if (funcIndex !== -1) {
 							totalRow[firstColumn + i] = {
-								value: cell.totalsRowLabel,
-								type: 'string'
+								value: 'SUBTOTAL(' + SUB_TOTAL_NUMS[funcIndex] + ',' + tableName + '[' + headerValue + '])',
+								type: 'formula'
 							};
-						} else if (cell.totalsRowFunction) {
-							funcIndex = _.indexOf(SUB_TOTAL_FUNCTIONS, cell.totalsRowFunction);
-
-							if (funcIndex !== -1) {
-								totalRow[firstColumn + i] = {
-									value: 'SUBTOTAL(' + SUB_TOTAL_NUMS[funcIndex] + ',' + tableName + '[' + headerValue + '])',
-									type: 'formula'
-								};
-							}
 						}
-					});
-				})();
+					}
+				});
 			}
 		}
 		//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
@@ -2574,8 +2571,6 @@ module.exports = {
 (function (global){
 'use strict';
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -2699,13 +2694,11 @@ function bookViewsXML(common) {
 	var activeTab = 0;
 
 	if (common.activeWorksheet) {
-		(function () {
-			var activeWorksheetId = common.activeWorksheet.objectId;
+		var activeWorksheetId = common.activeWorksheet.objectId;
 
-			activeTab = Math.max(activeTab, _.findIndex(common.worksheets, function (worksheet) {
-				return worksheet.objectId === activeWorksheetId;
-			}));
-		})();
+		activeTab = Math.max(activeTab, common.worksheets.findIndex(function (worksheet) {
+			return worksheet.objectId === activeWorksheetId;
+		}));
 	}
 
 	return toXMLString({
@@ -2719,7 +2712,7 @@ function bookViewsXML(common) {
 
 function sheetsXML(relations, common) {
 	var maxWorksheetNameLength = 31;
-	var children = _.map(common.worksheets, function (worksheet, index) {
+	var children = common.worksheets.map(function (worksheet, index) {
 		// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
 		// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
 		if (worksheet.name.length > maxWorksheetNameLength) {
@@ -2739,67 +2732,61 @@ function sheetsXML(relations, common) {
 }
 
 function definedNamesXML(common) {
-	var isPrintTitles = _.some(common.worksheets, function (worksheet) {
+	var isPrintTitles = common.worksheets.some(function (worksheet) {
 		return worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0);
 	});
 
 	if (isPrintTitles) {
-		var _ret2 = function () {
-			var children = [];
+		var children = [];
 
-			_.forEach(common.worksheets, function (worksheet, index) {
-				var entry = worksheet._printTitles;
+		common.worksheets.forEach(function (worksheet, index) {
+			var entry = worksheet._printTitles;
 
-				if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
-					var name = worksheet.name;
-					var value = '';
+			if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
+				var name = worksheet.name;
+				var value = '';
 
-					if (entry.topTo >= 0) {
-						value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
-						if (entry.leftTo >= 0) {
-							value += ',';
-						}
-					}
+				if (entry.topTo >= 0) {
+					value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
 					if (entry.leftTo >= 0) {
-						value += name + '!$' + util.positionToLetter(entry.leftFrom + 1) + ':$' + util.positionToLetter(entry.leftTo + 1);
+						value += ',';
 					}
-
-					children.push(toXMLString({
-						name: 'definedName',
-						value: value,
-						attributes: [['name', '_xlnm.Print_Titles'], ['localSheetId', index]]
-					}));
 				}
-			});
+				if (entry.leftTo >= 0) {
+					value += name + '!$' + util.positionToLetter(entry.leftFrom + 1) + ':$' + util.positionToLetter(entry.leftTo + 1);
+				}
 
-			return {
-				v: toXMLString({
-					name: 'definedNames',
-					children: children
-				})
-			};
-		}();
+				children.push(toXMLString({
+					name: 'definedName',
+					value: value,
+					attributes: [['name', '_xlnm.Print_Titles'], ['localSheetId', index]]
+				}));
+			}
+		});
 
-		if ((typeof _ret2 === 'undefined' ? 'undefined' : _typeof(_ret2)) === "object") return _ret2.v;
+		return toXMLString({
+			name: 'definedNames',
+			children: children
+		});
 	}
 	return '';
 }
 
 function prepareWorksheets(common) {
-	_.forEach(common.worksheets, function (worksheet) {
+	common.worksheets.forEach(function (worksheet) {
 		worksheet._prepare();
 	});
 }
 
 function saveWorksheets(zip, canStream, common) {
-	_.forEach(common.worksheets, function (worksheet) {
+	common.worksheets.forEach(function (worksheet) {
 		zip.file(worksheet.path, worksheet._save(canStream));
 		zip.file(worksheet.relationsPath, worksheet.relations.save());
 	});
 }
 
 function saveTables(zip, common) {
-	_.forEach(common.tables, function (table) {
+	common.tables.forEach(function (table) {
 		zip.file(table.path, table._save());
 	});
 }
@@ -2813,7 +2800,7 @@ function saveImages(zip, images) {
 }
 
 function saveDrawings(zip, common) {
-	_.forEach(common.drawings, function (drawing) {
+	common.drawings.forEach(function (drawing) {
 		zip.file(drawing.path, drawing.save());
 		zip.file(drawing.relationsPath, drawing.relations.save());
 	});
@@ -2856,13 +2843,13 @@ function createContentTypes(common) {
 		attributes: [['PartName', '/xl/styles.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml']]
 	}));
 
-	_.forEach(common.worksheets, function (worksheet, index) {
+	common.worksheets.forEach(function (worksheet, index) {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [['PartName', '/xl/worksheets/sheet' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml']]
 		}));
 	});
-	_.forEach(common.tables, function (table, index) {
+	common.tables.forEach(function (table, index) {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [['PartName', '/xl/tables/table' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml']]
@@ -2874,7 +2861,7 @@ function createContentTypes(common) {
 			attributes: [['Extension', extension], ['ContentType', contentType]]
 		}));
 	});
-	_.forEach(common.drawings, function (drawing, index) {
+	common.drawings.forEach(function (drawing, index) {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [['PartName', '/xl/drawings/drawing' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.drawing+xml']]
@@ -2949,8 +2936,6 @@ var DrawingsExt = function (_Tables) {
 	}, {
 		key: '_setDrawing',
 		value: function _setDrawing(image, config, anchorType) {
-			var name = void 0;
-
 			if (!this._drawings) {
 				this._drawings = new Drawings(this.common);
 
@@ -2958,11 +2943,7 @@ var DrawingsExt = function (_Tables) {
 				this.relations.addRelation(this._drawings, 'drawingRelationship');
 			}
 
-			if (_.isObject(image)) {
-				name = this.common.images.addImage(image.data, image.type);
-			} else {
-				name = image;
-			}
+			var name = _.isObject(image) ? this.common.images.addImage(image.data, image.type) : image;
 
 			this._drawings.addImage(name, config, anchorType);
 			return this;
@@ -3003,7 +2984,6 @@ module.exports = DrawingsExt;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../drawings":9,"./tables":36}],29:[function(require,module,exports){
-(function (global){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -3014,7 +2994,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
 var MergedCells = require('./mergedCells');
 var toXMLString = require('../XMLString');
@@ -3070,7 +3049,7 @@ var Hyperlinks = function (_MergedCells) {
 			var _this2 = this;
 
 			if (this._hyperlinks.length > 0) {
-				var children = _.map(this._hyperlinks, function (hyperlink) {
+				var children = this._hyperlinks.map(function (hyperlink) {
 					var attributes = [['ref', util.canonCell(hyperlink.cell)], ['r:id', _this2.relations.getRelationshipId(hyperlink)]];
 
 					if (hyperlink.tooltip) {
@@ -3096,9 +3075,7 @@ var Hyperlinks = function (_MergedCells) {
 
 module.exports = Hyperlinks;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":26,"./mergedCells":31}],30:[function(require,module,exports){
-(function (global){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -3109,7 +3086,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var WorksheetSave = require('./save');
 var Relations = require('../relations');
 
@@ -3189,15 +3165,15 @@ var Worksheet = function (_WorksheetSave) {
 			} else {
 				--startRow;
 			}
-			_.forEach(rows, function (row, i) {
+			rows.forEach(function (row, i) {
 				_this2.rows[startRow + i] = row;
 			});
 			return this;
 		}
 	}, {
 		key: 'setRow',
-		value: function setRow(rowIndex, meta) {
-			this.rows[--rowIndex] = meta;
+		value: function setRow(rowIndex, row) {
+			this.rows[--rowIndex] = row;
 			return this;
 		}
 		/**
@@ -3215,7 +3191,7 @@ var Worksheet = function (_WorksheetSave) {
 			} else {
 				--startColumn;
 			}
-			_.forEach(columns, function (column, i) {
+			columns.forEach(function (column, i) {
 				_this3.columns[startColumn + i] = column;
 			});
 			return this;
@@ -3238,7 +3214,7 @@ var Worksheet = function (_WorksheetSave) {
 			} else {
 				startRow += offset;
 			}
-			_.forEach(data, function (row, i) {
+			data.forEach(function (row, i) {
 				_this4.data[startRow + i] = row;
 			});
 			return this;
@@ -3250,7 +3226,6 @@ var Worksheet = function (_WorksheetSave) {
 
 module.exports = Worksheet;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../relations":12,"./save":34}],31:[function(require,module,exports){
 (function (global){
 'use strict';
@@ -3321,7 +3296,7 @@ var MergedCells = function (_DrawingsExt) {
 		key: '_saveMergeCells',
 		value: function _saveMergeCells() {
 			if (this._mergedCells.length > 0) {
-				var children = _.map(this._mergedCells, function (mergeCell) {
+				var children = this._mergedCells.map(function (mergeCell) {
 					return toXMLString({
 						name: 'mergeCell',
 						attributes: [['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]]
@@ -3385,7 +3360,7 @@ var PrepareSave = function (_SheetView) {
 		value: function _prepareColumns() {
 			var _this2 = this;
 
-			this.preparedColumns = _.map(this.columns, function (column) {
+			this.preparedColumns = this.columns.map(function (column) {
 				if (column) {
 					var preparedColumn = _.clone(column);
 
@@ -3398,6 +3373,7 @@ var PrepareSave = function (_SheetView) {
 					}
 					return preparedColumn;
 				}
+				return undefined;
 			});
 			this.columns = null;
 		}
@@ -3406,7 +3382,7 @@ var PrepareSave = function (_SheetView) {
 		value: function _prepareRows() {
 			var _this3 = this;
 
-			this.preparedRows = _.map(this.rows, function (row) {
+			this.preparedRows = this.rows.map(function (row) {
 				if (row) {
 					var preparedRow = _.clone(row);
 
@@ -3415,6 +3391,7 @@ var PrepareSave = function (_SheetView) {
 					}
 					return preparedRow;
 				}
+				return undefined;
 			});
 			this.rows = null;
 		}
@@ -3426,7 +3403,7 @@ var PrepareSave = function (_SheetView) {
 			for (var rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
 				var preparedDataRow = this._prepareDataRow(rowIndex);
 
-				this.preparedData[rowIndex] = preparedDataRow;
+				this.preparedData.push(preparedDataRow);
 				this.maxX = Math.max(this.maxX, preparedDataRow.length);
 			}
 			this.maxY = this.preparedData.length;
@@ -3960,9 +3937,8 @@ var WorksheetSave = function (_PrepareSave) {
 				return new WorksheetStream({
 					worksheet: this
 				});
-			} else {
-				return saveBeforeRows(this) + saveData(this) + saveAfterRows(this);
 			}
+			return saveBeforeRows(this) + saveData(this) + saveAfterRows(this);
 		}
 	}]);
 
@@ -3979,36 +3955,25 @@ var WorksheetStream = function (_ref) {
 
 		_this2.worksheet = options.worksheet;
 		_this2.status = 0;
+		_this2.index = 0;
+		_this2.len = _this2.worksheet.preparedData.length;
 		return _this2;
 	}
 
 	_createClass(WorksheetStream, [{
 		key: '_read',
 		value: function _read(size) {
-			var worksheet = this.worksheet;
 			var stop = false;
 
 			if (this.status === 0) {
-				stop = !this.push(saveBeforeRows(worksheet));
+				stop = !this.push(saveBeforeRows(this.worksheet));
 
 				this.status = 1;
-				this.index = 0;
-				this.len = worksheet.preparedData.length;
 			}
 
 			if (this.status === 1) {
-				var data = worksheet.preparedData;
-				var preparedRows = worksheet.preparedRows;
-				var s = '';
-
 				while (this.index < this.len && !stop) {
-					while (this.index < this.len && s.length < size) {
-						s += saveRow(data[this.index], preparedRows[this.index], this.index);
-						data[this.index] = null;
-						this.index++;
-					}
-					stop = !this.push(s);
-					s = '';
+					stop = !this.push(this.packChunk(size));
 				}
 
 				if (this.index === this.len) {
@@ -4017,9 +3982,24 @@ var WorksheetStream = function (_ref) {
 			}
 
 			if (this.status === 2) {
-				this.push(saveAfterRows(worksheet));
+				this.push(saveAfterRows(this.worksheet));
 				this.push(null);
 			}
+		}
+	}, {
+		key: 'packChunk',
+		value: function packChunk(size) {
+			var worksheet = this.worksheet;
+			var data = worksheet.preparedData;
+			var preparedRows = worksheet.preparedRows;
+			var s = '';
+
+			while (this.index < this.len && s.length < size) {
+				s += saveRow(data[this.index], preparedRows[this.index], this.index);
+				data[this.index] = null;
+				this.index++;
+			}
+			return s;
 		}
 	}]);
 
@@ -4092,12 +4072,10 @@ function getRowAttributes(row, rowIndex) {
 
 	if (row) {
 		if (row.height !== undefined) {
-			attributes += ' customHeight="1"';
-			attributes += ' ht="' + row.height + '"';
+			attributes += ' customHeight="1" ht="' + row.height + '"';
 		}
 		if (row.styleId) {
-			attributes += ' customFormat="1"';
-			attributes += ' s="' + row.styleId + '"';
+			attributes += ' customFormat="1" s="' + row.styleId + '"';
 		}
 		if (row.outlineLevel) {
 			attributes += ' outlineLevel="' + row.outlineLevel + '"';
@@ -4123,7 +4101,7 @@ function saveDimension(maxX, maxY) {
 
 function saveColumns(columns) {
 	if (columns.length) {
-		var children = _.map(columns, function (column, index) {
+		var children = columns.map(function (column, index) {
 			column = column || {};
 
 			var attributes = [['min', column.min || index + 1], ['max', column.max || index + 1]];
@@ -4365,7 +4343,6 @@ module.exports = SheetView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":26,"./hyperlinks":29}],36:[function(require,module,exports){
-(function (global){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -4376,7 +4353,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var Print = require('./print');
 var Table = require('../table');
 var toXMLString = require('../XMLString');
@@ -4407,22 +4383,22 @@ var Tables = function (_Print) {
 	}, {
 		key: '_prepareTables',
 		value: function _prepareTables() {
-			var data = this.data;
+			var _this2 = this;
 
-			_.forEach(this._tables, function (table) {
-				table._prepare(data);
+			this._tables.forEach(function (table) {
+				table._prepare(_this2.data);
 			});
 		}
 	}, {
 		key: '_saveTables',
 		value: function _saveTables() {
-			var _this2 = this;
+			var _this3 = this;
 
 			if (this._tables.length > 0) {
-				var children = _.map(this._tables, function (table) {
+				var children = this._tables.map(function (table) {
 					return toXMLString({
 						name: 'tablePart',
-						attributes: [['r:id', _this2.relations.getRelationshipId(table)]]
+						attributes: [['r:id', _this3.relations.getRelationshipId(table)]]
 					});
 				});
 
@@ -4441,6 +4417,5 @@ var Tables = function (_Print) {
 
 module.exports = Tables;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../table":25,"./print":33}]},{},[11])(11)
 });

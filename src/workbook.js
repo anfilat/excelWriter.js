@@ -96,7 +96,7 @@ function bookViewsXML(common) {
 		const activeWorksheetId = common.activeWorksheet.objectId;
 
 		activeTab = Math.max(activeTab,
-			_.findIndex(common.worksheets, worksheet => worksheet.objectId === activeWorksheetId));
+			common.worksheets.findIndex(worksheet => worksheet.objectId === activeWorksheetId));
 	}
 
 	return toXMLString({
@@ -114,7 +114,7 @@ function bookViewsXML(common) {
 
 function sheetsXML(relations, common) {
 	const maxWorksheetNameLength = 31;
-	const children = _.map(common.worksheets, (worksheet, index) => {
+	const children = common.worksheets.map((worksheet, index) => {
 		// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
 		// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
 		if (worksheet.name.length > maxWorksheetNameLength) {
@@ -140,13 +140,14 @@ function sheetsXML(relations, common) {
 }
 
 function definedNamesXML(common) {
-	const isPrintTitles = _.some(common.worksheets,
-		worksheet => worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0));
+	const isPrintTitles = common.worksheets.some(
+		worksheet => worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0)
+	);
 
 	if (isPrintTitles) {
 		const children = [];
 
-		_.forEach(common.worksheets, (worksheet, index) => {
+		common.worksheets.forEach((worksheet, index) => {
 			const entry = worksheet._printTitles;
 
 			if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
@@ -184,20 +185,20 @@ function definedNamesXML(common) {
 }
 
 function prepareWorksheets(common) {
-	_.forEach(common.worksheets, worksheet => {
+	common.worksheets.forEach(worksheet => {
 		worksheet._prepare();
 	});
 }
 
 function saveWorksheets(zip, canStream, common) {
-	_.forEach(common.worksheets, worksheet => {
+	common.worksheets.forEach(worksheet => {
 		zip.file(worksheet.path, worksheet._save(canStream));
 		zip.file(worksheet.relationsPath, worksheet.relations.save());
 	});
 }
 
 function saveTables(zip, common) {
-	_.forEach(common.tables, table => {
+	common.tables.forEach(table => {
 		zip.file(table.path, table._save());
 	});
 }
@@ -211,7 +212,7 @@ function saveImages(zip, images) {
 }
 
 function saveDrawings(zip, common) {
-	_.forEach(common.drawings, drawing => {
+	common.drawings.forEach(drawing => {
 		zip.file(drawing.path, drawing.save());
 		zip.file(drawing.relationsPath, drawing.relations.save());
 	});
@@ -269,7 +270,7 @@ function createContentTypes(common) {
 		]
 	}));
 
-	_.forEach(common.worksheets, (worksheet, index) => {
+	common.worksheets.forEach((worksheet, index) => {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [
@@ -278,7 +279,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.tables, (table, index) => {
+	common.tables.forEach((table, index) => {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [
@@ -296,7 +297,7 @@ function createContentTypes(common) {
 			]
 		}));
 	});
-	_.forEach(common.drawings, (drawing, index) => {
+	common.drawings.forEach((drawing, index) => {
 		children.push(toXMLString({
 			name: 'Override',
 			attributes: [

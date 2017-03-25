@@ -1,6 +1,5 @@
 'use strict';
 
-const _ = require('lodash');
 const Print = require('./print');
 const Table = require('../table');
 const toXMLString = require('../XMLString');
@@ -20,15 +19,13 @@ class Tables extends Print {
 		return table;
 	}
 	_prepareTables() {
-		const data = this.data;
-
-		_.forEach(this._tables, table => {
-			table._prepare(data);
+		this._tables.forEach(table => {
+			table._prepare(this.data);
 		});
 	}
 	_saveTables() {
 		if (this._tables.length > 0) {
-			const children = _.map(this._tables,
+			const children = this._tables.map(
 				table => toXMLString({
 					name: 'tablePart',
 					attributes: [

@@ -12,11 +12,10 @@ class WorksheetSave extends PrepareSave {
 			return new WorksheetStream({
 				worksheet: this
 			});
-		} else {
-			return saveBeforeRows(this) +
-				saveData(this) +
-				saveAfterRows(this);
 		}
+		return saveBeforeRows(this) +
+			saveData(this) +
+			saveAfterRows(this);
 	}
 }
 
@@ -25,32 +24,21 @@ class WorksheetStream extends (Readable || null) {
 		super(options);
 		this.worksheet = options.worksheet;
 		this.status = 0;
+		this.index = 0;
+		this.len = this.worksheet.preparedData.length;
 	}
 	_read(size) {
-		const worksheet = this.worksheet;
 		let stop = false;
 
 		if (this.status === 0) {
-			stop = !this.push(saveBeforeRows(worksheet));
+			stop = !this.push(saveBeforeRows(this.worksheet));
 
 			this.status = 1;
-			this.index = 0;
-			this.len = worksheet.preparedData.length;
 		}
 
 		if (this.status === 1) {
-			const data = worksheet.preparedData;
-			const preparedRows = worksheet.preparedRows;
-			let s = '';
-
 			while (this.index < this.len && !stop) {
-				while (this.index < this.len && s.length < size) {
-					s += saveRow(data[this.index], preparedRows[this.index], this.index);
-					data[this.index] = null;
-					this.index++;
-				}
-				stop = !this.push(s);
-				s = '';
+				stop = !this.push(this.packChunk(size));
 			}
 
 			if (this.index === this.len) {
@@ -59,9 +47,22 @@ class WorksheetStream extends (Readable || null) {
 		}
 
 		if (this.status === 2) {
-			this.push(saveAfterRows(worksheet));
+			this.push(saveAfterRows(this.worksheet));
 			this.push(null);
 		}
+	}
+	packChunk(size) {
+		const worksheet = this.worksheet;
+		const data = worksheet.preparedData;
+		const preparedRows = worksheet.preparedRows;
+		let s = '';
+
+		while (this.index < this.len && s.length < size) {
+			s += saveRow(data[this.index], preparedRows[this.index], this.index);
+			data[this.index] = null;
+			this.index++;
+		}
+		return s;
 	}
 }
 
@@ -140,12 +141,10 @@ function getRowAttributes(row, rowIndex) {
 
 	if (row) {
 		if (row.height !== undefined) {
-			attributes += ' customHeight="1"';
-			attributes += ' ht="' + row.height + '"';
+			attributes += ' customHeight="1" ht="' + row.height + '"';
 		}
 		if (row.styleId) {
-			attributes += ' customFormat="1"';
-			attributes += ' s="' + row.styleId + '"';
+			attributes += ' customFormat="1" s="' + row.styleId + '"';
 		}
 		if (row.outlineLevel) {
 			attributes += ' outlineLevel="' + row.outlineLevel + '"';
@@ -175,7 +174,7 @@ function saveDimension(maxX, maxY) {
 
 function saveColumns(columns) {
 	if (columns.length) {
-		const children = _.map(columns, (column, index) => {
+		const children = columns.map((column, index) => {
 			column = column || {};
 
 			const attributes = [

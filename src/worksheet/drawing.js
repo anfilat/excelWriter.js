@@ -20,8 +20,6 @@ class DrawingsExt extends Tables {
 		return this._setDrawing(image, config, 'absolute');
 	}
 	_setDrawing(image, config, anchorType) {
-		let name;
-
 		if (!this._drawings) {
 			this._drawings = new Drawings(this.common);
 
@@ -29,11 +27,9 @@ class DrawingsExt extends Tables {
 			this.relations.addRelation(this._drawings, 'drawingRelationship');
 		}
 
-		if (_.isObject(image)) {
-			name = this.common.images.addImage(image.data, image.type);
-		} else {
-			name = image;
-		}
+		const name = _.isObject(image)
+			? this.common.images.addImage(image.data, image.type)
+			: image;
 
 		this._drawings.addImage(name, config, anchorType);
 		return this;

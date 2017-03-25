@@ -37,16 +37,16 @@ function generateData() {
 	const size = 1000000;
 	const testData = new Array(size);
 
-	_.times(size, i => {
+	for (let i = 0; i < size; i++) {
 		testData[i] = [
 			1000 + i,
-			_.capitalize(loremIpsum({count: 7, units: 'words'}) + '.'),
+			_.upperFirst(loremIpsum({count: 7, units: 'words'}) + '.'),
 			Math.round(100 + Math.random() * (1000 - 100)),
 			{value: loremIpsum({count: 2, units: 'words'}), style: {font: {bold: true}}},
 			Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000)),
 			Math.round(1410000000000 + Math.random() * (1460000000000 - 1410000000000))
 		];
-	});
+	}
 	return testData;
 }
 

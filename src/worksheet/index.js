@@ -1,6 +1,5 @@
 'use strict';
 
-const _ = require('lodash');
 const WorksheetSave = require('./save');
 const Relations = require('../relations');
 
@@ -54,13 +53,13 @@ class Worksheet extends WorksheetSave {
 		} else {
 			--startRow;
 		}
-		_.forEach(rows, (row, i) => {
+		rows.forEach((row, i) => {
 			this.rows[startRow + i] = row;
 		});
 		return this;
 	}
-	setRow(rowIndex, meta) {
-		this.rows[--rowIndex] = meta;
+	setRow(rowIndex, row) {
+		this.rows[--rowIndex] = row;
 		return this;
 	}
 	/**
@@ -73,7 +72,7 @@ class Worksheet extends WorksheetSave {
 		} else {
 			--startColumn;
 		}
-		_.forEach(columns, (column, i) => {
+		columns.forEach((column, i) => {
 			this.columns[startColumn + i] = column;
 		});
 		return this;
@@ -90,7 +89,7 @@ class Worksheet extends WorksheetSave {
 		} else {
 			startRow += offset;
 		}
-		_.forEach(data, (row, i) => {
+		data.forEach((row, i) => {
 			this.data[startRow + i] = row;
 		});
 		return this;

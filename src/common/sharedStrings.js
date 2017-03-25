@@ -56,36 +56,21 @@ class SharedStringsStream extends (Readable || null) {
 		super(options);
 		this.strings = options.strings;
 		this.status = 0;
+		this.index = 0;
+		this.len = this.strings.length;
 	}
 	_read(size) {
 		let stop = false;
 
 		if (this.status === 0) {
-			stop = !this.push(getXMLBegin(this.strings.length));
+			stop = !this.push(getXMLBegin(this.len));
 
 			this.status = 1;
-			this.index = 0;
-			this.len = this.strings.length;
 		}
 
 		if (this.status === 1) {
-			let s = '';
-			let str;
-
 			while (this.index < this.len && !stop) {
-				while (this.index < this.len && s.length < size) {
-					str = _.escape(this.strings[this.index]);
-
-					if (spaceRE.test(str)) {
-						s += `<si><t xml:space="preserve">${str}</t></si>`;
-					} else {
-						s += `<si><t>${str}</t></si>`;
-					}
-					this.strings[this.index] = null;
-					this.index++;
-				}
-				stop = !this.push(s);
-				s = '';
+				stop = !this.push(this.packChunk(size));
 			}
 
 			if (this.index === this.len) {
@@ -97,6 +82,22 @@ class SharedStringsStream extends (Readable || null) {
 			this.push(getXMLEnd());
 			this.push(null);
 		}
+	}
+	packChunk(size) {
+		let s = '';
+
+		while (this.index < this.len && s.length < size) {
+			const str = _.escape(this.strings[this.index]);
+
+			if (spaceRE.test(str)) {
+				s += `<si><t xml:space="preserve">${str}</t></si>`;
+			} else {
+				s += `<si><t>${str}</t></si>`;
+			}
+			this.strings[this.index] = null;
+			this.index++;
+		}
+		return s;
 	}
 }
 

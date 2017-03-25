@@ -13,25 +13,9 @@ class Images {
 		if (!image) {
 			const id = this.common.uniqueIdForSpace('image');
 			const path = `xl/media/image${id}.${type}`;
-			let contentType;
+			const contentType = getContentType(type);
 
 			name = name || 'excelWriter' + id;
-			switch (type.toLowerCase()) {
-				case 'jpeg':
-				case 'jpg':
-					contentType = 'image/jpeg';
-					break;
-				case 'png':
-					contentType = 'image/png';
-					break;
-				case 'gif':
-					contentType = 'image/gif';
-					break;
-				default:
-					contentType = null;
-					break;
-			}
-
 			image = {
 				objectId: 'image' + id,
 				data,
@@ -62,6 +46,20 @@ class Images {
 	}
 	getExtensions() {
 		return this._extensions;
+	}
+}
+
+function getContentType(type) {
+	switch (type.toLowerCase()) {
+		case 'jpeg':
+		case 'jpg':
+			return 'image/jpeg';
+		case 'png':
+			return 'image/png';
+		case 'gif':
+			return 'image/gif';
+		default:
+			return null;
 	}
 }
 

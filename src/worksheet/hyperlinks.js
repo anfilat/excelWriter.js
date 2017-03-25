@@ -1,6 +1,5 @@
 'use strict';
 
-const _ = require('lodash');
 const util = require('../util');
 const MergedCells = require('./mergedCells');
 const toXMLString = require('../XMLString');
@@ -41,7 +40,7 @@ class Hyperlinks extends MergedCells {
 	}
 	_saveHyperlinks() {
 		if (this._hyperlinks.length > 0) {
-			const children = _.map(this._hyperlinks, hyperlink => {
+			const children = this._hyperlinks.map(hyperlink => {
 				const attributes = [
 					['ref', util.canonCell(hyperlink.cell)],
 					['r:id', this.relations.getRelationshipId(hyperlink)]

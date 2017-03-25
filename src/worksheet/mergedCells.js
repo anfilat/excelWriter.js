@@ -43,7 +43,7 @@ class MergedCells extends DrawingsExt {
 	}
 	_saveMergeCells() {
 		if (this._mergedCells.length > 0) {
-			const children = _.map(this._mergedCells,
+			const children = this._mergedCells.map(
 				mergeCell => toXMLString({
 					name: 'mergeCell',
 					attributes: [
