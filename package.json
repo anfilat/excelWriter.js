@@ -23,14 +23,14 @@
     "lodash": "^4.0.0"
   },
   "devDependencies": {
-    "lorem-ipsum": "*",
-    "eslint": "^3.0.0",
+    "babel-preset-es2015": "*",
+    "babelify": "*",
     "browserify": "^13.0.0",
     "browserify-shim": "^3.8.12",
+    "eslint": "^3.0.0",
     "eslintify": "^3.0.0",
-    "babelify": "*",
-    "babel-preset-es2015": "*",
-    "uglify-js": "~2.8.0"
+    "lorem-ipsum": "*",
+    "uglify-js": "^2.8.29"
   },
   "browserify-shim": {
     "lodash": "global:_",

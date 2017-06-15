@@ -25,7 +25,7 @@ console.timeEnd('Generate test data');
 console.log('Memory before - ', process.memoryUsage());
 console.time('time');
 
-excel.saveAsNodeStream(run(testData))
+run(testData).saveAsNodeStream()
 	.pipe(fs.createWriteStream(`xlsx/${fileName}.xlsx`))
 	.on('finish', () => {
 		console.timeEnd('time');

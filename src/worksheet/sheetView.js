@@ -9,8 +9,8 @@ const Hyperlinks = require('./hyperlinks');
 const toXMLString = require('../XMLString');
 
 class SheetView extends Hyperlinks {
-	constructor(workbook, config) {
-		super(workbook, config);
+	constructor(workbook, common, config) {
+		super(workbook, common, config);
 		this._pane = null;
 		this._attributes = {
 			defaultGridColor: {

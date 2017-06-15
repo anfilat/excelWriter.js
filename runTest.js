@@ -12,7 +12,7 @@ function compare(test, fileName) {
 	const xlsxFileName = `xlsx/${testName}.xlsx`;
 	const workbook = test(excelWriter);
 
-	return excelWriter.save(workbook, {type: 'nodebuffer'})
+	return workbook.save({type: 'nodebuffer'})
 		.then(result => {
 			const example = fs.readFileSync(xlsxFileName);
 
@@ -35,7 +35,7 @@ function write(test, fileName) {
 		fs.mkdirSync('xlsx');
 	}
 
-	return excelWriter.saveAsNodeStream(workbook)
+	return workbook.saveAsNodeStream()
 		.pipe(fs.createWriteStream(xlsxFileName));
 }
 

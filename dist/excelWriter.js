@@ -789,42 +789,91 @@ var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var JSZip = typeof window !== "undefined" ? window['JSZip'] : typeof global !== "undefined" ? global['JSZip'] : null;
 var Workbook = require('./workbook');
+var Worksheet = require('./worksheet');
 
-module.exports = {
-	createWorkbook: function createWorkbook() {
-		return new Workbook();
-	},
+// Excel workbook API. Outer workbook
+function createWorkbook() {
+	var workbook = new Workbook();
+	var common = workbook.common;
+	var styles = common.styles;
+	var images = common.images;
+	var relations = workbook.relations;
 
-	/**
-  * Turns a workbook into a downloadable file.
-  * @param {Workbook} workbook - The workbook that is being converted
-  * @param {Object?} options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
-  */
-	save: function save(workbook, options) {
-		var zip = new JSZip();
-		var canStream = !!Readable;
+	return {
+		addWorksheet: function addWorksheet(config) {
+			config = _.defaults(config, {
+				name: common.getNewWorksheetDefaultName()
+			});
+			var worksheet = new Worksheet(this, common, config);
+			common.addWorksheet(worksheet);
+			relations.addRelation(worksheet, 'worksheet');
 
-		workbook._generateFiles(zip, canStream);
-		return zip.generateAsync(_.defaults(options, {
-			compression: 'DEFLATE',
-			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-			type: 'base64'
-		}));
-	},
+			return worksheet;
+		},
+		addFormat: function addFormat(format, name) {
+			return styles.addFormat(format, name);
+		},
+		addFontFormat: function addFontFormat(format, name) {
+			return styles.addFontFormat(format, name);
+		},
+		addBorderFormat: function addBorderFormat(format, name) {
+			return styles.addBorderFormat(format, name);
+		},
+		addPatternFormat: function addPatternFormat(format, name) {
+			return styles.addPatternFormat(format, name);
+		},
+		addGradientFormat: function addGradientFormat(format, name) {
+			return styles.addGradientFormat(format, name);
+		},
+		addNumberFormat: function addNumberFormat(format, name) {
+			return styles.addNumberFormat(format, name);
+		},
+		addTableFormat: function addTableFormat(format, name) {
+			return styles.addTableFormat(format, name);
+		},
+		addTableElementFormat: function addTableElementFormat(format, name) {
+			return styles.addTableElementFormat(format, name);
+		},
+		setDefaultTableStyle: function setDefaultTableStyle(name) {
+			styles.setDefaultTableStyle(name);
+			return this;
+		},
+		addImage: function addImage(data, type, name) {
+			return images.addImage(data, type, name);
+		},
 
-	saveAsNodeStream: function saveAsNodeStream(workbook, options) {
-		var zip = new JSZip();
-		var canStream = !!Readable;
 
-		workbook._generateFiles(zip, canStream);
-		return zip.generateNodeStream(_.defaults(options, {
-			compression: 'DEFLATE'
-		}));
-	}
-};
+		/**
+   * Turns a workbook into a downloadable file.
+   * options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
+   */
+		save: function save(options) {
+			var zip = new JSZip();
+			var canStream = !!Readable;
+
+			workbook.generateFiles(zip, canStream);
+			return zip.generateAsync(_.defaults(options, {
+				compression: 'DEFLATE',
+				mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+				type: 'base64'
+			}));
+		},
+		saveAsNodeStream: function saveAsNodeStream(options) {
+			var zip = new JSZip();
+			var canStream = !!Readable;
+
+			workbook.generateFiles(zip, canStream);
+			return zip.generateNodeStream(_.defaults(options, {
+				compression: 'DEFLATE'
+			}));
+		}
+	};
+}
+
+module.exports = { createWorkbook: createWorkbook };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./workbook":27,"stream":1}],12:[function(require,module,exports){
+},{"./workbook":27,"./worksheet":30,"stream":1}],12:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2571,325 +2620,237 @@ module.exports = {
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('./util');
 var Common = require('./common');
 var Relations = require('./relations');
-var Worksheet = require('./worksheet');
 var toXMLString = require('./XMLString');
 
-var Workbook = function () {
-	function Workbook() {
-		_classCallCheck(this, Workbook);
+// inner workbook
+function Workbook() {
+	this.common = new Common();
+	this.styles = this.common.styles;
+	this.images = this.common.images;
 
-		this.common = new Common();
-		this.styles = this.common.styles;
-		this.images = this.common.images;
-
-		this.objectId = this.common.uniqueId('Workbook');
-
-		this.relations = new Relations(this.common);
-		this.relations.addRelation(this.styles, 'stylesheet');
-	}
-
-	_createClass(Workbook, [{
-		key: 'addWorksheet',
-		value: function addWorksheet(config) {
-			config = _.defaults(config, {
-				name: this.common.getNewWorksheetDefaultName()
-			});
-			var worksheet = new Worksheet(this, config);
-			this.common.addWorksheet(worksheet);
-			this.relations.addRelation(worksheet, 'worksheet');
-
-			return worksheet;
-		}
-	}, {
-		key: 'addFormat',
-		value: function addFormat(format, name) {
-			return this.styles.addFormat(format, name);
-		}
-	}, {
-		key: 'addFontFormat',
-		value: function addFontFormat(format, name) {
-			return this.styles.addFontFormat(format, name);
-		}
-	}, {
-		key: 'addBorderFormat',
-		value: function addBorderFormat(format, name) {
-			return this.styles.addBorderFormat(format, name);
-		}
-	}, {
-		key: 'addPatternFormat',
-		value: function addPatternFormat(format, name) {
-			return this.styles.addPatternFormat(format, name);
-		}
-	}, {
-		key: 'addGradientFormat',
-		value: function addGradientFormat(format, name) {
-			return this.styles.addGradientFormat(format, name);
-		}
-	}, {
-		key: 'addNumberFormat',
-		value: function addNumberFormat(format, name) {
-			return this.styles.addNumberFormat(format, name);
-		}
-	}, {
-		key: 'addTableFormat',
-		value: function addTableFormat(format, name) {
-			return this.styles.addTableFormat(format, name);
-		}
-	}, {
-		key: 'addTableElementFormat',
-		value: function addTableElementFormat(format, name) {
-			return this.styles.addTableElementFormat(format, name);
-		}
-	}, {
-		key: 'setDefaultTableStyle',
-		value: function setDefaultTableStyle(name) {
-			this.styles.setDefaultTableStyle(name);
-			return this;
-		}
-	}, {
-		key: 'addImage',
-		value: function addImage(data, type, name) {
-			return this.images.addImage(data, type, name);
-		}
-	}, {
-		key: '_generateFiles',
-		value: function _generateFiles(zip, canStream) {
-			prepareWorksheets(this.common);
-
-			saveWorksheets(zip, canStream, this.common);
-			saveTables(zip, this.common);
-			saveImages(zip, this.images);
-			saveDrawings(zip, this.common);
-			saveStyles(zip, this.styles);
-			saveStrings(zip, canStream, this.relations, this.common);
-			zip.file('[Content_Types].xml', createContentTypes(this.common));
-			zip.file('_rels/.rels', createWorkbookRelationship());
-			zip.file('xl/workbook.xml', this._save());
-			zip.file('xl/_rels/workbook.xml.rels', this.relations.save());
-		}
-	}, {
-		key: '_save',
-		value: function _save() {
-			return toXMLString({
-				name: 'workbook',
-				ns: 'spreadsheetml',
-				attributes: [['xmlns:r', util.schemas.relationships]],
-				children: [bookViewsXML(this.common), sheetsXML(this.relations, this.common), definedNamesXML(this.common)]
-			});
-		}
-	}]);
-
-	return Workbook;
-}();
-
-function bookViewsXML(common) {
-	var activeTab = 0;
-
-	if (common.activeWorksheet) {
-		var activeWorksheetId = common.activeWorksheet.objectId;
-
-		activeTab = Math.max(activeTab, common.worksheets.findIndex(function (worksheet) {
-			return worksheet.objectId === activeWorksheetId;
-		}));
-	}
-
-	return toXMLString({
-		name: 'bookViews',
-		children: [toXMLString({
-			name: 'workbookView',
-			attributes: [['activeTab', activeTab]]
-		})]
-	});
+	this.relations = new Relations(this.common);
+	this.relations.addRelation(this.common.styles, 'stylesheet');
 }
 
-function sheetsXML(relations, common) {
-	var maxWorksheetNameLength = 31;
-	var children = common.worksheets.map(function (worksheet, index) {
-		// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
-		// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
-		if (worksheet.name.length > maxWorksheetNameLength) {
-			throw 'Microsoft Excel requires work sheet names to be less than ' + (maxWorksheetNameLength + 1) + ' characters long, work sheet name "' + worksheet.name + '" is ' + worksheet.name.length + ' characters long';
+Workbook.prototype = {
+	generateFiles: function generateFiles(zip, canStream) {
+		this.prepareWorksheets();
+
+		this.saveWorksheets(zip, canStream);
+		this.saveTables(zip);
+		this.saveImages(zip);
+		this.saveDrawings(zip);
+		this.saveStyles(zip);
+		this.saveStrings(zip, canStream);
+		zip.file('[Content_Types].xml', this.createContentTypes());
+		zip.file('_rels/.rels', this.createWorkbookRelationship());
+		zip.file('xl/workbook.xml', this.save());
+		zip.file('xl/_rels/workbook.xml.rels', this.relations.save());
+	},
+	save: function save() {
+		return toXMLString({
+			name: 'workbook',
+			ns: 'spreadsheetml',
+			attributes: [['xmlns:r', util.schemas.relationships]],
+			children: [this.bookViewsXML(), this.sheetsXML(), this.definedNamesXML()]
+		});
+	},
+	bookViewsXML: function bookViewsXML() {
+		var activeTab = 0;
+
+		if (this.common.activeWorksheet) {
+			var activeWorksheetId = this.common.activeWorksheet.objectId;
+
+			activeTab = Math.max(activeTab, this.common.worksheets.findIndex(function (worksheet) {
+				return worksheet.objectId === activeWorksheetId;
+			}));
 		}
 
 		return toXMLString({
-			name: 'sheet',
-			attributes: [['name', worksheet.name], ['sheetId', index + 1], ['r:id', relations.getRelationshipId(worksheet)], ['state', worksheet.getState()]]
+			name: 'bookViews',
+			children: [toXMLString({
+				name: 'workbookView',
+				attributes: [['activeTab', activeTab]]
+			})]
 		});
-	});
+	},
+	sheetsXML: function sheetsXML() {
+		var _this = this;
 
-	return toXMLString({
-		name: 'sheets',
-		children: children
-	});
-}
-
-function definedNamesXML(common) {
-	var isPrintTitles = common.worksheets.some(function (worksheet) {
-		return worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0);
-	});
-
-	if (isPrintTitles) {
-		var children = [];
-
-		common.worksheets.forEach(function (worksheet, index) {
-			var entry = worksheet._printTitles;
-
-			if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
-				var name = worksheet.name;
-				var value = '';
-
-				if (entry.topTo >= 0) {
-					value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
-					if (entry.leftTo >= 0) {
-						value += ',';
-					}
-				}
-				if (entry.leftTo >= 0) {
-					value += name + '!$' + util.positionToLetter(entry.leftFrom + 1) + ':$' + util.positionToLetter(entry.leftTo + 1);
-				}
-
-				children.push(toXMLString({
-					name: 'definedName',
-					value: value,
-					attributes: [['name', '_xlnm.Print_Titles'], ['localSheetId', index]]
-				}));
+		var maxWorksheetNameLength = 31;
+		var children = this.common.worksheets.map(function (worksheet, index) {
+			// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
+			// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
+			if (worksheet.name.length > maxWorksheetNameLength) {
+				throw 'Microsoft Excel requires work sheet names to be less than ' + (maxWorksheetNameLength + 1) + ' characters long, work sheet name "' + worksheet.name + '" is ' + worksheet.name.length + ' characters long';
 			}
+
+			return toXMLString({
+				name: 'sheet',
+				attributes: [['name', worksheet.name], ['sheetId', index + 1], ['r:id', _this.relations.getRelationshipId(worksheet)], ['state', worksheet.getState()]]
+			});
 		});
 
 		return toXMLString({
-			name: 'definedNames',
+			name: 'sheets',
 			children: children
 		});
-	}
-	return '';
-}
+	},
+	definedNamesXML: function definedNamesXML() {
+		var isPrintTitles = this.common.worksheets.some(function (worksheet) {
+			return worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0);
+		});
 
-function prepareWorksheets(common) {
-	common.worksheets.forEach(function (worksheet) {
-		worksheet._prepare();
-	});
-}
+		if (isPrintTitles) {
+			var children = [];
 
-function saveWorksheets(zip, canStream, common) {
-	common.worksheets.forEach(function (worksheet) {
-		zip.file(worksheet.path, worksheet._save(canStream));
-		zip.file(worksheet.relationsPath, worksheet.relations.save());
-	});
-}
+			this.common.worksheets.forEach(function (worksheet, index) {
+				var entry = worksheet._printTitles;
 
-function saveTables(zip, common) {
-	common.tables.forEach(function (table) {
-		zip.file(table.path, table._save());
-	});
-}
+				if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
+					var name = worksheet.name;
+					var value = '';
 
-function saveImages(zip, images) {
-	_.forEach(images.getImages(), function (image) {
-		zip.file(image.path, image.data, { base64: true, binary: true });
-		image.data = null;
-	});
-	images.removeImages();
-}
+					if (entry.topTo >= 0) {
+						value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
+						if (entry.leftTo >= 0) {
+							value += ',';
+						}
+					}
+					if (entry.leftTo >= 0) {
+						value += name + '!$' + util.positionToLetter(entry.leftFrom + 1) + ':$' + util.positionToLetter(entry.leftTo + 1);
+					}
 
-function saveDrawings(zip, common) {
-	common.drawings.forEach(function (drawing) {
-		zip.file(drawing.path, drawing.save());
-		zip.file(drawing.relationsPath, drawing.relations.save());
-	});
-}
+					children.push(toXMLString({
+						name: 'definedName',
+						value: value,
+						attributes: [['name', '_xlnm.Print_Titles'], ['localSheetId', index]]
+					}));
+				}
+			});
 
-function saveStyles(zip, styles) {
-	zip.file('xl/styles.xml', styles.save());
-}
+			return toXMLString({
+				name: 'definedNames',
+				children: children
+			});
+		}
+		return '';
+	},
+	prepareWorksheets: function prepareWorksheets() {
+		this.common.worksheets.forEach(function (worksheet) {
+			worksheet._prepare();
+		});
+	},
+	saveWorksheets: function saveWorksheets(zip, canStream) {
+		this.common.worksheets.forEach(function (worksheet) {
+			zip.file(worksheet.path, worksheet._save(canStream));
+			zip.file(worksheet.relationsPath, worksheet.relations.save());
+		});
+	},
+	saveTables: function saveTables(zip) {
+		this.common.tables.forEach(function (table) {
+			zip.file(table.path, table._save());
+		});
+	},
+	saveImages: function saveImages(zip) {
+		_.forEach(this.images.getImages(), function (image) {
+			zip.file(image.path, image.data, { base64: true, binary: true });
+			image.data = null;
+		});
+		this.images.removeImages();
+	},
+	saveDrawings: function saveDrawings(zip) {
+		this.common.drawings.forEach(function (drawing) {
+			zip.file(drawing.path, drawing.save());
+			zip.file(drawing.relationsPath, drawing.relations.save());
+		});
+	},
+	saveStyles: function saveStyles(zip) {
+		zip.file('xl/styles.xml', this.styles.save());
+	},
+	saveStrings: function saveStrings(zip, canStream) {
+		if (this.common.strings.isStrings()) {
+			this.relations.addRelation(this.common.strings, 'sharedStrings');
+			zip.file('xl/sharedStrings.xml', this.common.strings.save(canStream));
+		}
+	},
+	createContentTypes: function createContentTypes() {
+		var children = [];
 
-function saveStrings(zip, canStream, relations, common) {
-	if (common.strings.isStrings()) {
-		relations.addRelation(common.strings, 'sharedStrings');
-		zip.file('xl/sharedStrings.xml', common.strings.save(canStream));
-	}
-}
-
-function createContentTypes(common) {
-	var children = [];
-
-	children.push(toXMLString({
-		name: 'Default',
-		attributes: [['Extension', 'rels'], ['ContentType', 'application/vnd.openxmlformats-package.relationships+xml']]
-	}));
-	children.push(toXMLString({
-		name: 'Default',
-		attributes: [['Extension', 'xml'], ['ContentType', 'application/xml']]
-	}));
-	children.push(toXMLString({
-		name: 'Override',
-		attributes: [['PartName', '/xl/workbook.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml']]
-	}));
-	if (common.strings.isStrings()) {
-		children.push(toXMLString({
-			name: 'Override',
-			attributes: [['PartName', '/xl/sharedStrings.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml']]
-		}));
-	}
-	children.push(toXMLString({
-		name: 'Override',
-		attributes: [['PartName', '/xl/styles.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml']]
-	}));
-
-	common.worksheets.forEach(function (worksheet, index) {
-		children.push(toXMLString({
-			name: 'Override',
-			attributes: [['PartName', '/xl/worksheets/sheet' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml']]
-		}));
-	});
-	common.tables.forEach(function (table, index) {
-		children.push(toXMLString({
-			name: 'Override',
-			attributes: [['PartName', '/xl/tables/table' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml']]
-		}));
-	});
-	_.forEach(common.images.getExtensions(), function (contentType, extension) {
 		children.push(toXMLString({
 			name: 'Default',
-			attributes: [['Extension', extension], ['ContentType', contentType]]
+			attributes: [['Extension', 'rels'], ['ContentType', 'application/vnd.openxmlformats-package.relationships+xml']]
 		}));
-	});
-	common.drawings.forEach(function (drawing, index) {
+		children.push(toXMLString({
+			name: 'Default',
+			attributes: [['Extension', 'xml'], ['ContentType', 'application/xml']]
+		}));
 		children.push(toXMLString({
 			name: 'Override',
-			attributes: [['PartName', '/xl/drawings/drawing' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.drawing+xml']]
+			attributes: [['PartName', '/xl/workbook.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml']]
 		}));
-	});
+		if (this.common.strings.isStrings()) {
+			children.push(toXMLString({
+				name: 'Override',
+				attributes: [['PartName', '/xl/sharedStrings.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml']]
+			}));
+		}
+		children.push(toXMLString({
+			name: 'Override',
+			attributes: [['PartName', '/xl/styles.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml']]
+		}));
 
-	return toXMLString({
-		name: 'Types',
-		ns: 'contentTypes',
-		children: children
-	});
-}
+		this.common.worksheets.forEach(function (worksheet, index) {
+			children.push(toXMLString({
+				name: 'Override',
+				attributes: [['PartName', '/xl/worksheets/sheet' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml']]
+			}));
+		});
+		this.common.tables.forEach(function (table, index) {
+			children.push(toXMLString({
+				name: 'Override',
+				attributes: [['PartName', '/xl/tables/table' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml']]
+			}));
+		});
+		_.forEach(this.common.images.getExtensions(), function (contentType, extension) {
+			children.push(toXMLString({
+				name: 'Default',
+				attributes: [['Extension', extension], ['ContentType', contentType]]
+			}));
+		});
+		this.common.drawings.forEach(function (drawing, index) {
+			children.push(toXMLString({
+				name: 'Override',
+				attributes: [['PartName', '/xl/drawings/drawing' + (index + 1) + '.xml'], ['ContentType', 'application/vnd.openxmlformats-officedocument.drawing+xml']]
+			}));
+		});
 
-function createWorkbookRelationship() {
-	return toXMLString({
-		name: 'Relationships',
-		ns: 'relationshipPackage',
-		children: [toXMLString({
-			name: 'Relationship',
-			attributes: [['Id', 'rId1'], ['Type', util.schemas.officeDocument], ['Target', 'xl/workbook.xml']]
-		})]
-	});
-}
+		return toXMLString({
+			name: 'Types',
+			ns: 'contentTypes',
+			children: children
+		});
+	},
+	createWorkbookRelationship: function createWorkbookRelationship() {
+		return toXMLString({
+			name: 'Relationships',
+			ns: 'relationshipPackage',
+			children: [toXMLString({
+				name: 'Relationship',
+				attributes: [['Id', 'rId1'], ['Type', util.schemas.officeDocument], ['Target', 'xl/workbook.xml']]
+			})]
+		});
+	}
+};
 
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":4,"./relations":12,"./util":26,"./worksheet":30}],28:[function(require,module,exports){
+},{"./XMLString":2,"./common":4,"./relations":12,"./util":26}],28:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3092,15 +3053,15 @@ var Relations = require('../relations');
 var Worksheet = function (_WorksheetSave) {
 	_inherits(Worksheet, _WorksheetSave);
 
-	function Worksheet(workbook) {
-		var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+	function Worksheet(outerWorkbook, common) {
+		var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
 		_classCallCheck(this, Worksheet);
 
-		var _this = _possibleConstructorReturn(this, (Worksheet.__proto__ || Object.getPrototypeOf(Worksheet)).call(this, workbook, config));
+		var _this = _possibleConstructorReturn(this, (Worksheet.__proto__ || Object.getPrototypeOf(Worksheet)).call(this, outerWorkbook, common, config));
 
-		_this.workbook = workbook;
-		_this.common = workbook.common;
+		_this.outerWorkbook = outerWorkbook;
+		_this.common = common;
 		_this.styles = _this.common.styles;
 
 		_this.objectId = _this.common.uniqueId('Worksheet');
@@ -3118,7 +3079,7 @@ var Worksheet = function (_WorksheetSave) {
 	_createClass(Worksheet, [{
 		key: 'end',
 		value: function end() {
-			return this.workbook;
+			return this.outerWorkbook;
 		}
 	}, {
 		key: 'setActive',
@@ -4165,10 +4126,10 @@ var toXMLString = require('../XMLString');
 var SheetView = function (_Hyperlinks) {
 	_inherits(SheetView, _Hyperlinks);
 
-	function SheetView(workbook, config) {
+	function SheetView(workbook, common, config) {
 		_classCallCheck(this, SheetView);
 
-		var _this = _possibleConstructorReturn(this, (SheetView.__proto__ || Object.getPrototypeOf(SheetView)).call(this, workbook, config));
+		var _this = _possibleConstructorReturn(this, (SheetView.__proto__ || Object.getPrototypeOf(SheetView)).call(this, workbook, common, config));
 
 		_this._pane = null;
 		_this._attributes = {

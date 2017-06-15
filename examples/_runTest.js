@@ -17,7 +17,7 @@ module.exports = function (test) {
 		fs.mkdirSync('xlsx');
 	}
 
-	excelWriter.saveAsNodeStream(workbook)
+	workbook.saveAsNodeStream()
 		.pipe(fs.createWriteStream(`xlsx/${fileName}.xlsx`))
 		.on('finish', () => {
 			console.log('Excel file written.');

@@ -4,10 +4,10 @@ const WorksheetSave = require('./save');
 const Relations = require('../relations');
 
 class Worksheet extends WorksheetSave {
-	constructor(workbook, config = {}) {
-		super(workbook, config);
-		this.workbook = workbook;
-		this.common = workbook.common;
+	constructor(outerWorkbook, common, config = {}) {
+		super(outerWorkbook, common, config);
+		this.outerWorkbook = outerWorkbook;
+		this.common = common;
 		this.styles = this.common.styles;
 
 		this.objectId = this.common.uniqueId('Worksheet');
@@ -21,7 +21,7 @@ class Worksheet extends WorksheetSave {
 		this.relations = new Relations(this.common);
 	}
 	end() {
-		return this.workbook;
+		return this.outerWorkbook;
 	}
 	setActive() {
 		this.common.setActiveWorksheet(this);

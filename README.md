@@ -23,7 +23,7 @@ Short example
 			{width: 40}
 		]);
    		
-	excelWriter.saveAsNodeStream(workbook)
+	workbook.saveAsNodeStream()
 		.pipe(fs.createWriteStream('./excel.xlsx'))
 
 

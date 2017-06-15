@@ -113,8 +113,8 @@
 				.setRow(2, {height: 25})
 				.setRows(3, [{height: 20}, {height: 15}]);
 
-			excelWriter
-				.save(workbook, {type: 'blob'})
+			workbook
+				.save({type: 'blob'})
 				.then(function (content) {
 					saveAs(content, 'sample.xlsx');
 				});
