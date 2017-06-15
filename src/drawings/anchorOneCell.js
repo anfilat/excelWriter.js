@@ -4,32 +4,33 @@ const _ = require('lodash');
 const util = require('../util');
 const toXMLString = require('../XMLString');
 
-class AnchorOneCell {
-	constructor(config) {
-		let coord;
+function AnchorOneCell(config) {
+	let coord;
 
-		if (_.isObject(config)) {
-			if (_.has(config, 'cell')) {
-				if (_.isObject(config.cell)) {
-					coord = {x: config.cell.c || 1, y: config.cell.r || 1};
-				} else {
-					coord = util.letterToPosition(config.cell || '');
-				}
+	if (_.isObject(config)) {
+		if (_.has(config, 'cell')) {
+			if (_.isObject(config.cell)) {
+				coord = {x: config.cell.c || 1, y: config.cell.r || 1};
 			} else {
-				coord = {x: config.c || 1, y: config.r || 1};
+				coord = util.letterToPosition(config.cell || '');
 			}
 		} else {
-			coord = util.letterToPosition(config || '');
-			config = {};
+			coord = {x: config.c || 1, y: config.r || 1};
 		}
-
-		this.x = coord.x - 1;
-		this.y = coord.y - 1;
-		this.xOff = util.pixelsToEMUs(config.left || 0);
-		this.yOff = util.pixelsToEMUs(config.top || 0);
-		this.width = util.pixelsToEMUs(config.width || 0);
-		this.height = util.pixelsToEMUs(config.height || 0);
+	} else {
+		coord = util.letterToPosition(config || '');
+		config = {};
 	}
+
+	this.x = coord.x - 1;
+	this.y = coord.y - 1;
+	this.xOff = util.pixelsToEMUs(config.left || 0);
+	this.yOff = util.pixelsToEMUs(config.top || 0);
+	this.width = util.pixelsToEMUs(config.width || 0);
+	this.height = util.pixelsToEMUs(config.height || 0);
+}
+
+AnchorOneCell.prototype = {
 	saveWithContent(content) {
 		return toXMLString({
 			name: 'xdr:oneCellAnchor',
@@ -69,6 +70,6 @@ class AnchorOneCell {
 			]
 		});
 	}
-}
+};
 
 module.exports = AnchorOneCell;

@@ -95,14 +95,14 @@ Workbook.prototype = {
 	},
 	definedNamesXML() {
 		const isPrintTitles = this.common.worksheets.some(
-			worksheet => worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0)
+			worksheet => worksheet.printTitles && (worksheet.printTitles.topTo >= 0 || worksheet.printTitles.leftTo >= 0)
 		);
 
 		if (isPrintTitles) {
 			const children = [];
 
 			this.common.worksheets.forEach((worksheet, index) => {
-				const entry = worksheet._printTitles;
+				const entry = worksheet.printTitles;
 
 				if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
 					const name = worksheet.name;
@@ -139,18 +139,18 @@ Workbook.prototype = {
 	},
 	prepareWorksheets() {
 		this.common.worksheets.forEach(worksheet => {
-			worksheet._prepare();
+			worksheet.prepare();
 		});
 	},
 	saveWorksheets(zip, canStream) {
 		this.common.worksheets.forEach(worksheet => {
-			zip.file(worksheet.path, worksheet._save(canStream));
+			zip.file(worksheet.path, worksheet.save(canStream));
 			zip.file(worksheet.relationsPath, worksheet.relations.save());
 		});
 	},
 	saveTables(zip) {
 		this.common.tables.forEach(table => {
-			zip.file(table.path, table._save());
+			zip.file(table.path, table.save());
 		});
 	},
 	saveImages(zip) {

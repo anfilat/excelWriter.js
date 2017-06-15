@@ -4,13 +4,14 @@ const _ = require('lodash');
 const util = require('./util');
 const toXMLString = require('./XMLString');
 
-class RelationshipManager {
-	constructor(common) {
-		this.common = common;
+function RelationshipManager(common) {
+	this.common = common;
 
-		this.relations = Object.create(null);
-		this.lastId = 1;
-	}
+	this.relations = Object.create(null);
+	this.lastId = 1;
+}
+
+RelationshipManager.prototype = {
 	addRelation(object, type) {
 		const relation = this.relations[object.objectId];
 
@@ -25,12 +26,12 @@ class RelationshipManager {
 			object
 		};
 		return relationId;
-	}
+	},
 	getRelationshipId(object) {
 		const relation = this.relations[object.objectId];
 
 		return relation ? relation.relationId : null;
-	}
+	},
 	save() {
 		const common = this.common;
 		const children = _.map(this.relations, relation => {
@@ -56,6 +57,6 @@ class RelationshipManager {
 			children
 		});
 	}
-}
+};
 
 module.exports = RelationshipManager;

@@ -4,7 +4,7 @@ const Readable = require('stream').Readable;
 const _ = require('lodash');
 const JSZip = require('jszip');
 const Workbook = require('./workbook');
-const Worksheet = require('./worksheet');
+const createWorksheet = require('./worksheet');
 
 // Excel workbook API. Outer workbook
 function createWorkbook() {
@@ -19,11 +19,11 @@ function createWorkbook() {
 			config = _.defaults(config, {
 				name: common.getNewWorksheetDefaultName()
 			});
-			const worksheet = new Worksheet(this, common, config);
+			const {outerWorksheet, worksheet} = createWorksheet(this, common, config);
 			common.addWorksheet(worksheet);
 			relations.addRelation(worksheet, 'worksheet');
 
-			return worksheet;
+			return outerWorksheet;
 		},
 
 		addFormat(format, name) {

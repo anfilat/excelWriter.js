@@ -2,19 +2,18 @@
 
 const _ = require('lodash');
 const util = require('../util');
-const DrawingsExt = require('./drawing');
 const toXMLString = require('../XMLString');
 
-class MergedCells extends DrawingsExt {
-	constructor() {
-		super();
-		this._mergedCells = [];
-	}
+function MergedCells(worksheet) {
+	this.worksheet = worksheet;
+	this.mergedCells = [];
+}
+
+MergedCells.prototype = {
 	mergeCells(cell1, cell2) {
-		this._mergedCells.push([cell1, cell2]);
-		return this;
-	}
-	_insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, style) {
+		this.mergedCells.push([cell1, cell2]);
+	},
+	insert(dataRow, colIndex, rowIndex, colSpan, rowSpan, style) {
 		if (colSpan) {
 			dataRow = [
 				...dataRow.slice(0, colIndex + 1),
@@ -23,14 +22,16 @@ class MergedCells extends DrawingsExt {
 			];
 		}
 		if (rowSpan) {
+			const data = this.worksheet.data;
+
 			_.forEach(_.range(rowIndex + 1, rowIndex + 1 + rowSpan), index => {
-				let row = this.data[index] || [];
+				let row = data[index] || [];
 
 				if (_.isArray(row)) {
 					row = {
 						data: row
 					};
-					this.data[index] = row;
+					data[index] = row;
 				}
 
 				row.inserts = row.inserts || [];
@@ -40,10 +41,10 @@ class MergedCells extends DrawingsExt {
 			});
 		}
 		return dataRow;
-	}
-	_saveMergeCells() {
-		if (this._mergedCells.length > 0) {
-			const children = this._mergedCells.map(
+	},
+	save() {
+		if (this.mergedCells.length > 0) {
+			const children = this.mergedCells.map(
 				mergeCell => toXMLString({
 					name: 'mergeCell',
 					attributes: [
@@ -55,13 +56,13 @@ class MergedCells extends DrawingsExt {
 			return toXMLString({
 				name: 'mergeCells',
 				attributes: [
-					['count', this._mergedCells.length]
+					['count', this.mergedCells.length]
 				],
 				children
 			});
 		}
 		return '';
 	}
-}
+};
 
 module.exports = MergedCells;

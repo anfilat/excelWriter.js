@@ -1,31 +1,33 @@
 'use strict';
 
-const Print = require('./print');
-const Table = require('../table');
+const createTable = require('../table');
 const toXMLString = require('../XMLString');
 
-class Tables extends Print {
-	constructor() {
-		super();
-		this._tables = [];
-	}
+function Tables(worksheet, common, relations) {
+	this.worksheet = worksheet;
+	this.common = common;
+	this.relations = relations;
+	this.tables = [];
+}
+
+Tables.prototype = {
 	addTable(config) {
-		const table = new Table(this, config);
+		const {outerTable, table} = createTable(this.worksheet.outerWorksheet, this.common, config);
 
 		this.common.addTable(table);
 		this.relations.addRelation(table, 'table');
-		this._tables.push(table);
+		this.tables.push(table);
 
-		return table;
-	}
-	_prepareTables() {
-		this._tables.forEach(table => {
-			table._prepare(this.data);
+		return outerTable;
+	},
+	prepare() {
+		this.tables.forEach(table => {
+			table.prepare(this.worksheet.data);
 		});
-	}
-	_saveTables() {
-		if (this._tables.length > 0) {
-			const children = this._tables.map(
+	},
+	save() {
+		if (this.tables.length > 0) {
+			const children = this.tables.map(
 				table => toXMLString({
 					name: 'tablePart',
 					attributes: [
@@ -37,13 +39,13 @@ class Tables extends Print {
 			return toXMLString({
 				name: 'tableParts',
 				attributes: [
-					['count', this._tables.length]
+					['count', this.tables.length]
 				],
 				children
 			});
 		}
 		return '';
 	}
-}
+};
 
 module.exports = Tables;

@@ -61,77 +61,58 @@ module.exports = toXMLString;
 },{"./util":26}],3:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+function Images(common) {
+	this.common = common;
+	this.images = Object.create(null);
+	this.imageByNames = Object.create(null);
+	this.extensions = Object.create(null);
+}
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+Images.prototype = {
+	addImage: function addImage(data) {
+		var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+		var name = arguments[2];
 
-var Images = function () {
-	function Images(common) {
-		_classCallCheck(this, Images);
+		var image = this.images[data];
 
-		this.common = common;
-		this._images = Object.create(null);
-		this._imageByNames = Object.create(null);
-		this._extensions = Object.create(null);
+		if (!image) {
+			var id = this.common.uniqueIdForSpace('image');
+			var path = 'xl/media/image' + id + '.' + type;
+			var contentType = getContentType(type);
+
+			name = name || 'excelWriter' + id;
+			image = {
+				objectId: 'image' + id,
+				data: data,
+				name: name,
+				contentType: contentType,
+				extension: type,
+				path: path
+			};
+			this.common.addPath(image, '/' + path);
+			this.images[data] = image;
+			this.imageByNames[name] = image;
+			this.extensions[type] = contentType;
+		} else if (name && !this.imageByNames[name]) {
+			image.name = name;
+			this.imageByNames[name] = image;
+		}
+		return image.name;
+	},
+	getImage: function getImage(name) {
+		return this.imageByNames[name];
+	},
+	getImages: function getImages() {
+		return this.images;
+	},
+	removeImages: function removeImages() {
+		this.images = null;
+		this.imageByNames = null;
+	},
+	getExtensions: function getExtensions() {
+		return this.extensions;
 	}
-
-	_createClass(Images, [{
-		key: 'addImage',
-		value: function addImage(data) {
-			var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
-			var name = arguments[2];
-
-			var image = this._images[data];
-
-			if (!image) {
-				var id = this.common.uniqueIdForSpace('image');
-				var path = 'xl/media/image' + id + '.' + type;
-				var contentType = getContentType(type);
-
-				name = name || 'excelWriter' + id;
-				image = {
-					objectId: 'image' + id,
-					data: data,
-					name: name,
-					contentType: contentType,
-					extension: type,
-					path: path
-				};
-				this.common.addPath(image, '/' + path);
-				this._images[data] = image;
-				this._imageByNames[name] = image;
-				this._extensions[type] = contentType;
-			} else if (name && !this._imageByNames[name]) {
-				image.name = name;
-				this._imageByNames[name] = image;
-			}
-			return image.name;
-		}
-	}, {
-		key: 'getImage',
-		value: function getImage(name) {
-			return this._imageByNames[name];
-		}
-	}, {
-		key: 'getImages',
-		value: function getImages() {
-			return this._images;
-		}
-	}, {
-		key: 'removeImages',
-		value: function removeImages() {
-			this._images = null;
-			this._imageByNames = null;
-		}
-	}, {
-		key: 'getExtensions',
-		value: function getExtensions() {
-			return this._extensions;
-		}
-	}]);
-
-	return Images;
-}();
+};
 
 function getContentType(type) {
 	switch (type.toLowerCase()) {
@@ -152,105 +133,78 @@ module.exports = Images;
 },{}],4:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var Images = require('./images');
 var SharedStrings = require('./sharedStrings');
 var Styles = require('../styles');
 
-var Common = function () {
-	function Common() {
-		_classCallCheck(this, Common);
+function Common() {
+	this.idSpaces = Object.create(null);
+	this.paths = Object.create(null);
 
-		this.idSpaces = Object.create(null);
-		this._paths = Object.create(null);
+	this.images = new Images(this);
 
-		this.images = new Images(this);
+	this.strings = new SharedStrings(this);
+	this.addPath(this.strings, 'sharedStrings.xml');
 
-		this.strings = new SharedStrings(this);
-		this.addPath(this.strings, 'sharedStrings.xml');
+	this.styles = new Styles(this);
+	this.addPath(this.styles, 'styles.xml');
 
-		this.styles = new Styles(this);
-		this.addPath(this.styles, 'styles.xml');
+	this.worksheets = [];
+	this.tables = [];
+	this.drawings = [];
+}
 
-		this.worksheets = [];
-		this.tables = [];
-		this.drawings = [];
+Common.prototype = {
+	uniqueId: function uniqueId(space) {
+		return space + this.uniqueIdForSpace(space);
+	},
+	uniqueIdForSpace: function uniqueIdForSpace(space) {
+		if (!this.idSpaces[space]) {
+			this.idSpaces[space] = 1;
+		}
+		return this.idSpaces[space]++;
+	},
+	addPath: function addPath(object, path) {
+		this.paths[object.objectId] = path;
+	},
+	getPath: function getPath(object) {
+		return this.paths[object.objectId];
+	},
+	addWorksheet: function addWorksheet(worksheet) {
+		var index = this.worksheets.length + 1;
+		var path = 'worksheets/sheet' + index + '.xml';
+		var relationsPath = 'xl/worksheets/_rels/sheet' + index + '.xml.rels';
+
+		worksheet.path = 'xl/' + path;
+		worksheet.relationsPath = relationsPath;
+		this.worksheets.push(worksheet);
+		this.addPath(worksheet, path);
+	},
+	getNewWorksheetDefaultName: function getNewWorksheetDefaultName() {
+		return 'Sheet ' + (this.worksheets.length + 1);
+	},
+	setActiveWorksheet: function setActiveWorksheet(worksheet) {
+		this.activeWorksheet = worksheet;
+	},
+	addTable: function addTable(table) {
+		var index = this.tables.length + 1;
+		var path = 'xl/tables/table' + index + '.xml';
+
+		table.path = path;
+		this.tables.push(table);
+		this.addPath(table, '/' + path);
+	},
+	addDrawings: function addDrawings(drawings) {
+		var index = this.drawings.length + 1;
+		var path = 'xl/drawings/drawing' + index + '.xml';
+		var relationsPath = 'xl/drawings/_rels/drawing' + index + '.xml.rels';
+
+		drawings.path = path;
+		drawings.relationsPath = relationsPath;
+		this.drawings.push(drawings);
+		this.addPath(drawings, '/' + path);
 	}
-
-	_createClass(Common, [{
-		key: 'uniqueId',
-		value: function uniqueId(space) {
-			return space + this.uniqueIdForSpace(space);
-		}
-	}, {
-		key: 'uniqueIdForSpace',
-		value: function uniqueIdForSpace(space) {
-			if (!this.idSpaces[space]) {
-				this.idSpaces[space] = 1;
-			}
-			return this.idSpaces[space]++;
-		}
-	}, {
-		key: 'addPath',
-		value: function addPath(object, path) {
-			this._paths[object.objectId] = path;
-		}
-	}, {
-		key: 'getPath',
-		value: function getPath(object) {
-			return this._paths[object.objectId];
-		}
-	}, {
-		key: 'addWorksheet',
-		value: function addWorksheet(worksheet) {
-			var index = this.worksheets.length + 1;
-			var path = 'worksheets/sheet' + index + '.xml';
-			var relationsPath = 'xl/worksheets/_rels/sheet' + index + '.xml.rels';
-
-			worksheet.path = 'xl/' + path;
-			worksheet.relationsPath = relationsPath;
-			this.worksheets.push(worksheet);
-			this.addPath(worksheet, path);
-		}
-	}, {
-		key: 'getNewWorksheetDefaultName',
-		value: function getNewWorksheetDefaultName() {
-			return 'Sheet ' + (this.worksheets.length + 1);
-		}
-	}, {
-		key: 'setActiveWorksheet',
-		value: function setActiveWorksheet(worksheet) {
-			this.activeWorksheet = worksheet;
-		}
-	}, {
-		key: 'addTable',
-		value: function addTable(table) {
-			var index = this.tables.length + 1;
-			var path = 'xl/tables/table' + index + '.xml';
-
-			table.path = path;
-			this.tables.push(table);
-			this.addPath(table, '/' + path);
-		}
-	}, {
-		key: 'addDrawings',
-		value: function addDrawings(drawings) {
-			var index = this.drawings.length + 1;
-			var path = 'xl/drawings/drawing' + index + '.xml';
-			var relationsPath = 'xl/drawings/_rels/drawing' + index + '.xml.rels';
-
-			drawings.path = path;
-			drawings.relationsPath = relationsPath;
-			this.drawings.push(drawings);
-			this.addPath(drawings, '/' + path);
-		}
-	}]);
-
-	return Common;
-}();
+};
 
 module.exports = Common;
 
@@ -260,11 +214,11 @@ module.exports = Common;
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
@@ -272,60 +226,49 @@ var util = require('../util');
 
 var spaceRE = /^\s|\s$/;
 
-var SharedStrings = function () {
-	function SharedStrings(common) {
-		_classCallCheck(this, SharedStrings);
+function SharedStrings(common) {
+	this.objectId = common.uniqueId('SharedStrings');
+	this.strings = Object.create(null);
+	this.stringArray = [];
+	this.count = 0;
+}
 
-		this.objectId = common.uniqueId('SharedStrings');
-		this._strings = Object.create(null);
-		this._stringArray = [];
-		this.count = 0;
+SharedStrings.prototype = {
+	add: function add(string) {
+		var stringId = this.strings[string];
+
+		if (stringId === undefined) {
+			stringId = this.count++;
+
+			this.strings[string] = stringId;
+			this.stringArray[stringId] = string;
+		}
+
+		return stringId;
+	},
+	isStrings: function isStrings() {
+		return this.count > 0;
+	},
+	save: function save(canStream) {
+		this.strings = null;
+
+		if (canStream) {
+			return new SharedStringsStream({
+				strings: this.stringArray
+			});
+		}
+		var result = getXMLBegin(this.count) + this.stringArray.map(function (string) {
+			string = _.escape(string);
+
+			if (spaceRE.test(string)) {
+				return '<si><t xml:space="preserve">' + string + '</t></si>';
+			}
+			return '<si><t>' + string + '</t></si>';
+		}).join('') + getXMLEnd();
+		this.stringArray = null;
+		return result;
 	}
-
-	_createClass(SharedStrings, [{
-		key: 'add',
-		value: function add(string) {
-			var stringId = this._strings[string];
-
-			if (stringId === undefined) {
-				stringId = this.count++;
-
-				this._strings[string] = stringId;
-				this._stringArray[stringId] = string;
-			}
-
-			return stringId;
-		}
-	}, {
-		key: 'isStrings',
-		value: function isStrings() {
-			return this.count > 0;
-		}
-	}, {
-		key: 'save',
-		value: function save(canStream) {
-			this._strings = null;
-
-			if (canStream) {
-				return new SharedStringsStream({
-					strings: this._stringArray
-				});
-			}
-			var result = getXMLBegin(this.count) + this._stringArray.map(function (string) {
-				string = _.escape(string);
-
-				if (spaceRE.test(string)) {
-					return '<si><t xml:space="preserve">' + string + '</t></si>';
-				}
-				return '<si><t>' + string + '</t></si>';
-			}).join('') + getXMLEnd();
-			this._stringArray = null;
-			return result;
-		}
-	}]);
-
-	return SharedStrings;
-}();
+};
 
 var SharedStringsStream = function (_ref) {
 	_inherits(SharedStringsStream, _ref);
@@ -406,95 +349,84 @@ module.exports = SharedStrings;
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-var Anchor = function () {
-	function Anchor(config) {
-		_classCallCheck(this, Anchor);
+function Anchor(config) {
+	var coord = void 0;
 
-		var coord = void 0;
-
-		if (_.isObject(config)) {
-			if (_.has(config, 'cell')) {
-				if (_.isObject(config.cell)) {
-					coord = { x: config.cell.c || 1, y: config.cell.r || 1 };
-				} else {
-					coord = util.letterToPosition(config.cell || '');
-				}
+	if (_.isObject(config)) {
+		if (_.has(config, 'cell')) {
+			if (_.isObject(config.cell)) {
+				coord = { x: config.cell.c || 1, y: config.cell.r || 1 };
 			} else {
-				coord = { x: config.c || 1, y: config.r || 1 };
+				coord = util.letterToPosition(config.cell || '');
 			}
 		} else {
-			coord = util.letterToPosition(config || '');
-			config = {};
+			coord = { x: config.c || 1, y: config.r || 1 };
 		}
-		var x = coord.x - 1;
-		var y = coord.y - 1;
-
-		this.from = {
-			x: x,
-			y: y,
-			xOff: util.pixelsToEMUs(config.left || 0),
-			yOff: util.pixelsToEMUs(config.top || 0)
-		};
-		this.to = {
-			x: x + (config.cols || 1),
-			y: y + (config.rows || 1),
-			xOff: util.pixelsToEMUs(-config.right || 0),
-			yOff: util.pixelsToEMUs(-config.bottom || 0)
-		};
+	} else {
+		coord = util.letterToPosition(config || '');
+		config = {};
 	}
+	var x = coord.x - 1;
+	var y = coord.y - 1;
 
-	_createClass(Anchor, [{
-		key: 'saveWithContent',
-		value: function saveWithContent(content) {
-			return toXMLString({
-				name: 'xdr:twoCellAnchor',
+	this.from = {
+		x: x,
+		y: y,
+		xOff: util.pixelsToEMUs(config.left || 0),
+		yOff: util.pixelsToEMUs(config.top || 0)
+	};
+	this.to = {
+		x: x + (config.cols || 1),
+		y: y + (config.rows || 1),
+		xOff: util.pixelsToEMUs(-config.right || 0),
+		yOff: util.pixelsToEMUs(-config.bottom || 0)
+	};
+}
+
+Anchor.prototype = {
+	saveWithContent: function saveWithContent(content) {
+		return toXMLString({
+			name: 'xdr:twoCellAnchor',
+			children: [toXMLString({
+				name: 'xdr:from',
 				children: [toXMLString({
-					name: 'xdr:from',
-					children: [toXMLString({
-						name: 'xdr:col',
-						value: this.from.x
-					}), toXMLString({
-						name: 'xdr:colOff',
-						value: this.from.xOff
-					}), toXMLString({
-						name: 'xdr:row',
-						value: this.from.y
-					}), toXMLString({
-						name: 'xdr:rowOff',
-						value: this.from.yOff
-					})]
+					name: 'xdr:col',
+					value: this.from.x
 				}), toXMLString({
-					name: 'xdr:to',
-					children: [toXMLString({
-						name: 'xdr:col',
-						value: this.to.x
-					}), toXMLString({
-						name: 'xdr:colOff',
-						value: this.to.xOff
-					}), toXMLString({
-						name: 'xdr:row',
-						value: this.to.y
-					}), toXMLString({
-						name: 'xdr:rowOff',
-						value: this.to.yOff
-					})]
-				}), content, toXMLString({
-					name: 'xdr:clientData'
+					name: 'xdr:colOff',
+					value: this.from.xOff
+				}), toXMLString({
+					name: 'xdr:row',
+					value: this.from.y
+				}), toXMLString({
+					name: 'xdr:rowOff',
+					value: this.from.yOff
 				})]
-			});
-		}
-	}]);
-
-	return Anchor;
-}();
+			}), toXMLString({
+				name: 'xdr:to',
+				children: [toXMLString({
+					name: 'xdr:col',
+					value: this.to.x
+				}), toXMLString({
+					name: 'xdr:colOff',
+					value: this.to.xOff
+				}), toXMLString({
+					name: 'xdr:row',
+					value: this.to.y
+				}), toXMLString({
+					name: 'xdr:rowOff',
+					value: this.to.yOff
+				})]
+			}), content, toXMLString({
+				name: 'xdr:clientData'
+			})]
+		});
+	}
+};
 
 module.exports = Anchor;
 
@@ -502,53 +434,42 @@ module.exports = Anchor;
 },{"../XMLString":2,"../util":26}],7:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-var AnchorAbsolute = function () {
-	function AnchorAbsolute() {
-		var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
-		    _ref$left = _ref.left,
-		    left = _ref$left === undefined ? 0 : _ref$left,
-		    _ref$top = _ref.top,
-		    top = _ref$top === undefined ? 0 : _ref$top,
-		    _ref$width = _ref.width,
-		    width = _ref$width === undefined ? 0 : _ref$width,
-		    _ref$height = _ref.height,
-		    height = _ref$height === undefined ? 0 : _ref$height;
+function AnchorAbsolute() {
+	var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+	    _ref$left = _ref.left,
+	    left = _ref$left === undefined ? 0 : _ref$left,
+	    _ref$top = _ref.top,
+	    top = _ref$top === undefined ? 0 : _ref$top,
+	    _ref$width = _ref.width,
+	    width = _ref$width === undefined ? 0 : _ref$width,
+	    _ref$height = _ref.height,
+	    height = _ref$height === undefined ? 0 : _ref$height;
 
-		_classCallCheck(this, AnchorAbsolute);
+	this.x = util.pixelsToEMUs(left);
+	this.y = util.pixelsToEMUs(top);
+	this.width = util.pixelsToEMUs(width);
+	this.height = util.pixelsToEMUs(height);
+}
 
-		this.x = util.pixelsToEMUs(left);
-		this.y = util.pixelsToEMUs(top);
-		this.width = util.pixelsToEMUs(width);
-		this.height = util.pixelsToEMUs(height);
+AnchorAbsolute.prototype = {
+	saveWithContent: function saveWithContent(content) {
+		return toXMLString({
+			name: 'xdr:absoluteAnchor',
+			children: [toXMLString({
+				name: 'xdr:pos',
+				attributes: [['x', this.x], ['y', this.y]]
+			}), toXMLString({
+				name: 'xdr:ext',
+				attributes: [['cx', this.width], ['cy', this.height]]
+			}), content, toXMLString({
+				name: 'xdr:clientData'
+			})]
+		});
 	}
-
-	_createClass(AnchorAbsolute, [{
-		key: 'saveWithContent',
-		value: function saveWithContent(content) {
-			return toXMLString({
-				name: 'xdr:absoluteAnchor',
-				children: [toXMLString({
-					name: 'xdr:pos',
-					attributes: [['x', this.x], ['y', this.y]]
-				}), toXMLString({
-					name: 'xdr:ext',
-					attributes: [['cx', this.width], ['cy', this.height]]
-				}), content, toXMLString({
-					name: 'xdr:clientData'
-				})]
-			});
-		}
-	}]);
-
-	return AnchorAbsolute;
-}();
+};
 
 module.exports = AnchorAbsolute;
 
@@ -556,75 +477,64 @@ module.exports = AnchorAbsolute;
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-var AnchorOneCell = function () {
-	function AnchorOneCell(config) {
-		_classCallCheck(this, AnchorOneCell);
+function AnchorOneCell(config) {
+	var coord = void 0;
 
-		var coord = void 0;
-
-		if (_.isObject(config)) {
-			if (_.has(config, 'cell')) {
-				if (_.isObject(config.cell)) {
-					coord = { x: config.cell.c || 1, y: config.cell.r || 1 };
-				} else {
-					coord = util.letterToPosition(config.cell || '');
-				}
+	if (_.isObject(config)) {
+		if (_.has(config, 'cell')) {
+			if (_.isObject(config.cell)) {
+				coord = { x: config.cell.c || 1, y: config.cell.r || 1 };
 			} else {
-				coord = { x: config.c || 1, y: config.r || 1 };
+				coord = util.letterToPosition(config.cell || '');
 			}
 		} else {
-			coord = util.letterToPosition(config || '');
-			config = {};
+			coord = { x: config.c || 1, y: config.r || 1 };
 		}
-
-		this.x = coord.x - 1;
-		this.y = coord.y - 1;
-		this.xOff = util.pixelsToEMUs(config.left || 0);
-		this.yOff = util.pixelsToEMUs(config.top || 0);
-		this.width = util.pixelsToEMUs(config.width || 0);
-		this.height = util.pixelsToEMUs(config.height || 0);
+	} else {
+		coord = util.letterToPosition(config || '');
+		config = {};
 	}
 
-	_createClass(AnchorOneCell, [{
-		key: 'saveWithContent',
-		value: function saveWithContent(content) {
-			return toXMLString({
-				name: 'xdr:oneCellAnchor',
-				children: [toXMLString({
-					name: 'xdr:from',
-					children: [toXMLString({
-						name: 'xdr:col',
-						value: this.x
-					}), toXMLString({
-						name: 'xdr:colOff',
-						value: this.xOff
-					}), toXMLString({
-						name: 'xdr:row',
-						value: this.y
-					}), toXMLString({
-						name: 'xdr:rowOff',
-						value: this.yOff
-					})]
-				}), toXMLString({
-					name: 'xdr:ext',
-					attributes: [['cx', this.width], ['cy', this.height]]
-				}), content, toXMLString({
-					name: 'xdr:clientData'
-				})]
-			});
-		}
-	}]);
+	this.x = coord.x - 1;
+	this.y = coord.y - 1;
+	this.xOff = util.pixelsToEMUs(config.left || 0);
+	this.yOff = util.pixelsToEMUs(config.top || 0);
+	this.width = util.pixelsToEMUs(config.width || 0);
+	this.height = util.pixelsToEMUs(config.height || 0);
+}
 
-	return AnchorOneCell;
-}();
+AnchorOneCell.prototype = {
+	saveWithContent: function saveWithContent(content) {
+		return toXMLString({
+			name: 'xdr:oneCellAnchor',
+			children: [toXMLString({
+				name: 'xdr:from',
+				children: [toXMLString({
+					name: 'xdr:col',
+					value: this.x
+				}), toXMLString({
+					name: 'xdr:colOff',
+					value: this.xOff
+				}), toXMLString({
+					name: 'xdr:row',
+					value: this.y
+				}), toXMLString({
+					name: 'xdr:rowOff',
+					value: this.yOff
+				})]
+			}), toXMLString({
+				name: 'xdr:ext',
+				attributes: [['cx', this.width], ['cy', this.height]]
+			}), content, toXMLString({
+				name: 'xdr:clientData'
+			})]
+		});
+	}
+};
 
 module.exports = AnchorOneCell;
 
@@ -632,68 +542,51 @@ module.exports = AnchorOneCell;
 },{"../XMLString":2,"../util":26}],9:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var Relations = require('../relations');
 var util = require('../util');
 var toXMLString = require('../XMLString');
 var Picture = require('./picture');
 
-var Drawings = function () {
-	function Drawings(common) {
-		_classCallCheck(this, Drawings);
+function Drawings(common) {
+	this.common = common;
 
-		this.common = common;
+	this.objectId = this.common.uniqueId('Drawings');
+	this.drawings = [];
+	this.relations = new Relations(common);
+}
 
-		this.objectId = this.common.uniqueId('Drawings');
-		this.drawings = [];
-		this.relations = new Relations(common);
+Drawings.prototype = {
+	addImage: function addImage(name, config, anchorType) {
+		var image = this.common.images.getImage(name);
+		var imageRelationId = this.relations.addRelation(image, 'image');
+		var picture = new Picture(this.common, {
+			image: image,
+			imageRelationId: imageRelationId,
+			config: config,
+			anchorType: anchorType
+		});
+
+		this.drawings.push(picture);
+	},
+	save: function save() {
+		var attributes = [['xmlns:a', util.schemas.drawing], ['xmlns:r', util.schemas.relationships], ['xmlns:xdr', util.schemas.spreadsheetDrawing]];
+		var children = this.drawings.map(function (picture) {
+			return picture.save();
+		});
+
+		return toXMLString({
+			name: 'xdr:wsDr',
+			ns: 'spreadsheetDrawing',
+			attributes: attributes,
+			children: children
+		});
 	}
-
-	_createClass(Drawings, [{
-		key: 'addImage',
-		value: function addImage(name, config, anchorType) {
-			var image = this.common.images.getImage(name);
-			var imageRelationId = this.relations.addRelation(image, 'image');
-			var picture = new Picture(this.common, {
-				image: image,
-				imageRelationId: imageRelationId,
-				config: config,
-				anchorType: anchorType
-			});
-
-			this.drawings.push(picture);
-		}
-	}, {
-		key: 'save',
-		value: function save() {
-			var attributes = [['xmlns:a', util.schemas.drawing], ['xmlns:r', util.schemas.relationships], ['xmlns:xdr', util.schemas.spreadsheetDrawing]];
-			var children = this.drawings.map(function (picture) {
-				return picture.save();
-			});
-
-			return toXMLString({
-				name: 'xdr:wsDr',
-				ns: 'spreadsheetDrawing',
-				attributes: attributes,
-				children: children
-			});
-		}
-	}]);
-
-	return Drawings;
-}();
+};
 
 module.exports = Drawings;
 
 },{"../XMLString":2,"../relations":12,"../util":26,"./picture":10}],10:[function(require,module,exports){
 'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var util = require('../util');
 var toXMLString = require('../XMLString');
@@ -701,83 +594,73 @@ var Anchor = require('./anchor');
 var AnchorOneCell = require('./anchorOneCell');
 var AnchorAbsolute = require('./anchorAbsolute');
 
-var Picture = function () {
-	function Picture(common, config) {
-		_classCallCheck(this, Picture);
+function Picture(common, config) {
+	this.pictureId = common.uniqueIdForSpace('Picture');
+	this.image = config.image;
+	this.imageRelationId = config.imageRelationId;
+	this.createAnchor(config.anchorType, config.config);
+}
 
-		this.pictureId = common.uniqueIdForSpace('Picture');
-		this.image = config.image;
-		this.imageRelationId = config.imageRelationId;
-		this.createAnchor(config.anchorType, config.config);
-	}
+Picture.prototype = {
 	/**
   *
   * @param {String} type Can be 'anchor', 'oneCell' or 'absolute'.
   * @param {Object} config Shorthand - pass the created anchor coords that can normally be used to construct it.
   */
-
-
-	_createClass(Picture, [{
-		key: 'createAnchor',
-		value: function createAnchor(type, config) {
-			switch (type) {
-				case 'anchor':
-					this.anchor = new Anchor(config);
-					break;
-				case 'oneCell':
-					this.anchor = new AnchorOneCell(config);
-					break;
-				case 'absolute':
-					this.anchor = new AnchorAbsolute(config);
-					break;
-			}
+	createAnchor: function createAnchor(type, config) {
+		switch (type) {
+			case 'anchor':
+				this.anchor = new Anchor(config);
+				break;
+			case 'oneCell':
+				this.anchor = new AnchorOneCell(config);
+				break;
+			case 'absolute':
+				this.anchor = new AnchorAbsolute(config);
+				break;
 		}
-	}, {
-		key: 'save',
-		value: function save() {
-			return this.anchor.saveWithContent(toXMLString({
-				name: 'xdr:pic',
+	},
+	save: function save() {
+		return this.anchor.saveWithContent(toXMLString({
+			name: 'xdr:pic',
+			children: [toXMLString({
+				name: 'xdr:nvPicPr',
 				children: [toXMLString({
-					name: 'xdr:nvPicPr',
-					children: [toXMLString({
-						name: 'xdr:cNvPr',
-						attributes: [['id', this.pictureId], ['name', this.image.name]]
-					}), toXMLString({
-						name: 'xdr:cNvPicPr',
-						children: [toXMLString({
-							name: 'a:picLocks',
-							attributes: [['noChangeAspect', '1'], ['noChangeArrowheads', '1']]
-						})]
-					})]
+					name: 'xdr:cNvPr',
+					attributes: [['id', this.pictureId], ['name', this.image.name]]
 				}), toXMLString({
-					name: 'xdr:blipFill',
+					name: 'xdr:cNvPicPr',
 					children: [toXMLString({
-						name: 'a:blip',
-						attributes: [['xmlns:r', util.schemas.relationships], ['r:embed', this.imageRelationId]]
-					}), toXMLString({
-						name: 'a:srcRect'
-					}), toXMLString({
-						name: 'a:stretch',
-						children: [toXMLString({
-							name: 'a:fillRect'
-						})]
-					})]
-				}), toXMLString({
-					name: 'xdr:spPr',
-					attributes: [['bwMode', 'auto']],
-					children: [toXMLString({
-						name: 'a:xfrm'
-					}), toXMLString({
-						name: 'a:prstGeom',
-						attributes: [['prst', 'rect']]
+						name: 'a:picLocks',
+						attributes: [['noChangeAspect', '1'], ['noChangeArrowheads', '1']]
 					})]
 				})]
-			}));
-		}
-	}]);
-
-	return Picture;
-}();
+			}), toXMLString({
+				name: 'xdr:blipFill',
+				children: [toXMLString({
+					name: 'a:blip',
+					attributes: [['xmlns:r', util.schemas.relationships], ['r:embed', this.imageRelationId]]
+				}), toXMLString({
+					name: 'a:srcRect'
+				}), toXMLString({
+					name: 'a:stretch',
+					children: [toXMLString({
+						name: 'a:fillRect'
+					})]
+				})]
+			}), toXMLString({
+				name: 'xdr:spPr',
+				attributes: [['bwMode', 'auto']],
+				children: [toXMLString({
+					name: 'a:xfrm'
+				}), toXMLString({
+					name: 'a:prstGeom',
+					attributes: [['prst', 'rect']]
+				})]
+			})]
+		}));
+	}
+};
 
 module.exports = Picture;
 
@@ -789,7 +672,7 @@ var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var JSZip = typeof window !== "undefined" ? window['JSZip'] : typeof global !== "undefined" ? global['JSZip'] : null;
 var Workbook = require('./workbook');
-var Worksheet = require('./worksheet');
+var createWorksheet = require('./worksheet');
 
 // Excel workbook API. Outer workbook
 function createWorkbook() {
@@ -804,11 +687,15 @@ function createWorkbook() {
 			config = _.defaults(config, {
 				name: common.getNewWorksheetDefaultName()
 			});
-			var worksheet = new Worksheet(this, common, config);
+
+			var _createWorksheet = createWorksheet(this, common, config),
+			    outerWorksheet = _createWorksheet.outerWorksheet,
+			    worksheet = _createWorksheet.worksheet;
+
 			common.addWorksheet(worksheet);
 			relations.addRelation(worksheet, 'worksheet');
 
-			return worksheet;
+			return outerWorksheet;
 		},
 		addFormat: function addFormat(format, name) {
 			return styles.addFormat(format, name);
@@ -877,75 +764,60 @@ module.exports = { createWorkbook: createWorkbook };
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('./util');
 var toXMLString = require('./XMLString');
 
-var RelationshipManager = function () {
-	function RelationshipManager(common) {
-		_classCallCheck(this, RelationshipManager);
+function RelationshipManager(common) {
+	this.common = common;
 
-		this.common = common;
+	this.relations = Object.create(null);
+	this.lastId = 1;
+}
 
-		this.relations = Object.create(null);
-		this.lastId = 1;
-	}
+RelationshipManager.prototype = {
+	addRelation: function addRelation(object, type) {
+		var relation = this.relations[object.objectId];
 
-	_createClass(RelationshipManager, [{
-		key: 'addRelation',
-		value: function addRelation(object, type) {
-			var relation = this.relations[object.objectId];
+		if (relation) {
+			return relation.relationId;
+		}
 
-			if (relation) {
-				return relation.relationId;
+		var relationId = 'rId' + this.lastId++;
+		this.relations[object.objectId] = {
+			relationId: relationId,
+			schema: util.schemas[type],
+			object: object
+		};
+		return relationId;
+	},
+	getRelationshipId: function getRelationshipId(object) {
+		var relation = this.relations[object.objectId];
+
+		return relation ? relation.relationId : null;
+	},
+	save: function save() {
+		var common = this.common;
+		var children = _.map(this.relations, function (relation) {
+			var attributes = [['Id', relation.relationId], ['Type', relation.schema], ['Target', relation.object.target || common.getPath(relation.object)]];
+
+			if (relation.object.targetMode) {
+				attributes.push(['TargetMode', relation.object.targetMode]);
 			}
 
-			var relationId = 'rId' + this.lastId++;
-			this.relations[object.objectId] = {
-				relationId: relationId,
-				schema: util.schemas[type],
-				object: object
-			};
-			return relationId;
-		}
-	}, {
-		key: 'getRelationshipId',
-		value: function getRelationshipId(object) {
-			var relation = this.relations[object.objectId];
-
-			return relation ? relation.relationId : null;
-		}
-	}, {
-		key: 'save',
-		value: function save() {
-			var common = this.common;
-			var children = _.map(this.relations, function (relation) {
-				var attributes = [['Id', relation.relationId], ['Type', relation.schema], ['Target', relation.object.target || common.getPath(relation.object)]];
-
-				if (relation.object.targetMode) {
-					attributes.push(['TargetMode', relation.object.targetMode]);
-				}
-
-				return toXMLString({
-					name: 'Relationship',
-					attributes: attributes
-				});
-			});
-
 			return toXMLString({
-				name: 'Relationships',
-				ns: 'relationshipPackage',
-				children: children
+				name: 'Relationship',
+				attributes: attributes
 			});
-		}
-	}]);
+		});
 
-	return RelationshipManager;
-}();
+		return toXMLString({
+			name: 'Relationships',
+			ns: 'relationshipPackage',
+			children: children
+		});
+	}
+};
 
 module.exports = RelationshipManager;
 
@@ -2326,60 +2198,32 @@ module.exports = {
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('./util');
 var toXMLString = require('./XMLString');
 
-var Table = function () {
-	function Table(worksheet, config) {
-		_classCallCheck(this, Table);
+function createTable(outerWorksheet, common, config) {
+	var table = new Table(config, common);
 
-		this.worksheet = worksheet;
-		this.common = worksheet.common;
-
-		this.tableId = this.common.uniqueIdForSpace('Table');
-		this.objectId = 'Table' + this.tableId;
-		this.name = this.objectId;
-		this.displayName = this.objectId;
-		this.headerRowCount = 1;
-		this.beginCell = null;
-		this.endCell = null;
-		this.totalsRowCount = 0;
-		this.totalRow = null;
-		this.themeStyle = null;
-
-		_.extend(this, config);
-	}
-
-	_createClass(Table, [{
-		key: 'end',
-		value: function end() {
-			return this.worksheet;
-		}
-	}, {
-		key: 'setReferenceRange',
-		value: function setReferenceRange(beginCell, endCell) {
-			this.beginCell = util.canonCell(beginCell);
-			this.endCell = util.canonCell(endCell);
+	var outerTable = {
+		end: function end() {
+			return outerWorksheet;
+		},
+		setReferenceRange: function setReferenceRange(beginCell, endCell) {
+			table.beginCell = util.canonCell(beginCell);
+			table.endCell = util.canonCell(endCell);
 			return this;
-		}
-	}, {
-		key: 'addTotalRow',
-		value: function addTotalRow(totalRow) {
-			this.totalRow = totalRow;
-			this.totalsRowCount = 1;
+		},
+		addTotalRow: function addTotalRow(totalRow) {
+			table.totalRow = totalRow;
+			table.totalsRowCount = 1;
 			return this;
-		}
-	}, {
-		key: 'setTheme',
-		value: function setTheme(theme) {
-			this.themeStyle = theme;
+		},
+		setTheme: function setTheme(theme) {
+			table.themeStyle = theme;
 			return this;
-		}
+		},
+
 		/**
    * Expects an object with the following properties:
    * caseSensitive (boolean)
@@ -2388,145 +2232,157 @@ var Table = function () {
    * sortDirection
    * sortRange (defaults to dataRange)
    */
-
-	}, {
-		key: 'setSortState',
-		value: function setSortState(state) {
-			this.sortState = state;
+		setSortState: function setSortState(state) {
+			table.sortState = state;
 			return this;
 		}
-	}, {
-		key: '_prepare',
-		value: function _prepare(worksheetData) {
-			var SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
-			var SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
+	};
+	return {
+		outerTable: outerTable,
+		table: table
+	};
+}
 
-			if (this.totalRow) {
-				var tableName = this.name;
-				var beginCell = util.letterToPosition(this.beginCell);
-				var endCell = util.letterToPosition(this.endCell);
-				var firstRow = beginCell.y - 1;
-				var firstColumn = beginCell.x - 1;
-				var lastRow = endCell.y - 1;
-				var headerRow = worksheetData[firstRow] || [];
-				var totalRow = worksheetData[lastRow + 1];
+function Table(config, common) {
+	this.common = common;
 
-				if (!totalRow) {
-					totalRow = [];
-					worksheetData[lastRow + 1] = totalRow;
-				}
+	this.tableId = this.common.uniqueIdForSpace('Table');
+	this.objectId = 'Table' + this.tableId;
+	this.name = this.objectId;
+	this.displayName = this.objectId;
+	this.headerRowCount = 1;
+	this.beginCell = null;
+	this.endCell = null;
+	this.totalsRowCount = 0;
+	this.totalRow = null;
+	this.themeStyle = null;
 
-				_.forEach(this.totalRow, function (cell, i) {
-					var headerValue = headerRow[firstColumn + i];
-					var funcIndex = void 0;
+	_.extend(this, config);
+}
 
-					if ((typeof headerValue === 'undefined' ? 'undefined' : _typeof(headerValue)) === 'object') {
-						headerValue = headerValue.value;
-					}
-					cell.name = headerValue;
-					if (cell.totalsRowLabel) {
-						totalRow[firstColumn + i] = {
-							value: cell.totalsRowLabel,
-							type: 'string'
-						};
-					} else if (cell.totalsRowFunction) {
-						funcIndex = _.indexOf(SUB_TOTAL_FUNCTIONS, cell.totalsRowFunction);
+var SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
+var SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
 
-						if (funcIndex !== -1) {
-							totalRow[firstColumn + i] = {
-								value: 'SUBTOTAL(' + SUB_TOTAL_NUMS[funcIndex] + ',' + tableName + '[' + headerValue + '])',
-								type: 'formula'
-							};
-						}
-					}
-				});
+Table.prototype = {
+	prepare: function prepare(worksheetData) {
+		if (this.totalRow) {
+			var tableName = this.name;
+			var beginCell = util.letterToPosition(this.beginCell);
+			var endCell = util.letterToPosition(this.endCell);
+			var firstRow = beginCell.y - 1;
+			var firstColumn = beginCell.x - 1;
+			var lastRow = endCell.y - 1;
+			var headerRow = worksheetData[firstRow] || [];
+			var totalRow = worksheetData[lastRow + 1];
+
+			if (!totalRow) {
+				totalRow = [];
+				worksheetData[lastRow + 1] = totalRow;
 			}
-		}
-		//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
 
-	}, {
-		key: '_save',
-		value: function _save() {
-			var attributes = [['id', this.tableId], ['name', this.name], ['displayName', this.displayName]];
-			var children = [];
-			var end = util.letterToPosition(this.endCell);
-			var ref = this.beginCell + ':' + util.positionToLetter(end.x, end.y + this.totalsRowCount);
+			_.forEach(this.totalRow, function (cell, i) {
+				var headerValue = headerRow[firstColumn + i];
+				var funcIndex = void 0;
 
-			attributes.push(['ref', ref]);
-			attributes.push(['totalsRowCount', this.totalsRowCount]);
-			attributes.push(['headerRowCount', this.headerRowCount]);
+				if ((typeof headerValue === 'undefined' ? 'undefined' : _typeof(headerValue)) === 'object') {
+					headerValue = headerValue.value;
+				}
+				cell.name = headerValue;
+				if (cell.totalsRowLabel) {
+					totalRow[firstColumn + i] = {
+						value: cell.totalsRowLabel,
+						type: 'string'
+					};
+				} else if (cell.totalsRowFunction) {
+					funcIndex = _.indexOf(SUB_TOTAL_FUNCTIONS, cell.totalsRowFunction);
 
-			children.push(saveAutoFilter(this.beginCell, this.endCell));
-			children.push(saveTableColumns(this.totalRow));
-			children.push(saveTableStyleInfo(this.common, this.themeStyle));
-
-			return toXMLString({
-				name: 'table',
-				ns: 'spreadsheetml',
-				attributes: attributes,
-				children: children
+					if (funcIndex !== -1) {
+						totalRow[firstColumn + i] = {
+							value: 'SUBTOTAL(' + SUB_TOTAL_NUMS[funcIndex] + ',' + tableName + '[' + headerValue + '])',
+							type: 'formula'
+						};
+					}
+				}
 			});
 		}
-	}]);
+	},
 
-	return Table;
-}();
+	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
+	save: function save() {
+		var attributes = [['id', this.tableId], ['name', this.name], ['displayName', this.displayName]];
+		var children = [];
+		var end = util.letterToPosition(this.endCell);
+		var ref = this.beginCell + ':' + util.positionToLetter(end.x, end.y + this.totalsRowCount);
 
-function saveAutoFilter(beginCell, endCell) {
-	return toXMLString({
-		name: 'autoFilter',
-		attributes: ['ref', beginCell + ':' + endCell]
-	});
-}
+		attributes.push(['ref', ref]);
+		attributes.push(['totalsRowCount', this.totalsRowCount]);
+		attributes.push(['headerRowCount', this.headerRowCount]);
 
-function saveTableColumns(totalRow) {
-	var attributes = [['count', totalRow.length]];
-	var children = _.map(totalRow, function (cell, index) {
-		var attributes = [['id', index + 1], ['name', cell.name]];
-
-		if (cell.totalsRowFunction) {
-			attributes.push(['totalsRowFunction', cell.totalsRowFunction]);
-		}
-		if (cell.totalsRowLabel) {
-			attributes.push(['totalsRowLabel', cell.totalsRowLabel]);
-		}
+		children.push(this.saveAutoFilter());
+		children.push(this.saveTableColumns());
+		children.push(this.saveTableStyleInfo());
 
 		return toXMLString({
-			name: 'tableColumn',
+			name: 'table',
+			ns: 'spreadsheetml',
+			attributes: attributes,
+			children: children
+		});
+	},
+	saveAutoFilter: function saveAutoFilter() {
+		return toXMLString({
+			name: 'autoFilter',
+			attributes: ['ref', this.beginCell + ':' + this.endCell]
+		});
+	},
+	saveTableColumns: function saveTableColumns() {
+		var attributes = [['count', this.totalRow.length]];
+		var children = _.map(this.totalRow, function (cell, index) {
+			var attributes = [['id', index + 1], ['name', cell.name]];
+
+			if (cell.totalsRowFunction) {
+				attributes.push(['totalsRowFunction', cell.totalsRowFunction]);
+			}
+			if (cell.totalsRowLabel) {
+				attributes.push(['totalsRowLabel', cell.totalsRowLabel]);
+			}
+
+			return toXMLString({
+				name: 'tableColumn',
+				attributes: attributes
+			});
+		});
+
+		return toXMLString({
+			name: 'tableColumns',
+			attributes: attributes,
+			children: children
+		});
+	},
+	saveTableStyleInfo: function saveTableStyleInfo() {
+		var attributes = [['name', this.themeStyle]];
+		var format = this.common.styles.tables.get(this.themeStyle);
+		var isRowStripes = false;
+		var isColumnStripes = false;
+		var isFirstColumn = false;
+		var isLastColumn = false;
+
+		if (format) {
+			isRowStripes = format.firstRowStripe || format.secondRowStripe;
+			isColumnStripes = format.firstColumnStripe || format.secondColumnStripe;
+			isFirstColumn = format.firstColumn;
+			isLastColumn = format.lastColumn;
+		}
+		attributes.push(['showRowStripes', isRowStripes ? '1' : '0'], ['showColumnStripes', isColumnStripes ? '1' : '0'], ['showFirstColumn', isFirstColumn ? '1' : '0'], ['showLastColumn', isLastColumn ? '1' : '0']);
+
+		return toXMLString({
+			name: 'tableStyleInfo',
 			attributes: attributes
 		});
-	});
-
-	return toXMLString({
-		name: 'tableColumns',
-		attributes: attributes,
-		children: children
-	});
-}
-
-function saveTableStyleInfo(common, themeStyle) {
-	var attributes = [['name', themeStyle]];
-	var format = common.styles.tables.get(themeStyle);
-	var isRowStripes = false;
-	var isColumnStripes = false;
-	var isFirstColumn = false;
-	var isLastColumn = false;
-
-	if (format) {
-		isRowStripes = format.firstRowStripe || format.secondRowStripe;
-		isColumnStripes = format.firstColumnStripe || format.secondColumnStripe;
-		isFirstColumn = format.firstColumn;
-		isLastColumn = format.lastColumn;
 	}
-	attributes.push(['showRowStripes', isRowStripes ? '1' : '0'], ['showColumnStripes', isColumnStripes ? '1' : '0'], ['showFirstColumn', isFirstColumn ? '1' : '0'], ['showLastColumn', isLastColumn ? '1' : '0']);
+};
 
-	return toXMLString({
-		name: 'tableStyleInfo',
-		attributes: attributes
-	});
-}
-
-module.exports = Table;
+module.exports = createTable;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"./XMLString":2,"./util":26}],26:[function(require,module,exports){
@@ -2702,14 +2558,14 @@ Workbook.prototype = {
 	},
 	definedNamesXML: function definedNamesXML() {
 		var isPrintTitles = this.common.worksheets.some(function (worksheet) {
-			return worksheet._printTitles && (worksheet._printTitles.topTo >= 0 || worksheet._printTitles.leftTo >= 0);
+			return worksheet.printTitles && (worksheet.printTitles.topTo >= 0 || worksheet.printTitles.leftTo >= 0);
 		});
 
 		if (isPrintTitles) {
 			var children = [];
 
 			this.common.worksheets.forEach(function (worksheet, index) {
-				var entry = worksheet._printTitles;
+				var entry = worksheet.printTitles;
 
 				if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
 					var name = worksheet.name;
@@ -2742,18 +2598,18 @@ Workbook.prototype = {
 	},
 	prepareWorksheets: function prepareWorksheets() {
 		this.common.worksheets.forEach(function (worksheet) {
-			worksheet._prepare();
+			worksheet.prepare();
 		});
 	},
 	saveWorksheets: function saveWorksheets(zip, canStream) {
 		this.common.worksheets.forEach(function (worksheet) {
-			zip.file(worksheet.path, worksheet._save(canStream));
+			zip.file(worksheet.path, worksheet.save(canStream));
 			zip.file(worksheet.relationsPath, worksheet.relations.save());
 		});
 	},
 	saveTables: function saveTables(zip) {
 		this.common.tables.forEach(function (table) {
-			zip.file(table.path, table._save());
+			zip.file(table.path, table.save());
 		});
 	},
 	saveImages: function saveImages(zip) {
@@ -2854,977 +2710,788 @@ module.exports = Workbook;
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
-var Tables = require('./tables');
 var Drawings = require('../drawings');
 var toXMLString = require('../XMLString');
 
-var DrawingsExt = function (_Tables) {
-	_inherits(DrawingsExt, _Tables);
+function WorksheetDrawings(common, relations) {
+	this.common = common;
+	this.relations = relations;
+	this.drawings = null;
+}
 
-	function DrawingsExt() {
-		_classCallCheck(this, DrawingsExt);
+WorksheetDrawings.prototype = {
+	setImage: function setImage(image, config) {
+		this.setDrawing(image, config, 'anchor');
+	},
+	setImageOneCell: function setImageOneCell(image, config) {
+		this.setDrawing(image, config, 'oneCell');
+	},
+	setImageAbsolute: function setImageAbsolute(image, config) {
+		this.setDrawing(image, config, 'absolute');
+	},
+	setDrawing: function setDrawing(image, config, anchorType) {
+		if (!this.drawings) {
+			this.drawings = new Drawings(this.common);
 
-		var _this = _possibleConstructorReturn(this, (DrawingsExt.__proto__ || Object.getPrototypeOf(DrawingsExt)).call(this));
+			this.common.addDrawings(this.drawings);
+			this.relations.addRelation(this.drawings, 'drawingRelationship');
+		}
 
-		_this._drawings = null;
-		return _this;
+		var name = _.isObject(image) ? this.common.images.addImage(image.data, image.type) : image;
+
+		this.drawings.addImage(name, config, anchorType);
+	},
+	insert: function insert(colIndex, rowIndex, image) {
+		if (image) {
+			var cell = { c: colIndex + 1, r: rowIndex + 1 };
+
+			if (typeof image === 'string' || image.data) {
+				this.setDrawing(image, cell, 'anchor');
+			} else {
+				var config = image.config || {};
+				config.cell = cell;
+
+				this.setDrawing(image.image, config, 'anchor');
+			}
+		}
+	},
+	save: function save() {
+		if (this.drawings) {
+			return toXMLString({
+				name: 'drawing',
+				attributes: [['r:id', this.relations.getRelationshipId(this.drawings)]]
+			});
+		}
+		return '';
 	}
+};
 
-	_createClass(DrawingsExt, [{
-		key: 'setImage',
-		value: function setImage(image, config) {
-			return this._setDrawing(image, config, 'anchor');
-		}
-	}, {
-		key: 'setImageOneCell',
-		value: function setImageOneCell(image, config) {
-			return this._setDrawing(image, config, 'oneCell');
-		}
-	}, {
-		key: 'setImageAbsolute',
-		value: function setImageAbsolute(image, config) {
-			return this._setDrawing(image, config, 'absolute');
-		}
-	}, {
-		key: '_setDrawing',
-		value: function _setDrawing(image, config, anchorType) {
-			if (!this._drawings) {
-				this._drawings = new Drawings(this.common);
-
-				this.common.addDrawings(this._drawings);
-				this.relations.addRelation(this._drawings, 'drawingRelationship');
-			}
-
-			var name = _.isObject(image) ? this.common.images.addImage(image.data, image.type) : image;
-
-			this._drawings.addImage(name, config, anchorType);
-			return this;
-		}
-	}, {
-		key: '_insertDrawing',
-		value: function _insertDrawing(colIndex, rowIndex, image) {
-			if (image) {
-				var cell = { c: colIndex + 1, r: rowIndex + 1 };
-
-				if (typeof image === 'string' || image.data) {
-					this._setDrawing(image, cell, 'anchor');
-				} else {
-					var config = image.config || {};
-					config.cell = cell;
-
-					this._setDrawing(image.image, config, 'anchor');
-				}
-			}
-		}
-	}, {
-		key: '_saveDrawing',
-		value: function _saveDrawing() {
-			if (this._drawings) {
-				return toXMLString({
-					name: 'drawing',
-					attributes: [['r:id', this.relations.getRelationshipId(this._drawings)]]
-				});
-			}
-			return '';
-		}
-	}]);
-
-	return DrawingsExt;
-}(Tables);
-
-module.exports = DrawingsExt;
+module.exports = WorksheetDrawings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../drawings":9,"./tables":36}],29:[function(require,module,exports){
+},{"../XMLString":2,"../drawings":9}],29:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var util = require('../util');
-var MergedCells = require('./mergedCells');
 var toXMLString = require('../XMLString');
 
-var Hyperlinks = function (_MergedCells) {
-	_inherits(Hyperlinks, _MergedCells);
+function Hyperlinks(common, relations) {
+	this.common = common;
+	this.relations = relations;
+	this.hyperlinks = [];
+}
 
-	function Hyperlinks() {
-		_classCallCheck(this, Hyperlinks);
+Hyperlinks.prototype = {
+	setHyperlink: function setHyperlink(hyperlink) {
+		hyperlink.objectId = this.common.uniqueId('hyperlink');
+		this.relations.addRelation({
+			objectId: hyperlink.objectId,
+			target: hyperlink.location,
+			targetMode: hyperlink.targetMode || 'External'
+		}, 'hyperlink');
+		this.hyperlinks.push(hyperlink);
+	},
+	insert: function insert(colIndex, rowIndex, hyperlink) {
+		if (hyperlink) {
+			var cell = { c: colIndex + 1, r: rowIndex + 1 };
 
-		var _this = _possibleConstructorReturn(this, (Hyperlinks.__proto__ || Object.getPrototypeOf(Hyperlinks)).call(this));
-
-		_this._hyperlinks = [];
-		return _this;
-	}
-
-	_createClass(Hyperlinks, [{
-		key: 'setHyperlink',
-		value: function setHyperlink(hyperlink) {
-			hyperlink.objectId = this.common.uniqueId('hyperlink');
-			this.relations.addRelation({
-				objectId: hyperlink.objectId,
-				target: hyperlink.location,
-				targetMode: hyperlink.targetMode || 'External'
-			}, 'hyperlink');
-			this._hyperlinks.push(hyperlink);
-			return this;
+			if (typeof hyperlink === 'string') {
+				this.setHyperlink({
+					cell: cell,
+					location: hyperlink
+				});
+			} else {
+				this.setHyperlink({
+					cell: cell,
+					location: hyperlink.location,
+					targetMode: hyperlink.targetMode,
+					tooltip: hyperlink.tooltip
+				});
+			}
 		}
-	}, {
-		key: '_insertHyperlink',
-		value: function _insertHyperlink(colIndex, rowIndex, hyperlink) {
-			if (hyperlink) {
-				var cell = { c: colIndex + 1, r: rowIndex + 1 };
+	},
+	save: function save() {
+		var _this = this;
 
-				if (typeof hyperlink === 'string') {
-					this.setHyperlink({
-						cell: cell,
-						location: hyperlink
-					});
-				} else {
-					this.setHyperlink({
-						cell: cell,
-						location: hyperlink.location,
-						targetMode: hyperlink.targetMode,
-						tooltip: hyperlink.tooltip
-					});
+		if (this.hyperlinks.length > 0) {
+			var children = this.hyperlinks.map(function (hyperlink) {
+				var attributes = [['ref', util.canonCell(hyperlink.cell)], ['r:id', _this.relations.getRelationshipId(hyperlink)]];
+
+				if (hyperlink.tooltip) {
+					attributes.push(['tooltip', hyperlink.tooltip]);
 				}
-			}
-		}
-	}, {
-		key: '_saveHyperlinks',
-		value: function _saveHyperlinks() {
-			var _this2 = this;
-
-			if (this._hyperlinks.length > 0) {
-				var children = this._hyperlinks.map(function (hyperlink) {
-					var attributes = [['ref', util.canonCell(hyperlink.cell)], ['r:id', _this2.relations.getRelationshipId(hyperlink)]];
-
-					if (hyperlink.tooltip) {
-						attributes.push(['tooltip', hyperlink.tooltip]);
-					}
-					return toXMLString({
-						name: 'hyperlink',
-						attributes: attributes
-					});
-				});
-
 				return toXMLString({
-					name: 'hyperlinks',
-					children: children
+					name: 'hyperlink',
+					attributes: attributes
 				});
-			}
-			return '';
-		}
-	}]);
+			});
 
-	return Hyperlinks;
-}(MergedCells);
+			return toXMLString({
+				name: 'hyperlinks',
+				children: children
+			});
+		}
+		return '';
+	}
+};
 
 module.exports = Hyperlinks;
 
-},{"../XMLString":2,"../util":26,"./mergedCells":31}],30:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],30:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+var Worksheet = require('./worksheet');
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+function createWorksheet(outerWorkbook, common, config) {
+	var worksheet = new Worksheet(common, config);
 
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var WorksheetSave = require('./save');
-var Relations = require('../relations');
-
-var Worksheet = function (_WorksheetSave) {
-	_inherits(Worksheet, _WorksheetSave);
-
-	function Worksheet(outerWorkbook, common) {
-		var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
-
-		_classCallCheck(this, Worksheet);
-
-		var _this = _possibleConstructorReturn(this, (Worksheet.__proto__ || Object.getPrototypeOf(Worksheet)).call(this, outerWorkbook, common, config));
-
-		_this.outerWorkbook = outerWorkbook;
-		_this.common = common;
-		_this.styles = _this.common.styles;
-
-		_this.objectId = _this.common.uniqueId('Worksheet');
-		_this.data = [];
-		_this.columns = [];
-		_this.rows = [];
-
-		_this.name = config.name;
-		_this.state = config.state || 'visible';
-		_this.timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
-		_this.relations = new Relations(_this.common);
-		return _this;
-	}
-
-	_createClass(Worksheet, [{
-		key: 'end',
-		value: function end() {
-			return this.outerWorkbook;
-		}
-	}, {
-		key: 'setActive',
-		value: function setActive() {
-			this.common.setActiveWorksheet(this);
+	var outerWorksheet = {
+		end: function end() {
+			return outerWorkbook;
+		},
+		setActive: function setActive() {
+			worksheet.common.setActiveWorksheet(worksheet);
 			return this;
-		}
-	}, {
-		key: 'setVisible',
-		value: function setVisible() {
+		},
+		setVisible: function setVisible() {
 			this.setState('visible');
 			return this;
-		}
-	}, {
-		key: 'setHidden',
-		value: function setHidden() {
+		},
+		setHidden: function setHidden() {
 			this.setState('hidden');
 			return this;
-		}
+		},
+
 		/**
    * //http://www.datypic.com/sc/ooxml/t-ssml_ST_SheetState.html
    * @param state - visible | hidden | veryHidden
    */
-
-	}, {
-		key: 'setState',
-		value: function setState(state) {
-			this.state = state;
+		setState: function setState(state) {
+			worksheet.setState(state);
+			return this;
+		},
+		getState: function getState() {
+			return worksheet.getState();
+		},
+		setRows: function setRows(startRow, rows) {
+			worksheet.setRows(startRow, rows);
+			return this;
+		},
+		setRow: function setRow(rowIndex, row) {
+			worksheet.setRow(rowIndex, row);
+			return this;
+		},
+		setColumns: function setColumns(startColumn, columns) {
+			worksheet.setColumns(startColumn, columns);
+			return this;
+		},
+		setColumn: function setColumn(columnIndex, column) {
+			worksheet.setColumn(columnIndex, column);
+			return this;
+		},
+		setData: function setData(offset, data) {
+			worksheet.setData(offset, data);
+			return this;
+		},
+		setAttribute: function setAttribute(name, value) {
+			worksheet.sheetView.setAttribute(name, value);
+			return this;
+		},
+		freeze: function freeze(col, row, cell, activePane) {
+			worksheet.sheetView.freeze(col, row, cell, activePane);
+			return this;
+		},
+		split: function split(x, y, cell, activePane) {
+			worksheet.sheetView.split(x, y, cell, activePane);
+			return this;
+		},
+		setHyperlink: function setHyperlink(hyperlink) {
+			worksheet.hyperlinks.setHyperlink(hyperlink);
+			return this;
+		},
+		mergeCells: function mergeCells(cell1, cell2) {
+			worksheet.mergedCells.mergeCells(cell1, cell2);
+			return this;
+		},
+		setImage: function setImage(image, config) {
+			worksheet.drawings.setImage(image, config);
+			return this;
+		},
+		setImageOneCell: function setImageOneCell(image, config) {
+			worksheet.drawings.setImageOneCell(image, config);
+			return this;
+		},
+		setImageAbsolute: function setImageAbsolute(image, config) {
+			worksheet.drawings.setImageAbsolute(image, config);
+			return this;
+		},
+		addTable: function addTable(config) {
+			return worksheet.tables.addTable(config);
+		},
+		setHeader: function setHeader(headers) {
+			worksheet.setHeader(headers);
+			return this;
+		},
+		setFooter: function setFooter(footers) {
+			worksheet.setFooter(footers);
+			return this;
+		},
+		setPageMargin: function setPageMargin(margin) {
+			worksheet.setPageMargin(margin);
+			return this;
+		},
+		setPageOrientation: function setPageOrientation(orientation) {
+			worksheet.setPageOrientation(orientation);
+			return this;
+		},
+		setPrintTitleTop: function setPrintTitleTop(params) {
+			worksheet.setPrintTitleTop(params);
+			return this;
+		},
+		setPrintTitleLeft: function setPrintTitleLeft(params) {
+			worksheet.setPrintTitleLeft(params);
 			return this;
 		}
-	}, {
-		key: 'getState',
-		value: function getState() {
-			return this.state;
-		}
-	}, {
-		key: 'setRows',
-		value: function setRows(startRow, rows) {
-			var _this2 = this;
+	};
+	worksheet.outerWorksheet = outerWorksheet;
+	return {
+		outerWorksheet: outerWorksheet,
+		worksheet: worksheet
+	};
+}
 
-			if (!rows) {
-				rows = startRow;
-				startRow = 0;
-			} else {
-				--startRow;
-			}
-			rows.forEach(function (row, i) {
-				_this2.rows[startRow + i] = row;
-			});
-			return this;
-		}
-	}, {
-		key: 'setRow',
-		value: function setRow(rowIndex, row) {
-			this.rows[--rowIndex] = row;
-			return this;
-		}
-		/**
-   * http://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.column.aspx
-   */
+module.exports = createWorksheet;
 
-	}, {
-		key: 'setColumns',
-		value: function setColumns(startColumn, columns) {
-			var _this3 = this;
-
-			if (!columns) {
-				columns = startColumn;
-				startColumn = 0;
-			} else {
-				--startColumn;
-			}
-			columns.forEach(function (column, i) {
-				_this3.columns[startColumn + i] = column;
-			});
-			return this;
-		}
-	}, {
-		key: 'setColumn',
-		value: function setColumn(columnIndex, column) {
-			this.columns[--columnIndex] = column;
-			return this;
-		}
-	}, {
-		key: 'setData',
-		value: function setData(offset, data) {
-			var _this4 = this;
-
-			var startRow = this.data.length;
-
-			if (!data) {
-				data = offset;
-			} else {
-				startRow += offset;
-			}
-			data.forEach(function (row, i) {
-				_this4.data[startRow + i] = row;
-			});
-			return this;
-		}
-	}]);
-
-	return Worksheet;
-}(WorksheetSave);
-
-module.exports = Worksheet;
-
-},{"../relations":12,"./save":34}],31:[function(require,module,exports){
+},{"./worksheet":37}],31:[function(require,module,exports){
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
-var DrawingsExt = require('./drawing');
 var toXMLString = require('../XMLString');
 
-var MergedCells = function (_DrawingsExt) {
-	_inherits(MergedCells, _DrawingsExt);
+function MergedCells(worksheet) {
+	this.worksheet = worksheet;
+	this.mergedCells = [];
+}
 
-	function MergedCells() {
-		_classCallCheck(this, MergedCells);
-
-		var _this = _possibleConstructorReturn(this, (MergedCells.__proto__ || Object.getPrototypeOf(MergedCells)).call(this));
-
-		_this._mergedCells = [];
-		return _this;
-	}
-
-	_createClass(MergedCells, [{
-		key: 'mergeCells',
-		value: function mergeCells(cell1, cell2) {
-			this._mergedCells.push([cell1, cell2]);
-			return this;
+MergedCells.prototype = {
+	mergeCells: function mergeCells(cell1, cell2) {
+		this.mergedCells.push([cell1, cell2]);
+	},
+	insert: function insert(dataRow, colIndex, rowIndex, colSpan, rowSpan, style) {
+		if (colSpan) {
+			dataRow = [].concat(_toConsumableArray(dataRow.slice(0, colIndex + 1)), _toConsumableArray(_.times(colSpan, function () {
+				return { style: style, type: 'empty' };
+			})), _toConsumableArray(dataRow.slice(colIndex + 1)));
 		}
-	}, {
-		key: '_insertMergeCells',
-		value: function _insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, style) {
-			var _this2 = this;
+		if (rowSpan) {
+			var data = this.worksheet.data;
 
-			if (colSpan) {
-				dataRow = [].concat(_toConsumableArray(dataRow.slice(0, colIndex + 1)), _toConsumableArray(_.times(colSpan, function () {
-					return { style: style, type: 'empty' };
-				})), _toConsumableArray(dataRow.slice(colIndex + 1)));
-			}
-			if (rowSpan) {
-				_.forEach(_.range(rowIndex + 1, rowIndex + 1 + rowSpan), function (index) {
-					var row = _this2.data[index] || [];
+			_.forEach(_.range(rowIndex + 1, rowIndex + 1 + rowSpan), function (index) {
+				var row = data[index] || [];
 
-					if (_.isArray(row)) {
-						row = {
-							data: row
-						};
-						_this2.data[index] = row;
-					}
+				if (_.isArray(row)) {
+					row = {
+						data: row
+					};
+					data[index] = row;
+				}
 
-					row.inserts = row.inserts || [];
-					_.forEach(_.range(colIndex, colIndex + colSpan + 1), function (index) {
-						row.inserts[index] = { style: style };
-					});
+				row.inserts = row.inserts || [];
+				_.forEach(_.range(colIndex, colIndex + colSpan + 1), function (index) {
+					row.inserts[index] = { style: style };
 				});
-			}
-			return dataRow;
+			});
 		}
-	}, {
-		key: '_saveMergeCells',
-		value: function _saveMergeCells() {
-			if (this._mergedCells.length > 0) {
-				var children = this._mergedCells.map(function (mergeCell) {
-					return toXMLString({
-						name: 'mergeCell',
-						attributes: [['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]]
-					});
-				});
-
+		return dataRow;
+	},
+	save: function save() {
+		if (this.mergedCells.length > 0) {
+			var children = this.mergedCells.map(function (mergeCell) {
 				return toXMLString({
-					name: 'mergeCells',
-					attributes: [['count', this._mergedCells.length]],
-					children: children
+					name: 'mergeCell',
+					attributes: [['ref', util.canonCell(mergeCell[0]) + ':' + util.canonCell(mergeCell[1])]]
 				});
-			}
-			return '';
-		}
-	}]);
+			});
 
-	return MergedCells;
-}(DrawingsExt);
+			return toXMLString({
+				name: 'mergeCells',
+				attributes: [['count', this.mergedCells.length]],
+				children: children
+			});
+		}
+		return '';
+	}
+};
 
 module.exports = MergedCells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./drawing":28}],32:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],32:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
 function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
-var SheetView = require('./sheetView');
 
-var PrepareSave = function (_SheetView) {
-	_inherits(PrepareSave, _SheetView);
+var methods = {
+	prepare: function prepare() {
+		this.tables.prepare();
+		this.prepareColumns();
+		this.prepareRows();
+		this.prepareData();
+	},
+	prepareColumns: function prepareColumns() {
+		var _this = this;
 
-	function PrepareSave() {
-		_classCallCheck(this, PrepareSave);
+		this.preparedColumns = this.columns.map(function (column) {
+			if (column) {
+				var preparedColumn = _.clone(column);
 
-		return _possibleConstructorReturn(this, (PrepareSave.__proto__ || Object.getPrototypeOf(PrepareSave)).apply(this, arguments));
-	}
+				if (column.style) {
+					var style = _this.styles.addFormat(column.style);
+					preparedColumn.style = style;
 
-	_createClass(PrepareSave, [{
-		key: '_prepare',
-		value: function _prepare() {
-			this._prepareTables();
-			this._prepareColumns();
-			this._prepareRows();
-			this._prepareData();
-		}
-	}, {
-		key: '_prepareColumns',
-		value: function _prepareColumns() {
-			var _this2 = this;
-
-			this.preparedColumns = this.columns.map(function (column) {
-				if (column) {
-					var preparedColumn = _.clone(column);
-
-					if (column.style) {
-						var style = _this2.styles.addFormat(column.style);
-						preparedColumn.style = style;
-
-						var columnStyle = _this2.styles._addFillOutFormat(style);
-						preparedColumn.styleId = _this2.styles._getId(columnStyle);
-					}
-					return preparedColumn;
+					var columnStyle = _this.styles._addFillOutFormat(style);
+					preparedColumn.styleId = _this.styles._getId(columnStyle);
 				}
-				return undefined;
-			});
-			this.columns = null;
-		}
-	}, {
-		key: '_prepareRows',
-		value: function _prepareRows() {
-			var _this3 = this;
-
-			this.preparedRows = this.rows.map(function (row) {
-				if (row) {
-					var preparedRow = _.clone(row);
-
-					if (row.style) {
-						preparedRow.style = _this3.styles.addFormat(row.style);
-					}
-					return preparedRow;
-				}
-				return undefined;
-			});
-			this.rows = null;
-		}
-	}, {
-		key: '_prepareData',
-		value: function _prepareData() {
-			this.maxX = 0;
-			this.preparedData = [];
-			for (var rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
-				var preparedDataRow = this._prepareDataRow(rowIndex);
-
-				this.preparedData.push(preparedDataRow);
-				this.maxX = Math.max(this.maxX, preparedDataRow.length);
+				return preparedColumn;
 			}
-			this.maxY = this.preparedData.length;
-			this.data = null;
-		}
-	}, {
-		key: '_prepareDataRow',
-		value: function _prepareDataRow(rowIndex) {
-			var preparedDataRow = [];
-			var row = this.preparedRows[rowIndex];
-			var dataRow = this.data[rowIndex];
+			return undefined;
+		});
+		this.columns = null;
+	},
+	prepareRows: function prepareRows() {
+		var _this2 = this;
 
-			if (dataRow) {
-				var rowStyle = null;
-				var skipColumnsStyle = false;
-				var inserts = [];
-
-				if (!_.isArray(dataRow)) {
-					row = this._mergeDataRowToRow(row, dataRow);
-					if (dataRow.inserts) {
-						inserts = dataRow.inserts;
-						dataRow = _.clone(dataRow.data);
-					} else {
-						dataRow = dataRow.data;
-					}
-				}
-				if (row) {
-					rowStyle = row.style || null;
-					skipColumnsStyle = row.skipColumnsStyle;
-				}
-				dataRow = this._splitDataRow(row, dataRow, rowIndex);
-
-				for (var colIndex = 0, dataIndex = 0; dataIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
-					var column = this.preparedColumns[colIndex];
-					var columnStyle = !skipColumnsStyle && column ? column.style : null;
-
-					var value = void 0;
-					if (inserts[colIndex]) {
-						value = { style: inserts[colIndex].style, type: 'empty' };
-					} else {
-						value = dataRow[dataIndex];
-						dataIndex++;
-					}
-
-					var _readCellValue2 = this._readCellValue(value),
-					    cellValue = _readCellValue2.cellValue,
-					    cellType = _readCellValue2.cellType,
-					    cellStyle = _readCellValue2.cellStyle,
-					    isObject = _readCellValue2.isObject;
-
-					if (isObject) {
-						this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
-						this._insertDrawing(colIndex, rowIndex, value.image);
-						dataRow = this._mergeCells(dataRow, colIndex, rowIndex, value);
-					}
-
-					preparedDataRow[colIndex] = this._getPreparedCell(this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)), this._getCellType(cellType, cellValue, row, column), cellValue);
-				}
-			}
-
+		this.preparedRows = this.rows.map(function (row) {
 			if (row) {
-				this._setRowStyleId(row);
-				this.preparedRows[rowIndex] = row;
-			}
+				var preparedRow = _.clone(row);
 
-			return preparedDataRow;
-		}
-	}, {
-		key: '_mergeDataRowToRow',
-		value: function _mergeDataRowToRow() {
-			var row = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-			var dataRow = arguments[1];
-
-			row.height = dataRow.height || row.height;
-			row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
-			row.type = dataRow.type || row.type;
-			row.style = dataRow.style ? this.styles.addFormat(dataRow.style) : row.style;
-			row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
-
-			return row;
-		}
-	}, {
-		key: '_splitDataRow',
-		value: function _splitDataRow() {
-			var row = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-
-			var _this4 = this,
-			    _data;
-
-			var dataRow = arguments[1];
-			var rowIndex = arguments[2];
-
-			var count = this._calcDataRowHeight(dataRow);
-
-			if (count === 0) {
-				return dataRow;
-			}
-
-			var newRows = _.times(count, function () {
-				var result = _.clone(row);
-				result.data = [];
-				return result;
-			});
-			_.forEach(dataRow, function (value) {
-				var list = void 0;
-				var style = null;
-
-				if (_.isArray(value)) {
-					list = value;
-				} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
-					list = value.value;
-					style = value.style;
+				if (row.style) {
+					preparedRow.style = _this2.styles.addFormat(row.style);
 				}
+				return preparedRow;
+			}
+			return undefined;
+		});
+		this.rows = null;
+	},
+	prepareData: function prepareData() {
+		this.maxX = 0;
+		this.preparedData = [];
+		for (var rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
+			var preparedDataRow = this.prepareDataRow(rowIndex);
 
-				if (list) {
-					_(list).initial().forEach(function (value, index) {
-						newRows[index].data.push({ value: value, style: style });
-					});
+			this.preparedData.push(preparedDataRow);
+			this.maxX = Math.max(this.maxX, preparedDataRow.length);
+		}
+		this.maxY = this.preparedData.length;
+		this.data = null;
+	},
+	prepareDataRow: function prepareDataRow(rowIndex) {
+		var preparedDataRow = [];
+		var row = this.preparedRows[rowIndex];
+		var dataRow = this.data[rowIndex];
 
-					var lastValue = { value: _.last(list), style: style };
-					var listLength = list.length;
-					var _value = listLength < count ? _this4._addRowspan(lastValue, count - listLength + 1) : lastValue;
-					newRows[list.length - 1].data.push(_value);
+		if (dataRow) {
+			var rowStyle = null;
+			var skipColumnsStyle = false;
+			var inserts = [];
+
+			if (!_.isArray(dataRow)) {
+				row = this.mergeDataRowToRow(row, dataRow);
+				if (dataRow.inserts) {
+					inserts = dataRow.inserts;
+					dataRow = _.clone(dataRow.data);
 				} else {
-					newRows[0].data.push(_this4._addRowspan(value, count));
+					dataRow = dataRow.data;
 				}
-			});
-			(_data = this.data).splice.apply(_data, [rowIndex, 1].concat(_toConsumableArray(newRows)));
-
-			return newRows[0].data;
-		}
-	}, {
-		key: '_calcDataRowHeight',
-		value: function _calcDataRowHeight(dataRow) {
-			var count = 0;
-			_.forEach(dataRow, function (value) {
-				if (_.isArray(value)) {
-					count = Math.max(value.length, count);
-				} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
-					count = Math.max(value.value.length, count);
-				}
-			});
-			return count;
-		}
-	}, {
-		key: '_addRowspan',
-		value: function _addRowspan(value, rowspan) {
-			if (_.isObject(value) && !_.isDate(value)) {
-				value = _.clone(value);
-				value.rowspan = rowspan;
-				value.style = this.styles._merge({ vertical: 'top' }, value.style);
-				return value;
 			}
-			return {
-				value: value,
-				rowspan: rowspan,
-				style: { vertical: 'top' }
-			};
-		}
-	}, {
-		key: '_readCellValue',
-		value: function _readCellValue(value) {
-			var cellValue = void 0;
-			var cellType = null;
-			var cellStyle = null;
-			var isObject = false;
+			if (row) {
+				rowStyle = row.style || null;
+				skipColumnsStyle = row.skipColumnsStyle;
+			}
+			dataRow = this.splitDataRow(row, dataRow, rowIndex);
 
-			if (_.isDate(value)) {
-				cellValue = value;
-				cellType = 'date';
-			} else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-				isObject = true;
+			for (var colIndex = 0, dataIndex = 0; dataIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
+				var column = this.preparedColumns[colIndex];
+				var columnStyle = !skipColumnsStyle && column ? column.style : null;
 
-				if (value.style) {
-					cellStyle = value.style;
-				}
-
-				if (value.formula) {
-					cellValue = value.formula;
-					cellType = 'formula';
-				} else if (value.date) {
-					cellValue = value.date;
-					cellType = 'date';
-				} else if (value.time) {
-					cellValue = value.time;
-					cellType = 'time';
-				} else if (_.isDate(value.value)) {
-					cellValue = value.value;
-					cellType = 'date';
+				var value = void 0;
+				if (inserts[colIndex]) {
+					value = { style: inserts[colIndex].style, type: 'empty' };
 				} else {
-					cellValue = value.value;
-					cellType = value.type;
+					value = dataRow[dataIndex];
+					dataIndex++;
 				}
-			} else {
-				cellValue = value;
-			}
 
-			return {
-				cellValue: cellValue,
-				cellType: cellType,
-				cellStyle: cellStyle,
-				isObject: isObject
-			};
+				var _readCellValue = this.readCellValue(value),
+				    cellValue = _readCellValue.cellValue,
+				    cellType = _readCellValue.cellType,
+				    cellStyle = _readCellValue.cellStyle,
+				    isObject = _readCellValue.isObject;
+
+				if (isObject) {
+					this.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
+					this.drawings.insert(colIndex, rowIndex, value.image);
+					dataRow = this.mergeCells(dataRow, colIndex, rowIndex, value);
+				}
+
+				preparedDataRow[colIndex] = this.getPreparedCell(this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)), this.getCellType(cellType, cellValue, row, column), cellValue);
+			}
 		}
-	}, {
-		key: '_mergeCells',
-		value: function _mergeCells(dataRow, colIndex, rowIndex, value) {
-			if (value.colspan || value.rowspan) {
-				var colSpan = (value.colspan || 1) - 1;
-				var rowSpan = (value.rowspan || 1) - 1;
 
-				if (colSpan || rowSpan) {
-					this.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
-					return this._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
-				}
-			}
+		if (row) {
+			this.setRowStyleId(row);
+			this.preparedRows[rowIndex] = row;
+		}
+
+		return preparedDataRow;
+	},
+	mergeDataRowToRow: function mergeDataRowToRow() {
+		var row = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+		var dataRow = arguments[1];
+
+		row.height = dataRow.height || row.height;
+		row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
+		row.type = dataRow.type || row.type;
+		row.style = dataRow.style ? this.styles.addFormat(dataRow.style) : row.style;
+		row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
+
+		return row;
+	},
+	splitDataRow: function splitDataRow() {
+		var row = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+		var _this3 = this,
+		    _data;
+
+		var dataRow = arguments[1];
+		var rowIndex = arguments[2];
+
+		var count = this.calcDataRowHeight(dataRow);
+
+		if (count === 0) {
 			return dataRow;
 		}
-	}, {
-		key: '_getCellType',
-		value: function _getCellType(cellType, cellValue, row, column) {
-			if (cellType) {
-				return cellType;
-			} else if (row && row.type) {
-				return row.type;
-			} else if (column && column.type) {
-				return column.type;
-			} else if (typeof cellValue === 'number') {
-				return 'number';
-			} else if (typeof cellValue === 'string') {
-				return 'string';
-			}
-		}
-	}, {
-		key: '_getPreparedCell',
-		value: function _getPreparedCell(styleId, cellType, cellValue) {
-			var result = {
-				styleId: styleId,
-				value: null,
-				formula: null,
-				isString: false
-			};
 
-			if (cellType === 'string') {
-				result.value = this.common.strings.add(cellValue);
-				result.isString = true;
-			} else if (cellType === 'date' || cellType === 'time') {
-				var dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
-				var date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
-
-				if (_.isFinite(date)) {
-					result.value = date;
-				} else {
-					result.value = this.common.strings.add(String(cellValue));
-					result.isString = true;
-				}
-			} else if (cellType === 'formula') {
-				result.formula = _.escape(cellValue);
-			} else {
-				result.value = cellValue;
-			}
-
+		var newRows = _.times(count, function () {
+			var result = _.clone(row);
+			result.data = [];
 			return result;
+		});
+		_.forEach(dataRow, function (value) {
+			var list = void 0;
+			var style = null;
+
+			if (_.isArray(value)) {
+				list = value;
+			} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
+				list = value.value;
+				style = value.style;
+			}
+
+			if (list) {
+				_(list).initial().forEach(function (value, index) {
+					newRows[index].data.push({ value: value, style: style });
+				});
+
+				var lastValue = { value: _.last(list), style: style };
+				var listLength = list.length;
+				var _value = listLength < count ? _this3.addRowspan(lastValue, count - listLength + 1) : lastValue;
+				newRows[list.length - 1].data.push(_value);
+			} else {
+				newRows[0].data.push(_this3.addRowspan(value, count));
+			}
+		});
+		(_data = this.data).splice.apply(_data, [rowIndex, 1].concat(_toConsumableArray(newRows)));
+
+		return newRows[0].data;
+	},
+	calcDataRowHeight: function calcDataRowHeight(dataRow) {
+		var count = 0;
+		_.forEach(dataRow, function (value) {
+			if (_.isArray(value)) {
+				count = Math.max(value.length, count);
+			} else if (_.isObject(value) && !_.isDate(value) && _.isArray(value.value)) {
+				count = Math.max(value.value.length, count);
+			}
+		});
+		return count;
+	},
+	addRowspan: function addRowspan(value, rowspan) {
+		if (_.isObject(value) && !_.isDate(value)) {
+			value = _.clone(value);
+			value.rowspan = rowspan;
+			value.style = this.styles._merge({ vertical: 'top' }, value.style);
+			return value;
 		}
-	}, {
-		key: '_setRowStyleId',
-		value: function _setRowStyleId(row) {
-			if (row.style) {
-				var rowStyle = this.styles._addFillOutFormat(row.style);
-				row.styleId = this.styles._getId(rowStyle);
+		return {
+			value: value,
+			rowspan: rowspan,
+			style: { vertical: 'top' }
+		};
+	},
+	readCellValue: function readCellValue(value) {
+		var cellValue = void 0;
+		var cellType = null;
+		var cellStyle = null;
+		var isObject = false;
+
+		if (_.isDate(value)) {
+			cellValue = value;
+			cellType = 'date';
+		} else if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+			isObject = true;
+
+			if (value.style) {
+				cellStyle = value.style;
+			}
+
+			if (value.formula) {
+				cellValue = value.formula;
+				cellType = 'formula';
+			} else if (value.date) {
+				cellValue = value.date;
+				cellType = 'date';
+			} else if (value.time) {
+				cellValue = value.time;
+				cellType = 'time';
+			} else if (_.isDate(value.value)) {
+				cellValue = value.value;
+				cellType = 'date';
+			} else {
+				cellValue = value.value;
+				cellType = value.type;
+			}
+		} else {
+			cellValue = value;
+		}
+
+		return {
+			cellValue: cellValue,
+			cellType: cellType,
+			cellStyle: cellStyle,
+			isObject: isObject
+		};
+	},
+	mergeCells: function mergeCells(dataRow, colIndex, rowIndex, value) {
+		if (value.colspan || value.rowspan) {
+			var colSpan = (value.colspan || 1) - 1;
+			var rowSpan = (value.rowspan || 1) - 1;
+
+			if (colSpan || rowSpan) {
+				this.mergedCells.mergeCells({ c: colIndex + 1, r: rowIndex + 1 }, { c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan });
+				return this.mergedCells.insert(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
 			}
 		}
-	}]);
+		return dataRow;
+	},
+	getCellType: function getCellType(cellType, cellValue, row, column) {
+		if (cellType) {
+			return cellType;
+		} else if (row && row.type) {
+			return row.type;
+		} else if (column && column.type) {
+			return column.type;
+		} else if (typeof cellValue === 'number') {
+			return 'number';
+		} else if (typeof cellValue === 'string') {
+			return 'string';
+		}
+	},
+	getPreparedCell: function getPreparedCell(styleId, cellType, cellValue) {
+		var result = {
+			styleId: styleId,
+			value: null,
+			formula: null,
+			isString: false
+		};
 
-	return PrepareSave;
-}(SheetView);
+		if (cellType === 'string') {
+			result.value = this.common.strings.add(cellValue);
+			result.isString = true;
+		} else if (cellType === 'date' || cellType === 'time') {
+			var dateValue = _.isDate(cellValue) ? cellValue.valueOf() : cellValue;
+			var date = 25569.0 + (dateValue - this.timezoneOffset) / (60 * 60 * 24 * 1000);
 
-module.exports = PrepareSave;
+			if (_.isFinite(date)) {
+				result.value = date;
+			} else {
+				result.value = this.common.strings.add(String(cellValue));
+				result.isString = true;
+			}
+		} else if (cellType === 'formula') {
+			result.formula = _.escape(cellValue);
+		} else {
+			result.value = cellValue;
+		}
+
+		return result;
+	},
+	setRowStyleId: function setRowStyleId(row) {
+		if (row.style) {
+			var rowStyle = this.styles._addFillOutFormat(row.style);
+			row.styleId = this.styles._getId(rowStyle);
+		}
+	}
+};
+
+module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./sheetView":35}],33:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 (function (global){
 'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var toXMLString = require('../XMLString');
 
-var Print = function () {
-	function Print() {
-		_classCallCheck(this, Print);
-
-		this._headers = [];
-		this._footers = [];
-	}
+var methods = {
 	/**
   * Expects an array length of three.
   * @param {Array} headers [left, center, right]
   */
-
-
-	_createClass(Print, [{
-		key: 'setHeader',
-		value: function setHeader(headers) {
-			if (!_.isArray(headers)) {
-				throw 'Invalid argument type - setHeader expects an array of three instructions';
-			}
-			this._headers = headers;
-			return this;
+	setHeader: function setHeader(headers) {
+		if (!_.isArray(headers)) {
+			throw 'Invalid argument type - setHeader expects an array of three instructions';
 		}
-		/**
-   * Expects an array length of three.
-   * @param {Array} footers [left, center, right]
-   */
+		this.headers = headers;
+	},
 
-	}, {
-		key: 'setFooter',
-		value: function setFooter(footers) {
-			if (!_.isArray(footers)) {
-				throw 'Invalid argument type - setFooter expects an array of three instructions';
-			}
-			this._footers = footers;
-			return this;
+	/**
+  * Expects an array length of three.
+  * @param {Array} footers [left, center, right]
+  */
+	setFooter: function setFooter(footers) {
+		if (!_.isArray(footers)) {
+			throw 'Invalid argument type - setFooter expects an array of three instructions';
 		}
-		/**
-   * Set page details in inches.
-   */
+		this.footers = footers;
+	},
 
-	}, {
-		key: 'setPageMargin',
-		value: function setPageMargin(margin) {
-			this._margin = _.defaults(margin, {
-				left: 0.7,
-				right: 0.7,
-				top: 0.75,
-				bottom: 0.75,
-				header: 0.3,
-				footer: 0.3
+	/**
+  * Set page details in inches.
+  */
+	setPageMargin: function setPageMargin(margin) {
+		this.margin = _.defaults(margin, {
+			left: 0.7,
+			right: 0.7,
+			top: 0.75,
+			bottom: 0.75,
+			header: 0.3,
+			footer: 0.3
+		});
+	},
+
+	/**
+  * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
+  *
+  * Can be one of 'portrait' or 'landscape'.
+  *
+  * @param {String} orientation
+  */
+	setPageOrientation: function setPageOrientation(orientation) {
+		this.orientation = orientation;
+	},
+
+	/**
+  * Set rows to repeat for print
+  *
+  * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
+  */
+	setPrintTitleTop: function setPrintTitleTop(params) {
+		this.printTitles = this.printTitles || {};
+
+		if (_.isObject(params)) {
+			this.printTitles.topFrom = params[0];
+			this.printTitles.topTo = params[1];
+		} else {
+			this.printTitles.topFrom = 0;
+			this.printTitles.topTo = params - 1;
+		}
+	},
+
+	/**
+  * Set columns to repeat for print
+  *
+  * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
+  */
+	setPrintTitleLeft: function setPrintTitleLeft(params) {
+		this.printTitles = this.printTitles || {};
+
+		if (_.isObject(params)) {
+			this.printTitles.leftFrom = params[0];
+			this.printTitles.leftTo = params[1];
+		} else {
+			this.printTitles.leftFrom = 0;
+			this.printTitles.leftTo = params - 1;
+		}
+	},
+	savePrint: function savePrint() {
+		return this.savePageMargins() + this.savePageSetup() + this.saveHeaderFooter();
+	},
+	savePageMargins: function savePageMargins() {
+		var margin = this.margin;
+
+		if (margin) {
+			return toXMLString({
+				name: 'pageMargins',
+				attributes: [['top', margin.top], ['bottom', margin.bottom], ['left', margin.left], ['right', margin.right], ['header', margin.header], ['footer', margin.footer]]
 			});
-			return this;
 		}
-		/**
-   * http://www.datypic.com/sc/ooxml/t-ssml_ST_Orientation.html
-   *
-   * Can be one of 'portrait' or 'landscape'.
-   *
-   * @param {String} orientation
-   */
+		return '';
+	},
+	savePageSetup: function savePageSetup() {
+		var orientation = this.orientation;
 
-	}, {
-		key: 'setPageOrientation',
-		value: function setPageOrientation(orientation) {
-			this._orientation = orientation;
-			return this;
+		if (orientation) {
+			return toXMLString({
+				name: 'pageSetup',
+				attributes: [['orientation', orientation]]
+			});
 		}
-		/**
-   * Set rows to repeat for print
-   *
-   * @param {int|[int, int]} params - number of rows to repeat from the top | [first, last] repeat rows
-   */
+		return '';
+	},
+	saveHeaderFooter: function saveHeaderFooter() {
+		if (this.headers.length > 0 || this.footers.length > 0) {
+			var children = [];
 
-	}, {
-		key: 'setPrintTitleTop',
-		value: function setPrintTitleTop(params) {
-			this._printTitles = this._printTitles || {};
-
-			if (_.isObject(params)) {
-				this._printTitles.topFrom = params[0];
-				this._printTitles.topTo = params[1];
-			} else {
-				this._printTitles.topFrom = 0;
-				this._printTitles.topTo = params - 1;
+			if (this.headers.length > 0) {
+				children.push(this.saveHeader());
 			}
-			return this;
-		}
-		/**
-   * Set columns to repeat for print
-   *
-   * @param {int|[int, int]} params - number of columns to repeat from the left | [first, last] repeat columns
-   */
-
-	}, {
-		key: 'setPrintTitleLeft',
-		value: function setPrintTitleLeft(params) {
-			this._printTitles = this._printTitles || {};
-
-			if (_.isObject(params)) {
-				this._printTitles.leftFrom = params[0];
-				this._printTitles.leftTo = params[1];
-			} else {
-				this._printTitles.leftFrom = 0;
-				this._printTitles.leftTo = params - 1;
+			if (this.footers.length > 0) {
+				children.push(this.saveFooter(this.footers));
 			}
-			return this;
-		}
-	}, {
-		key: '_savePrint',
-		value: function _savePrint() {
-			return savePageMargins(this._margin) + savePageSetup(this._orientation) + saveHeaderFooter(this._headers, this._footers);
-		}
-	}]);
 
-	return Print;
-}();
-
-function savePageMargins(margin) {
-	if (margin) {
+			return toXMLString({
+				name: 'headerFooter',
+				children: children
+			});
+		}
+		return '';
+	},
+	saveHeader: function saveHeader() {
 		return toXMLString({
-			name: 'pageMargins',
-			attributes: [['top', margin.top], ['bottom', margin.bottom], ['left', margin.left], ['right', margin.right], ['header', margin.header], ['footer', margin.footer]]
+			name: 'oddHeader',
+			value: compilePageDetailPackage(this.headers)
+		});
+	},
+	saveFooter: function saveFooter() {
+		return toXMLString({
+			name: 'oddFooter',
+			value: compilePageDetailPackage(this.footers)
 		});
 	}
-	return '';
-}
-
-function savePageSetup(orientation) {
-	if (orientation) {
-		return toXMLString({
-			name: 'pageSetup',
-			attributes: [['orientation', orientation]]
-		});
-	}
-	return '';
-}
-
-function saveHeaderFooter(headers, footers) {
-	if (headers.length > 0 || footers.length > 0) {
-		var children = [];
-
-		if (headers.length > 0) {
-			children.push(saveHeader(headers));
-		}
-		if (footers.length > 0) {
-			children.push(saveFooter(footers));
-		}
-
-		return toXMLString({
-			name: 'headerFooter',
-			children: children
-		});
-	}
-	return '';
-}
-
-function saveHeader(headers) {
-	return toXMLString({
-		name: 'oddHeader',
-		value: compilePageDetailPackage(headers)
-	});
-}
-
-function saveFooter(footers) {
-	return toXMLString({
-		name: 'oddFooter',
-		value: compilePageDetailPackage(footers)
-	});
-}
+};
 
 function compilePageDetailPackage(data) {
 	data = data || '';
@@ -3861,7 +3528,7 @@ function compilePageDetailPiece(data) {
 	}
 }
 
-module.exports = Print;
+module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2}],34:[function(require,module,exports){
@@ -3878,33 +3545,19 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 
 var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
-var PrepareSave = require('./prepareSave');
 var util = require('../util');
 var toXMLString = require('../XMLString');
 
-var WorksheetSave = function (_PrepareSave) {
-	_inherits(WorksheetSave, _PrepareSave);
-
-	function WorksheetSave() {
-		_classCallCheck(this, WorksheetSave);
-
-		return _possibleConstructorReturn(this, (WorksheetSave.__proto__ || Object.getPrototypeOf(WorksheetSave)).apply(this, arguments));
-	}
-
-	_createClass(WorksheetSave, [{
-		key: '_save',
-		value: function _save(canStream) {
-			if (canStream) {
-				return new WorksheetStream({
-					worksheet: this
-				});
-			}
-			return saveBeforeRows(this) + saveData(this) + saveAfterRows(this);
+var methods = {
+	save: function save(canStream) {
+		if (canStream) {
+			return new WorksheetStream({
+				worksheet: this
+			});
 		}
-	}]);
-
-	return WorksheetSave;
-}(PrepareSave);
+		return saveBeforeRows(this) + saveData(this) + saveAfterRows(this);
+	}
+};
 
 var WorksheetStream = function (_ref) {
 	_inherits(WorksheetStream, _ref);
@@ -3912,13 +3565,13 @@ var WorksheetStream = function (_ref) {
 	function WorksheetStream(options) {
 		_classCallCheck(this, WorksheetStream);
 
-		var _this2 = _possibleConstructorReturn(this, (WorksheetStream.__proto__ || Object.getPrototypeOf(WorksheetStream)).call(this, options));
+		var _this = _possibleConstructorReturn(this, (WorksheetStream.__proto__ || Object.getPrototypeOf(WorksheetStream)).call(this, options));
 
-		_this2.worksheet = options.worksheet;
-		_this2.status = 0;
-		_this2.index = 0;
-		_this2.len = _this2.worksheet.preparedData.length;
-		return _this2;
+		_this.worksheet = options.worksheet;
+		_this.status = 0;
+		_this.index = 0;
+		_this.len = _this.worksheet.preparedData.length;
+		return _this;
 	}
 
 	_createClass(WorksheetStream, [{
@@ -3968,17 +3621,17 @@ var WorksheetStream = function (_ref) {
 }(Readable || null);
 
 function saveBeforeRows(worksheet) {
-	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml + '" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' + saveDimension(worksheet.maxX, worksheet.maxY) + worksheet._saveSheetView() + saveColumns(worksheet.preparedColumns) + '<sheetData>';
+	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml + '" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' + saveDimension(worksheet.maxX, worksheet.maxY) + worksheet.sheetView.save() + saveColumns(worksheet.preparedColumns) + '<sheetData>';
 }
 
 function saveAfterRows(worksheet) {
 	return '</sheetData>' +
 	// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 	// with Microsoft Excel (2007, 2013)
-	worksheet._saveMergeCells() + worksheet._saveHyperlinks() + worksheet._savePrint() + worksheet._saveTables() +
+	worksheet.mergedCells.save() + worksheet.hyperlinks.save() + worksheet.savePrint() + worksheet.tables.save() +
 	// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 	// to issue with Microsoft Excel (2007, 2013)
-	worksheet._saveDrawing() + '</worksheet>';
+	worksheet.drawings.save() + '</worksheet>';
 }
 
 function saveData(worksheet) {
@@ -4099,10 +3752,10 @@ function saveColumns(columns) {
 	return '';
 }
 
-module.exports = WorksheetSave;
+module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./prepareSave":32,"stream":1}],35:[function(require,module,exports){
+},{"../XMLString":2,"../util":26,"stream":1}],35:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -4110,273 +3763,330 @@ module.exports = WorksheetSave;
  * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.sheetview.aspx
  */
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
-var Hyperlinks = require('./hyperlinks');
 var toXMLString = require('../XMLString');
 
-var SheetView = function (_Hyperlinks) {
-	_inherits(SheetView, _Hyperlinks);
+function SheetView(config) {
+	var _this = this;
 
-	function SheetView(workbook, common, config) {
-		_classCallCheck(this, SheetView);
-
-		var _this = _possibleConstructorReturn(this, (SheetView.__proto__ || Object.getPrototypeOf(SheetView)).call(this, workbook, common, config));
-
-		_this._pane = null;
-		_this._attributes = {
-			defaultGridColor: {
-				value: null,
-				bool: true
-			},
-			colorId: {
-				value: null
-			},
-			rightToLeft: {
-				value: null,
-				bool: true
-			},
-			showFormulas: {
-				value: null,
-				bool: true
-			},
-			showGridLines: {
-				value: null,
-				bool: true
-			},
-			showOutlineSymbols: {
-				value: null,
-				bool: true
-			},
-			showRowColHeaders: {
-				value: null,
-				bool: true
-			},
-			showRuler: {
-				value: null,
-				bool: true
-			},
-			showWhiteSpace: {
-				value: null,
-				bool: true
-			},
-			showZeros: {
-				value: null,
-				bool: true
-			},
-			tabSelected: {
-				value: null,
-				bool: true
-			},
-			topLeftCell: {
-				value: null //A1
-			},
-			view: {
-				value: 'normal' //normal | pageBreakPreview | pageLayout
-			},
-			windowProtection: {
-				value: null,
-				bool: true
-			},
-			zoomScale: {
-				value: null //10-400
-			},
-			zoomScaleNormal: {
-				value: null //10-400
-			},
-			zoomScalePageLayoutView: {
-				value: null //10-400
-			},
-			zoomScaleSheetLayoutView: {
-				value: null //10-400
-			}
-		};
-
-		_.forEach(config, function (value, name) {
-			if (name === 'freeze') {
-				_this.freeze(value.col, value.row, value.cell, value.activePane);
-			} else if (name === 'split') {
-				_this.split(value.x, value.y, value.cell, value.activePane);
-			} else if (_this._attributes[name]) {
-				_this._attributes[name].value = value;
-			}
-		});
-		return _this;
-	}
-
-	_createClass(SheetView, [{
-		key: 'setAttribute',
-		value: function setAttribute(name, value) {
-			if (this._attributes[name]) {
-				this._attributes[name].value = value;
-			}
-			return this;
+	this.pane = null;
+	this.attributes = {
+		defaultGridColor: {
+			value: null,
+			bool: true
+		},
+		colorId: {
+			value: null
+		},
+		rightToLeft: {
+			value: null,
+			bool: true
+		},
+		showFormulas: {
+			value: null,
+			bool: true
+		},
+		showGridLines: {
+			value: null,
+			bool: true
+		},
+		showOutlineSymbols: {
+			value: null,
+			bool: true
+		},
+		showRowColHeaders: {
+			value: null,
+			bool: true
+		},
+		showRuler: {
+			value: null,
+			bool: true
+		},
+		showWhiteSpace: {
+			value: null,
+			bool: true
+		},
+		showZeros: {
+			value: null,
+			bool: true
+		},
+		tabSelected: {
+			value: null,
+			bool: true
+		},
+		topLeftCell: {
+			value: null //A1
+		},
+		view: {
+			value: 'normal' //normal | pageBreakPreview | pageLayout
+		},
+		windowProtection: {
+			value: null,
+			bool: true
+		},
+		zoomScale: {
+			value: null //10-400
+		},
+		zoomScaleNormal: {
+			value: null //10-400
+		},
+		zoomScalePageLayoutView: {
+			value: null //10-400
+		},
+		zoomScaleSheetLayoutView: {
+			value: null //10-400
 		}
-		/**
-   * Add froze pane
-   * @param col - column number: 0, 1, 2 ...
-   * @param row - row number: 0, 1, 2 ...
-   * @param cell? - 'A1' | {c: 1, r: 1}
-   * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
-   */
+	};
 
-	}, {
-		key: 'freeze',
-		value: function freeze(col, row, cell, activePane) {
-			this._pane = {
-				state: 'frozen',
-				xSplit: col,
-				ySplit: row,
-				topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
-				activePane: activePane || 'bottomRight'
-			};
-			return this;
+	_.forEach(config, function (value, name) {
+		if (name === 'freeze') {
+			_this.freeze(value.col, value.row, value.cell, value.activePane);
+		} else if (name === 'split') {
+			_this.split(value.x, value.y, value.cell, value.activePane);
+		} else if (_this.attributes[name]) {
+			_this.attributes[name].value = value;
 		}
-		/**
-   * Add split pane
-   * @param x - Horizontal position of the split, in points; 0 (zero) if none
-   * @param y - Vertical position of the split, in points; 0 (zero) if none
-   * @param cell? - 'A1' | {c: 1, r: 1}
-   * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
-   */
-
-	}, {
-		key: 'split',
-		value: function split(x, y, cell, activePane) {
-			this._pane = {
-				state: 'split',
-				xSplit: x * 20,
-				ySplit: y * 20,
-				topLeftCell: util.canonCell(cell) || 'A1',
-				activePane: activePane || 'bottomRight'
-			};
-			return this;
-		}
-	}, {
-		key: '_saveSheetView',
-		value: function _saveSheetView() {
-			var attributes = [['workbookViewId', 0]];
-
-			_.forEach(this._attributes, function (attr, name) {
-				var value = attr.value;
-
-				if (value !== null) {
-					if (attr.bool) {
-						value = value ? 'true' : 'false';
-					}
-					attributes.push([name, value]);
-				}
-			});
-
-			return toXMLString({
-				name: 'sheetViews',
-				children: [toXMLString({
-					name: 'sheetView',
-					attributes: attributes,
-					children: [savePane(this._pane)]
-				})]
-			});
-		}
-	}]);
-
-	return SheetView;
-}(Hyperlinks);
-
-function savePane(pane) {
-	if (pane) {
-		return toXMLString({
-			name: 'pane',
-			attributes: [['state', pane.state], ['xSplit', pane.xSplit], ['ySplit', pane.ySplit], ['topLeftCell', pane.topLeftCell], ['activePane', pane.activePane]]
-		});
-	}
-	return '';
+	});
 }
+
+SheetView.prototype = {
+	setAttribute: function setAttribute(name, value) {
+		if (this.attributes[name]) {
+			this.attributes[name].value = value;
+		}
+	},
+
+	/**
+  * Add froze pane
+  * @param col - column number: 0, 1, 2 ...
+  * @param row - row number: 0, 1, 2 ...
+  * @param cell? - 'A1' | {c: 1, r: 1}
+  * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+  */
+	freeze: function freeze(col, row, cell, activePane) {
+		this.pane = {
+			state: 'frozen',
+			xSplit: col,
+			ySplit: row,
+			topLeftCell: util.canonCell(cell) || util.positionToLetter(col + 1, row + 1),
+			activePane: activePane || 'bottomRight'
+		};
+	},
+
+	/**
+  * Add split pane
+  * @param x - Horizontal position of the split, in points; 0 (zero) if none
+  * @param y - Vertical position of the split, in points; 0 (zero) if none
+  * @param cell? - 'A1' | {c: 1, r: 1}
+  * @param activePane? - topLeft | topRight | bottomLeft | bottomRight
+  */
+	split: function split(x, y, cell, activePane) {
+		this.pane = {
+			state: 'split',
+			xSplit: x * 20,
+			ySplit: y * 20,
+			topLeftCell: util.canonCell(cell) || 'A1',
+			activePane: activePane || 'bottomRight'
+		};
+	},
+	save: function save() {
+		var attributes = [['workbookViewId', 0]];
+
+		_.forEach(this.attributes, function (attr, name) {
+			var value = attr.value;
+
+			if (value !== null) {
+				if (attr.bool) {
+					value = value ? 'true' : 'false';
+				}
+				attributes.push([name, value]);
+			}
+		});
+
+		return toXMLString({
+			name: 'sheetViews',
+			children: [toXMLString({
+				name: 'sheetView',
+				attributes: attributes,
+				children: [this.savePane()]
+			})]
+		});
+	},
+	savePane: function savePane() {
+		var pane = this.pane;
+
+		if (pane) {
+			return toXMLString({
+				name: 'pane',
+				attributes: [['state', pane.state], ['xSplit', pane.xSplit], ['ySplit', pane.ySplit], ['topLeftCell', pane.topLeftCell], ['activePane', pane.activePane]]
+			});
+		}
+		return '';
+	}
+};
 
 module.exports = SheetView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":26,"./hyperlinks":29}],36:[function(require,module,exports){
+},{"../XMLString":2,"../util":26}],36:[function(require,module,exports){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-var Print = require('./print');
-var Table = require('../table');
+var createTable = require('../table');
 var toXMLString = require('../XMLString');
 
-var Tables = function (_Print) {
-	_inherits(Tables, _Print);
+function Tables(worksheet, common, relations) {
+	this.worksheet = worksheet;
+	this.common = common;
+	this.relations = relations;
+	this.tables = [];
+}
 
-	function Tables() {
-		_classCallCheck(this, Tables);
+Tables.prototype = {
+	addTable: function addTable(config) {
+		var _createTable = createTable(this.worksheet.outerWorksheet, this.common, config),
+		    outerTable = _createTable.outerTable,
+		    table = _createTable.table;
 
-		var _this = _possibleConstructorReturn(this, (Tables.__proto__ || Object.getPrototypeOf(Tables)).call(this));
+		this.common.addTable(table);
+		this.relations.addRelation(table, 'table');
+		this.tables.push(table);
 
-		_this._tables = [];
-		return _this;
-	}
+		return outerTable;
+	},
+	prepare: function prepare() {
+		var _this = this;
 
-	_createClass(Tables, [{
-		key: 'addTable',
-		value: function addTable(config) {
-			var table = new Table(this, config);
+		this.tables.forEach(function (table) {
+			table.prepare(_this.worksheet.data);
+		});
+	},
+	save: function save() {
+		var _this2 = this;
 
-			this.common.addTable(table);
-			this.relations.addRelation(table, 'table');
-			this._tables.push(table);
+		if (this.tables.length > 0) {
+			var children = this.tables.map(function (table) {
+				return toXMLString({
+					name: 'tablePart',
+					attributes: [['r:id', _this2.relations.getRelationshipId(table)]]
+				});
+			});
 
-			return table;
-		}
-	}, {
-		key: '_prepareTables',
-		value: function _prepareTables() {
-			var _this2 = this;
-
-			this._tables.forEach(function (table) {
-				table._prepare(_this2.data);
+			return toXMLString({
+				name: 'tableParts',
+				attributes: [['count', this.tables.length]],
+				children: children
 			});
 		}
-	}, {
-		key: '_saveTables',
-		value: function _saveTables() {
-			var _this3 = this;
-
-			if (this._tables.length > 0) {
-				var children = this._tables.map(function (table) {
-					return toXMLString({
-						name: 'tablePart',
-						attributes: [['r:id', _this3.relations.getRelationshipId(table)]]
-					});
-				});
-
-				return toXMLString({
-					name: 'tableParts',
-					attributes: [['count', this._tables.length]],
-					children: children
-				});
-			}
-			return '';
-		}
-	}]);
-
-	return Tables;
-}(Print);
+		return '';
+	}
+};
 
 module.exports = Tables;
 
-},{"../XMLString":2,"../table":25,"./print":33}]},{},[11])(11)
+},{"../XMLString":2,"../table":25}],37:[function(require,module,exports){
+'use strict';
+
+var Tables = require('./tables');
+var WorksheetDrawings = require('./drawing');
+var Hyperlinks = require('./hyperlinks');
+var MergedCells = require('./mergedCells');
+var SheetView = require('./sheetView');
+var print = require('./print');
+var prepareSave = require('./prepareSave');
+var save = require('./save');
+var Relations = require('../relations');
+
+function Worksheet(common) {
+	var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
+	this.common = common;
+	this.styles = this.common.styles;
+
+	this.objectId = this.common.uniqueId('Worksheet');
+	this.data = [];
+	this.columns = [];
+	this.rows = [];
+
+	this.headers = [];
+	this.footers = [];
+
+	this.name = config.name;
+	this.state = config.state || 'visible';
+	this.timezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
+	this.relations = new Relations(this.common);
+
+	this.tables = new Tables(this, this.common, this.relations);
+	this.drawings = new WorksheetDrawings(this.common, this.relations);
+	this.hyperlinks = new Hyperlinks(this.common, this.relations);
+	this.mergedCells = new MergedCells(this);
+	this.sheetView = new SheetView(config);
+}
+
+Worksheet.prototype = {
+	setRows: function setRows(startRow, rows) {
+		var _this = this;
+
+		if (!rows) {
+			rows = startRow;
+			startRow = 0;
+		} else {
+			--startRow;
+		}
+		rows.forEach(function (row, i) {
+			_this.rows[startRow + i] = row;
+		});
+	},
+	setRow: function setRow(rowIndex, row) {
+		this.rows[--rowIndex] = row;
+	},
+
+	/**
+  * http://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.column.aspx
+  */
+	setColumns: function setColumns(startColumn, columns) {
+		var _this2 = this;
+
+		if (!columns) {
+			columns = startColumn;
+			startColumn = 0;
+		} else {
+			--startColumn;
+		}
+		columns.forEach(function (column, i) {
+			_this2.columns[startColumn + i] = column;
+		});
+	},
+	setColumn: function setColumn(columnIndex, column) {
+		this.columns[--columnIndex] = column;
+	},
+	setData: function setData(offset, data) {
+		var _this3 = this;
+
+		var startRow = this.data.length;
+
+		if (!data) {
+			data = offset;
+		} else {
+			startRow += offset;
+		}
+		data.forEach(function (row, i) {
+			_this3.data[startRow + i] = row;
+		});
+	},
+	setState: function setState(state) {
+		this.state = state;
+	},
+	getState: function getState() {
+		return this.state;
+	}
+};
+
+Object.assign(Worksheet.prototype, print.methods);
+Object.assign(Worksheet.prototype, prepareSave.methods);
+Object.assign(Worksheet.prototype, save.methods);
+
+module.exports = Worksheet;
+
+},{"../relations":12,"./drawing":28,"./hyperlinks":29,"./mergedCells":31,"./prepareSave":32,"./print":33,"./save":34,"./sheetView":35,"./tables":36}]},{},[11])(11)
 });

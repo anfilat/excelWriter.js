@@ -2,12 +2,11 @@
 
 const Readable = require('stream').Readable;
 const _ = require('lodash');
-const PrepareSave = require('./prepareSave');
 const util = require('../util');
 const toXMLString = require('../XMLString');
 
-class WorksheetSave extends PrepareSave {
-	_save(canStream) {
+const methods = {
+	save(canStream) {
 		if (canStream) {
 			return new WorksheetStream({
 				worksheet: this
@@ -17,7 +16,7 @@ class WorksheetSave extends PrepareSave {
 			saveData(this) +
 			saveAfterRows(this);
 	}
-}
+};
 
 class WorksheetStream extends (Readable || null) {
 	constructor(options) {
@@ -70,7 +69,7 @@ function saveBeforeRows(worksheet) {
 	return util.xmlPrefix + '<worksheet xmlns="' + util.schemas.spreadsheetml +
 		'" xmlns:r="' + util.schemas.relationships + '" xmlns:mc="' + util.schemas.markupCompat + '">' +
 		saveDimension(worksheet.maxX, worksheet.maxY) +
-		worksheet._saveSheetView() +
+		worksheet.sheetView.save() +
 		saveColumns(worksheet.preparedColumns) +
 		'<sheetData>';
 }
@@ -79,13 +78,13 @@ function saveAfterRows(worksheet) {
 	return '</sheetData>' +
 		// 'mergeCells' should be written before 'headerFoot' and 'drawing' due to issue
 		// with Microsoft Excel (2007, 2013)
-		worksheet._saveMergeCells() +
-		worksheet._saveHyperlinks() +
-		worksheet._savePrint() +
-		worksheet._saveTables() +
+		worksheet.mergedCells.save() +
+		worksheet.hyperlinks.save() +
+		worksheet.savePrint() +
+		worksheet.tables.save() +
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
-		worksheet._saveDrawing() +
+		worksheet.drawings.save() +
 		'</worksheet>';
 }
 
@@ -214,4 +213,4 @@ function saveColumns(columns) {
 	return '';
 }
 
-module.exports = WorksheetSave;
+module.exports = {methods};

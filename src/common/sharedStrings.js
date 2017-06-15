@@ -6,38 +6,39 @@ const util = require('../util');
 
 const spaceRE = /^\s|\s$/;
 
-class SharedStrings {
-	constructor(common) {
-		this.objectId = common.uniqueId('SharedStrings');
-		this._strings = Object.create(null);
-		this._stringArray = [];
-		this.count = 0;
-	}
+function SharedStrings(common) {
+	this.objectId = common.uniqueId('SharedStrings');
+	this.strings = Object.create(null);
+	this.stringArray = [];
+	this.count = 0;
+}
+
+SharedStrings.prototype = {
 	add(string) {
-		let stringId = this._strings[string];
+		let stringId = this.strings[string];
 
 		if (stringId === undefined) {
 			stringId = this.count++;
 
-			this._strings[string] = stringId;
-			this._stringArray[stringId] = string;
+			this.strings[string] = stringId;
+			this.stringArray[stringId] = string;
 		}
 
 		return stringId;
-	}
+	},
 	isStrings() {
 		return this.count > 0;
-	}
+	},
 	save(canStream) {
-		this._strings = null;
+		this.strings = null;
 
 		if (canStream) {
 			return new SharedStringsStream({
-				strings: this._stringArray
+				strings: this.stringArray
 			});
 		}
 		const result = getXMLBegin(this.count) +
-			this._stringArray.map(string => {
+			this.stringArray.map(string => {
 				string = _.escape(string);
 
 				if (spaceRE.test(string)) {
@@ -46,10 +47,10 @@ class SharedStrings {
 				return `<si><t>${string}</t></si>`;
 			}).join('') +
 			getXMLEnd();
-		this._stringArray = null;
+		this.stringArray = null;
 		return result;
 	}
-}
+};
 
 class SharedStringsStream extends (Readable || null) {
 	constructor(options) {

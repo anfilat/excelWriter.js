@@ -1,64 +1,64 @@
 'use strict';
 
 const _ = require('lodash');
-const Tables = require('./tables');
 const Drawings = require('../drawings');
 const toXMLString = require('../XMLString');
 
-class DrawingsExt extends Tables {
-	constructor() {
-		super();
-		this._drawings = null;
-	}
-	setImage(image, config) {
-		return this._setDrawing(image, config, 'anchor');
-	}
-	setImageOneCell(image, config) {
-		return this._setDrawing(image, config, 'oneCell');
-	}
-	setImageAbsolute(image, config) {
-		return this._setDrawing(image, config, 'absolute');
-	}
-	_setDrawing(image, config, anchorType) {
-		if (!this._drawings) {
-			this._drawings = new Drawings(this.common);
+function WorksheetDrawings(common, relations) {
+	this.common = common;
+	this.relations = relations;
+	this.drawings = null;
+}
 
-			this.common.addDrawings(this._drawings);
-			this.relations.addRelation(this._drawings, 'drawingRelationship');
+WorksheetDrawings.prototype = {
+	setImage(image, config) {
+		this.setDrawing(image, config, 'anchor');
+	},
+	setImageOneCell(image, config) {
+		this.setDrawing(image, config, 'oneCell');
+	},
+	setImageAbsolute(image, config) {
+		this.setDrawing(image, config, 'absolute');
+	},
+	setDrawing(image, config, anchorType) {
+		if (!this.drawings) {
+			this.drawings = new Drawings(this.common);
+
+			this.common.addDrawings(this.drawings);
+			this.relations.addRelation(this.drawings, 'drawingRelationship');
 		}
 
 		const name = _.isObject(image)
 			? this.common.images.addImage(image.data, image.type)
 			: image;
 
-		this._drawings.addImage(name, config, anchorType);
-		return this;
-	}
-	_insertDrawing(colIndex, rowIndex, image) {
+		this.drawings.addImage(name, config, anchorType);
+	},
+	insert(colIndex, rowIndex, image) {
 		if (image) {
 			const cell = {c: colIndex + 1, r: rowIndex + 1};
 
 			if (typeof image === 'string' || image.data) {
-				this._setDrawing(image, cell, 'anchor');
+				this.setDrawing(image, cell, 'anchor');
 			} else {
 				const config = image.config || {};
 				config.cell = cell;
 
-				this._setDrawing(image.image, config, 'anchor');
+				this.setDrawing(image.image, config, 'anchor');
 			}
 		}
-	}
-	_saveDrawing() {
-		if (this._drawings) {
+	},
+	save() {
+		if (this.drawings) {
 			return toXMLString({
 				name: 'drawing',
 				attributes: [
-					['r:id', this.relations.getRelationshipId(this._drawings)]
+					['r:id', this.relations.getRelationshipId(this.drawings)]
 				]
 			});
 		}
 		return '';
 	}
-}
+};
 
-module.exports = DrawingsExt;
+module.exports = WorksheetDrawings;

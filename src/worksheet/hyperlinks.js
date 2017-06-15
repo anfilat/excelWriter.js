@@ -1,14 +1,15 @@
 'use strict';
 
 const util = require('../util');
-const MergedCells = require('./mergedCells');
 const toXMLString = require('../XMLString');
 
-class Hyperlinks extends MergedCells {
-	constructor() {
-		super();
-		this._hyperlinks = [];
-	}
+function Hyperlinks(common, relations) {
+	this.common = common;
+	this.relations = relations;
+	this.hyperlinks = [];
+}
+
+Hyperlinks.prototype = {
 	setHyperlink(hyperlink) {
 		hyperlink.objectId = this.common.uniqueId('hyperlink');
 		this.relations.addRelation({
@@ -16,10 +17,9 @@ class Hyperlinks extends MergedCells {
 			target: hyperlink.location,
 			targetMode: hyperlink.targetMode || 'External'
 		}, 'hyperlink');
-		this._hyperlinks.push(hyperlink);
-		return this;
-	}
-	_insertHyperlink(colIndex, rowIndex, hyperlink) {
+		this.hyperlinks.push(hyperlink);
+	},
+	insert(colIndex, rowIndex, hyperlink) {
 		if (hyperlink) {
 			const cell = {c: colIndex + 1, r: rowIndex + 1};
 
@@ -37,10 +37,10 @@ class Hyperlinks extends MergedCells {
 				});
 			}
 		}
-	}
-	_saveHyperlinks() {
-		if (this._hyperlinks.length > 0) {
-			const children = this._hyperlinks.map(hyperlink => {
+	},
+	save() {
+		if (this.hyperlinks.length > 0) {
+			const children = this.hyperlinks.map(hyperlink => {
 				const attributes = [
 					['ref', util.canonCell(hyperlink.cell)],
 					['r:id', this.relations.getRelationshipId(hyperlink)]
@@ -62,6 +62,6 @@ class Hyperlinks extends MergedCells {
 		}
 		return '';
 	}
-}
+};
 
 module.exports = Hyperlinks;

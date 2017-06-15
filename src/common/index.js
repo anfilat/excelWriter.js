@@ -4,40 +4,40 @@ const Images = require('./images');
 const SharedStrings = require('./sharedStrings');
 const Styles = require('../styles');
 
-class Common {
-	constructor() {
-		this.idSpaces = Object.create(null);
-		this._paths = Object.create(null);
+function Common() {
+	this.idSpaces = Object.create(null);
+	this.paths = Object.create(null);
 
-		this.images = new Images(this);
+	this.images = new Images(this);
 
-		this.strings = new SharedStrings(this);
-		this.addPath(this.strings, 'sharedStrings.xml');
+	this.strings = new SharedStrings(this);
+	this.addPath(this.strings, 'sharedStrings.xml');
 
-		this.styles = new Styles(this);
-		this.addPath(this.styles, 'styles.xml');
+	this.styles = new Styles(this);
+	this.addPath(this.styles, 'styles.xml');
 
-		this.worksheets = [];
-		this.tables = [];
-		this.drawings = [];
-	}
+	this.worksheets = [];
+	this.tables = [];
+	this.drawings = [];
+}
 
+Common.prototype = {
 	uniqueId(space) {
 		return space + this.uniqueIdForSpace(space);
-	}
+	},
 	uniqueIdForSpace(space) {
 		if (!this.idSpaces[space]) {
 			this.idSpaces[space] = 1;
 		}
 		return this.idSpaces[space]++;
-	}
+	},
 
 	addPath(object, path) {
-		this._paths[object.objectId] = path;
-	}
+		this.paths[object.objectId] = path;
+	},
 	getPath(object) {
-		return this._paths[object.objectId];
-	}
+		return this.paths[object.objectId];
+	},
 
 	addWorksheet(worksheet) {
 		const index = this.worksheets.length + 1;
@@ -48,13 +48,13 @@ class Common {
 		worksheet.relationsPath = relationsPath;
 		this.worksheets.push(worksheet);
 		this.addPath(worksheet, path);
-	}
+	},
 	getNewWorksheetDefaultName() {
 		return `Sheet ${this.worksheets.length + 1}`;
-	}
+	},
 	setActiveWorksheet(worksheet) {
 		this.activeWorksheet = worksheet;
-	}
+	},
 	addTable(table) {
 		const index = this.tables.length + 1;
 		const path = 'xl/tables/table' + index + '.xml';
@@ -62,7 +62,7 @@ class Common {
 		table.path = path;
 		this.tables.push(table);
 		this.addPath(table, '/' + path);
-	}
+	},
 	addDrawings(drawings) {
 		const index = this.drawings.length + 1;
 		const path = 'xl/drawings/drawing' + index + '.xml';
@@ -73,6 +73,6 @@ class Common {
 		this.drawings.push(drawings);
 		this.addPath(drawings, '/' + path);
 	}
-}
+};
 
 module.exports = Common;

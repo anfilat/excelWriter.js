@@ -5,14 +5,15 @@ const util = require('../util');
 const toXMLString = require('../XMLString');
 const Picture = require('./picture');
 
-class Drawings {
-	constructor(common) {
-		this.common = common;
+function Drawings(common) {
+	this.common = common;
 
-		this.objectId = this.common.uniqueId('Drawings');
-		this.drawings = [];
-		this.relations = new Relations(common);
-	}
+	this.objectId = this.common.uniqueId('Drawings');
+	this.drawings = [];
+	this.relations = new Relations(common);
+}
+
+Drawings.prototype = {
 	addImage(name, config, anchorType) {
 		const image = this.common.images.getImage(name);
 		const imageRelationId = this.relations.addRelation(image, 'image');
@@ -24,7 +25,7 @@ class Drawings {
 		});
 
 		this.drawings.push(picture);
-	}
+	},
 	save() {
 		const attributes = [
 			['xmlns:a', util.schemas.drawing],
@@ -40,6 +41,6 @@ class Drawings {
 			children
 		});
 	}
-}
+};
 
 module.exports = Drawings;

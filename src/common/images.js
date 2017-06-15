@@ -1,14 +1,15 @@
 'use strict';
 
-class Images {
-	constructor(common) {
-		this.common = common;
-		this._images = Object.create(null);
-		this._imageByNames = Object.create(null);
-		this._extensions = Object.create(null);
-	}
+function Images(common) {
+	this.common = common;
+	this.images = Object.create(null);
+	this.imageByNames = Object.create(null);
+	this.extensions = Object.create(null);
+}
+
+Images.prototype = {
 	addImage(data, type = '', name) {
-		let image = this._images[data];
+		let image = this.images[data];
 
 		if (!image) {
 			const id = this.common.uniqueIdForSpace('image');
@@ -25,29 +26,29 @@ class Images {
 				path
 			};
 			this.common.addPath(image, '/' + path);
-			this._images[data] = image;
-			this._imageByNames[name] = image;
-			this._extensions[type] = contentType;
-		} else if (name && !this._imageByNames[name]) {
+			this.images[data] = image;
+			this.imageByNames[name] = image;
+			this.extensions[type] = contentType;
+		} else if (name && !this.imageByNames[name]) {
 			image.name = name;
-			this._imageByNames[name] = image;
+			this.imageByNames[name] = image;
 		}
 		return image.name;
-	}
+	},
 	getImage(name) {
-		return this._imageByNames[name];
-	}
+		return this.imageByNames[name];
+	},
 	getImages() {
-		return this._images;
-	}
+		return this.images;
+	},
 	removeImages() {
-		this._images = null;
-		this._imageByNames = null;
-	}
+		this.images = null;
+		this.imageByNames = null;
+	},
 	getExtensions() {
-		return this._extensions;
+		return this.extensions;
 	}
-}
+};
 
 function getContentType(type) {
 	switch (type.toLowerCase()) {

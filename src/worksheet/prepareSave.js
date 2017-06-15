@@ -1,16 +1,15 @@
 'use strict';
 
 const _ = require('lodash');
-const SheetView = require('./sheetView');
 
-class PrepareSave extends SheetView {
-	_prepare() {
-		this._prepareTables();
-		this._prepareColumns();
-		this._prepareRows();
-		this._prepareData();
-	}
-	_prepareColumns() {
+const methods = {
+	prepare() {
+		this.tables.prepare();
+		this.prepareColumns();
+		this.prepareRows();
+		this.prepareData();
+	},
+	prepareColumns() {
 		this.preparedColumns = this.columns.map(column => {
 			if (column) {
 				const preparedColumn = _.clone(column);
@@ -27,8 +26,8 @@ class PrepareSave extends SheetView {
 			return undefined;
 		});
 		this.columns = null;
-	}
-	_prepareRows() {
+	},
+	prepareRows() {
 		this.preparedRows = this.rows.map(row => {
 			if (row) {
 				const preparedRow = _.clone(row);
@@ -41,20 +40,20 @@ class PrepareSave extends SheetView {
 			return undefined;
 		});
 		this.rows = null;
-	}
-	_prepareData() {
+	},
+	prepareData() {
 		this.maxX = 0;
 		this.preparedData = [];
 		for (let rowIndex = 0; rowIndex < this.data.length; rowIndex++) {
-			const preparedDataRow = this._prepareDataRow(rowIndex);
+			const preparedDataRow = this.prepareDataRow(rowIndex);
 
 			this.preparedData.push(preparedDataRow);
 			this.maxX = Math.max(this.maxX, preparedDataRow.length);
 		}
 		this.maxY = this.preparedData.length;
 		this.data = null;
-	}
-	_prepareDataRow(rowIndex) {
+	},
+	prepareDataRow(rowIndex) {
 		const preparedDataRow = [];
 		let row = this.preparedRows[rowIndex];
 		let dataRow = this.data[rowIndex];
@@ -65,7 +64,7 @@ class PrepareSave extends SheetView {
 			let inserts = [];
 
 			if (!_.isArray(dataRow)) {
-				row = this._mergeDataRowToRow(row, dataRow);
+				row = this.mergeDataRowToRow(row, dataRow);
 				if (dataRow.inserts) {
 					inserts = dataRow.inserts;
 					dataRow = _.clone(dataRow.data);
@@ -77,7 +76,7 @@ class PrepareSave extends SheetView {
 				rowStyle = row.style || null;
 				skipColumnsStyle = row.skipColumnsStyle;
 			}
-			dataRow = this._splitDataRow(row, dataRow, rowIndex);
+			dataRow = this.splitDataRow(row, dataRow, rowIndex);
 
 			for (let colIndex = 0, dataIndex = 0; dataIndex < dataRow.length || colIndex < inserts.length; colIndex++) {
 				const column = this.preparedColumns[colIndex];
@@ -91,30 +90,30 @@ class PrepareSave extends SheetView {
 					dataIndex++;
 				}
 
-				const {cellValue, cellType, cellStyle, isObject} = this._readCellValue(value);
+				const {cellValue, cellType, cellStyle, isObject} = this.readCellValue(value);
 
 				if (isObject) {
-					this._insertHyperlink(colIndex, rowIndex, value.hyperlink);
-					this._insertDrawing(colIndex, rowIndex, value.image);
-					dataRow = this._mergeCells(dataRow, colIndex, rowIndex, value);
+					this.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
+					this.drawings.insert(colIndex, rowIndex, value.image);
+					dataRow = this.mergeCells(dataRow, colIndex, rowIndex, value);
 				}
 
-				preparedDataRow[colIndex] = this._getPreparedCell(
+				preparedDataRow[colIndex] = this.getPreparedCell(
 					this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)),
-					this._getCellType(cellType, cellValue, row, column),
+					this.getCellType(cellType, cellValue, row, column),
 					cellValue
 				);
 			}
 		}
 
 		if (row) {
-			this._setRowStyleId(row);
+			this.setRowStyleId(row);
 			this.preparedRows[rowIndex] = row;
 		}
 
 		return preparedDataRow;
-	}
-	_mergeDataRowToRow(row = {}, dataRow) {
+	},
+	mergeDataRowToRow(row = {}, dataRow) {
 		row.height = dataRow.height || row.height;
 		row.outlineLevel = dataRow.outlineLevel || row.outlineLevel;
 		row.type = dataRow.type || row.type;
@@ -122,9 +121,9 @@ class PrepareSave extends SheetView {
 		row.skipColumnsStyle = dataRow.skipColumnsStyle || row.skipColumnsStyle;
 
 		return row;
-	}
-	_splitDataRow(row = {}, dataRow, rowIndex) {
-		const count = this._calcDataRowHeight(dataRow);
+	},
+	splitDataRow(row = {}, dataRow, rowIndex) {
+		const count = this.calcDataRowHeight(dataRow);
 
 		if (count === 0) {
 			return dataRow;
@@ -156,18 +155,18 @@ class PrepareSave extends SheetView {
 				const lastValue = {value: _.last(list), style};
 				const listLength = list.length;
 				const value = listLength < count
-					? this._addRowspan(lastValue, count - listLength + 1)
+					? this.addRowspan(lastValue, count - listLength + 1)
 					: lastValue;
 				newRows[list.length - 1].data.push(value);
 			} else {
-				newRows[0].data.push(this._addRowspan(value, count));
+				newRows[0].data.push(this.addRowspan(value, count));
 			}
 		});
 		this.data.splice(rowIndex, 1, ...newRows);
 
 		return newRows[0].data;
-	}
-	_calcDataRowHeight(dataRow) {
+	},
+	calcDataRowHeight(dataRow) {
 		let count = 0;
 		_.forEach(dataRow, value => {
 			if (_.isArray(value)) {
@@ -177,8 +176,8 @@ class PrepareSave extends SheetView {
 			}
 		});
 		return count;
-	}
-	_addRowspan(value, rowspan) {
+	},
+	addRowspan(value, rowspan) {
 		if (_.isObject(value) && !_.isDate(value)) {
 			value = _.clone(value);
 			value.rowspan = rowspan;
@@ -190,8 +189,8 @@ class PrepareSave extends SheetView {
 			rowspan,
 			style: {vertical: 'top'}
 		};
-	}
-	_readCellValue(value) {
+	},
+	readCellValue(value) {
 		let cellValue;
 		let cellType = null;
 		let cellStyle = null;
@@ -233,23 +232,23 @@ class PrepareSave extends SheetView {
 			cellStyle,
 			isObject
 		};
-	}
-	_mergeCells(dataRow, colIndex, rowIndex, value) {
+	},
+	mergeCells(dataRow, colIndex, rowIndex, value) {
 		if (value.colspan || value.rowspan) {
 			const colSpan = (value.colspan || 1) - 1;
 			const rowSpan = (value.rowspan || 1) - 1;
 
 			if (colSpan || rowSpan) {
-				this.mergeCells(
+				this.mergedCells.mergeCells(
 					{c: colIndex + 1, r: rowIndex + 1},
 					{c: colIndex + 1 + colSpan, r: rowIndex + 1 + rowSpan}
 				);
-				return this._insertMergeCells(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
+				return this.mergedCells.insert(dataRow, colIndex, rowIndex, colSpan, rowSpan, value.style);
 			}
 		}
 		return dataRow;
-	}
-	_getCellType(cellType, cellValue, row, column) {
+	},
+	getCellType(cellType, cellValue, row, column) {
 		if (cellType) {
 			return cellType;
 		} else if (row && row.type) {
@@ -261,8 +260,8 @@ class PrepareSave extends SheetView {
 		} else if (typeof cellValue === 'string') {
 			return 'string';
 		}
-	}
-	_getPreparedCell(styleId, cellType, cellValue) {
+	},
+	getPreparedCell(styleId, cellType, cellValue) {
 		const result = {
 			styleId,
 			value: null,
@@ -290,13 +289,13 @@ class PrepareSave extends SheetView {
 		}
 
 		return result;
-	}
-	_setRowStyleId(row) {
+	},
+	setRowStyleId(row) {
 		if (row.style) {
 			const rowStyle = this.styles._addFillOutFormat(row.style);
 			row.styleId = this.styles._getId(rowStyle);
 		}
 	}
-}
+};
 
-module.exports = PrepareSave;
+module.exports = {methods};

@@ -6,13 +6,14 @@ const Anchor = require('./anchor');
 const AnchorOneCell = require('./anchorOneCell');
 const AnchorAbsolute = require('./anchorAbsolute');
 
-class Picture {
-	constructor(common, config) {
-		this.pictureId = common.uniqueIdForSpace('Picture');
-		this.image = config.image;
-		this.imageRelationId = config.imageRelationId;
-		this.createAnchor(config.anchorType, config.config);
-	}
+function Picture(common, config) {
+	this.pictureId = common.uniqueIdForSpace('Picture');
+	this.image = config.image;
+	this.imageRelationId = config.imageRelationId;
+	this.createAnchor(config.anchorType, config.config);
+}
+
+Picture.prototype = {
 	/**
 	 *
 	 * @param {String} type Can be 'anchor', 'oneCell' or 'absolute'.
@@ -30,7 +31,7 @@ class Picture {
 				this.anchor = new AnchorAbsolute(config);
 				break;
 		}
-	}
+	},
 	save() {
 		return this.anchor.saveWithContent(toXMLString({
 			name: 'xdr:pic',
@@ -102,6 +103,6 @@ class Picture {
 			]
 		}));
 	}
-}
+};
 
 module.exports = Picture;

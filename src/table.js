@@ -4,57 +4,68 @@ const _ = require('lodash');
 const util = require('./util');
 const toXMLString = require('./XMLString');
 
-class Table {
-	constructor(worksheet, config) {
-		this.worksheet = worksheet;
-		this.common = worksheet.common;
+function createTable(outerWorksheet, common, config) {
+	const table = new Table(config, common);
 
-		this.tableId = this.common.uniqueIdForSpace('Table');
-		this.objectId = 'Table' + this.tableId;
-		this.name = this.objectId;
-		this.displayName = this.objectId;
-		this.headerRowCount = 1;
-		this.beginCell = null;
-		this.endCell = null;
-		this.totalsRowCount = 0;
-		this.totalRow = null;
-		this.themeStyle = null;
+	const outerTable = {
+		end() {
+			return outerWorksheet;
+		},
+		setReferenceRange(beginCell, endCell) {
+			table.beginCell = util.canonCell(beginCell);
+			table.endCell = util.canonCell(endCell);
+			return this;
+		},
+		addTotalRow(totalRow) {
+			table.totalRow = totalRow;
+			table.totalsRowCount = 1;
+			return this;
+		},
+		setTheme(theme) {
+			table.themeStyle = theme;
+			return this;
+		},
+		/**
+		 * Expects an object with the following properties:
+		 * caseSensitive (boolean)
+		 * dataRange
+		 * columnSort (assumes true)
+		 * sortDirection
+		 * sortRange (defaults to dataRange)
+		 */
+		setSortState(state) {
+			table.sortState = state;
+			return this;
+		}
+	};
+	return {
+		outerTable,
+		table
+	};
+}
 
-		_.extend(this, config);
-	}
-	end() {
-		return this.worksheet;
-	}
-	setReferenceRange(beginCell, endCell) {
-		this.beginCell = util.canonCell(beginCell);
-		this.endCell = util.canonCell(endCell);
-		return this;
-	}
-	addTotalRow(totalRow) {
-		this.totalRow = totalRow;
-		this.totalsRowCount = 1;
-		return this;
-	}
-	setTheme(theme) {
-		this.themeStyle = theme;
-		return this;
-	}
-	/**
-	 * Expects an object with the following properties:
-	 * caseSensitive (boolean)
-	 * dataRange
-	 * columnSort (assumes true)
-	 * sortDirection
-	 * sortRange (defaults to dataRange)
-	 */
-	setSortState(state) {
-		this.sortState = state;
-		return this;
-	}
-	_prepare(worksheetData) {
-		const SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
-		const SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
+function Table(config, common) {
+	this.common = common;
 
+	this.tableId = this.common.uniqueIdForSpace('Table');
+	this.objectId = 'Table' + this.tableId;
+	this.name = this.objectId;
+	this.displayName = this.objectId;
+	this.headerRowCount = 1;
+	this.beginCell = null;
+	this.endCell = null;
+	this.totalsRowCount = 0;
+	this.totalRow = null;
+	this.themeStyle = null;
+
+	_.extend(this, config);
+}
+
+const SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'stdDev', 'sum', 'var'];
+const SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
+
+Table.prototype = {
+	prepare(worksheetData) {
 		if (this.totalRow) {
 			const tableName = this.name;
 			const beginCell = util.letterToPosition(this.beginCell);
@@ -95,9 +106,9 @@ class Table {
 				}
 			});
 		}
-	}
+	},
 	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.table.aspx
-	_save() {
+	save() {
 		const attributes = [
 			['id', this.tableId],
 			['name', this.name],
@@ -111,9 +122,9 @@ class Table {
 		attributes.push(['totalsRowCount', this.totalsRowCount]);
 		attributes.push(['headerRowCount', this.headerRowCount]);
 
-		children.push(saveAutoFilter(this.beginCell, this.endCell));
-		children.push(saveTableColumns(this.totalRow));
-		children.push(saveTableStyleInfo(this.common, this.themeStyle));
+		children.push(this.saveAutoFilter());
+		children.push(this.saveTableColumns());
+		children.push(this.saveTableStyleInfo());
 
 		return toXMLString({
 			name: 'table',
@@ -121,73 +132,70 @@ class Table {
 			attributes,
 			children
 		});
-	}
-}
-
-function saveAutoFilter(beginCell, endCell) {
-	return toXMLString({
-		name: 'autoFilter',
-		attributes: ['ref', beginCell + ':' + endCell]
-	});
-}
-
-function saveTableColumns(totalRow) {
-	const attributes = [
-		['count', totalRow.length]
-	];
-	const children = _.map(totalRow, (cell, index) => {
+	},
+	saveAutoFilter() {
+		return toXMLString({
+			name: 'autoFilter',
+			attributes: ['ref', this.beginCell + ':' + this.endCell]
+		});
+	},
+	saveTableColumns() {
 		const attributes = [
-			['id', index + 1],
-			['name', cell.name]
+			['count', this.totalRow.length]
 		];
+		const children = _.map(this.totalRow, (cell, index) => {
+			const attributes = [
+				['id', index + 1],
+				['name', cell.name]
+			];
 
-		if (cell.totalsRowFunction) {
-			attributes.push(['totalsRowFunction', cell.totalsRowFunction]);
-		}
-		if (cell.totalsRowLabel) {
-			attributes.push(['totalsRowLabel', cell.totalsRowLabel]);
-		}
+			if (cell.totalsRowFunction) {
+				attributes.push(['totalsRowFunction', cell.totalsRowFunction]);
+			}
+			if (cell.totalsRowLabel) {
+				attributes.push(['totalsRowLabel', cell.totalsRowLabel]);
+			}
+
+			return toXMLString({
+				name: 'tableColumn',
+				attributes
+			});
+		});
 
 		return toXMLString({
-			name: 'tableColumn',
+			name: 'tableColumns',
+			attributes,
+			children
+		});
+	},
+	saveTableStyleInfo() {
+		const attributes = [
+			['name', this.themeStyle]
+		];
+		const format = this.common.styles.tables.get(this.themeStyle);
+		let isRowStripes = false;
+		let isColumnStripes = false;
+		let isFirstColumn = false;
+		let isLastColumn = false;
+
+		if (format) {
+			isRowStripes = format.firstRowStripe || format.secondRowStripe;
+			isColumnStripes = format.firstColumnStripe || format.secondColumnStripe;
+			isFirstColumn = format.firstColumn;
+			isLastColumn = format.lastColumn;
+		}
+		attributes.push(
+			['showRowStripes', isRowStripes ? '1' : '0'],
+			['showColumnStripes', isColumnStripes ? '1' : '0'],
+			['showFirstColumn', isFirstColumn ? '1' : '0'],
+			['showLastColumn', isLastColumn ? '1' : '0']
+		);
+
+		return toXMLString({
+			name: 'tableStyleInfo',
 			attributes
 		});
-	});
-
-	return toXMLString({
-		name: 'tableColumns',
-		attributes,
-		children
-	});
-}
-
-function saveTableStyleInfo(common, themeStyle) {
-	const attributes = [
-		['name', themeStyle]
-	];
-	const format = common.styles.tables.get(themeStyle);
-	let isRowStripes = false;
-	let isColumnStripes = false;
-	let isFirstColumn = false;
-	let isLastColumn = false;
-
-	if (format) {
-		isRowStripes = format.firstRowStripe || format.secondRowStripe;
-		isColumnStripes = format.firstColumnStripe || format.secondColumnStripe;
-		isFirstColumn = format.firstColumn;
-		isLastColumn = format.lastColumn;
 	}
-	attributes.push(
-		['showRowStripes', isRowStripes ? '1' : '0'],
-		['showColumnStripes', isColumnStripes ? '1' : '0'],
-		['showFirstColumn', isFirstColumn ? '1' : '0'],
-		['showLastColumn', isLastColumn ? '1' : '0']
-	);
+};
 
-	return toXMLString({
-		name: 'tableStyleInfo',
-		attributes
-	});
-}
-
-module.exports = Table;
+module.exports = createTable;

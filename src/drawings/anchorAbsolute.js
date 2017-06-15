@@ -3,13 +3,14 @@
 const util = require('../util');
 const toXMLString = require('../XMLString');
 
-class AnchorAbsolute {
-	constructor({left = 0, top = 0, width = 0, height = 0} = {})	{
-		this.x = util.pixelsToEMUs(left);
-		this.y = util.pixelsToEMUs(top);
-		this.width = util.pixelsToEMUs(width);
-		this.height = util.pixelsToEMUs(height);
-	}
+function AnchorAbsolute({left = 0, top = 0, width = 0, height = 0} = {}) {
+	this.x = util.pixelsToEMUs(left);
+	this.y = util.pixelsToEMUs(top);
+	this.width = util.pixelsToEMUs(width);
+	this.height = util.pixelsToEMUs(height);
+}
+
+AnchorAbsolute.prototype = {
 	saveWithContent(content) {
 		return toXMLString({
 			name: 'xdr:absoluteAnchor',
@@ -35,6 +36,6 @@ class AnchorAbsolute {
 			]
 		});
 	}
-}
+};
 
 module.exports = AnchorAbsolute;
