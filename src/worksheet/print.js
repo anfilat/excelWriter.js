@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('lodash');
+const util = require('../util');
 const toXMLString = require('../XMLString');
 
 const methods = {
@@ -79,6 +80,34 @@ const methods = {
 			this.printTitles.leftTo = params - 1;
 		}
 	},
+
+	isPrintTitle() {
+		return this.printTitles && (this.printTitles.topTo >= 0 || this.printTitles.leftTo >= 0);
+	},
+	savePrintTitle() {
+		if (this.isPrintTitle()) {
+			const printTitles = this.printTitles;
+			let value = '';
+
+			if (printTitles.topTo >= 0) {
+				value = this.name +
+					'!$' + (printTitles.topFrom + 1) +
+					':$' + (printTitles.topTo + 1);
+
+				if (printTitles.leftTo >= 0) {
+					value += ',';
+				}
+			}
+			if (printTitles.leftTo >= 0) {
+				value += this.name +
+					'!$' + util.positionToLetter(printTitles.leftFrom + 1) +
+					':$' + util.positionToLetter(printTitles.leftTo + 1);
+			}
+			return value;
+		}
+		return '';
+	},
+
 	savePrint() {
 		return this.savePageMargins() +
 			this.savePageSetup() +

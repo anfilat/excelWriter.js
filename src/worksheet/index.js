@@ -3,8 +3,6 @@
 const Worksheet = require('./worksheet');
 
 function createWorksheet(outerWorkbook, common, config) {
-	const worksheet = new Worksheet(common, config);
-
 	const outerWorksheet = {
 		end() {
 			return outerWorkbook;
@@ -65,7 +63,7 @@ function createWorksheet(outerWorkbook, common, config) {
 			return this;
 		},
 		setHyperlink(hyperlink) {
-			worksheet.hyperlinks.setHyperlink(hyperlink);
+			worksheet.hyperlinks.add(hyperlink);
 			return this;
 		},
 		mergeCells(cell1, cell2) {
@@ -85,7 +83,7 @@ function createWorksheet(outerWorkbook, common, config) {
 			return this;
 		},
 		addTable(config) {
-			return worksheet.tables.addTable(config);
+			return worksheet.tables.add(config);
 		},
 		setHeader(headers) {
 			worksheet.setHeader(headers);
@@ -112,7 +110,8 @@ function createWorksheet(outerWorkbook, common, config) {
 			return this;
 		}
 	};
-	worksheet.outerWorksheet = outerWorksheet;
+	const worksheet = new Worksheet(outerWorksheet, common, config);
+
 	return {
 		outerWorksheet,
 		worksheet

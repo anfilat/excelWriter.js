@@ -20,20 +20,6 @@ WorksheetDrawings.prototype = {
 	setImageAbsolute(image, config) {
 		this.setDrawing(image, config, 'absolute');
 	},
-	setDrawing(image, config, anchorType) {
-		if (!this.drawings) {
-			this.drawings = new Drawings(this.common);
-
-			this.common.addDrawings(this.drawings);
-			this.relations.add(this.drawings, 'drawingRelationship');
-		}
-
-		const name = _.isObject(image)
-			? this.common.images.addImage(image.data, image.type)
-			: image;
-
-		this.drawings.addImage(name, config, anchorType);
-	},
 	insert(colIndex, rowIndex, image) {
 		if (image) {
 			const cell = {c: colIndex + 1, r: rowIndex + 1};
@@ -48,6 +34,22 @@ WorksheetDrawings.prototype = {
 			}
 		}
 	},
+
+	setDrawing(image, config, anchorType) {
+		if (!this.drawings) {
+			this.drawings = new Drawings(this.common);
+
+			this.common.addDrawings(this.drawings);
+			this.relations.add(this.drawings, 'drawingRelationship');
+		}
+
+		const name = _.isObject(image)
+			? this.common.images.add(image.data, image.type)
+			: image;
+
+		this.drawings.add(name, config, anchorType);
+	},
+
 	save() {
 		if (this.drawings) {
 			return toXMLString({

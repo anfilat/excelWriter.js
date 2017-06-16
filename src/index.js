@@ -39,7 +39,7 @@ function createWorkbook() {
 		},
 
 		addImage(data, type, name) {
-			return images.addImage(data, type, name);
+			return images.add(data, type, name);
 		},
 
 		save(options) {

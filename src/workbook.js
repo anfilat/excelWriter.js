@@ -1,6 +1,5 @@
 'use strict';
 
-const Readable = require('stream').Readable;
 const _ = require('lodash');
 const JSZip = require('jszip');
 const util = require('./util');
@@ -8,6 +7,8 @@ const Common = require('./common');
 const Relations = require('./relations');
 const createWorksheet = require('./worksheet');
 const toXMLString = require('./XMLString');
+
+const maxWorksheetNameLength = 31;
 
 // inner workbook
 function Workbook(outerWorkbook) {
@@ -25,6 +26,14 @@ Workbook.prototype = {
 		config = _.defaults(config, {
 			name: this.common.getNewWorksheetDefaultName()
 		});
+
+		// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
+		// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
+		if (config.name.length > maxWorksheetNameLength) {
+			throw 'Microsoft Excel requires work sheet names to be less than ' + (maxWorksheetNameLength + 1) +
+			' characters long, work sheet name "' + config.name + '" is ' + config.name.length + ' characters long';
+		}
+
 		const {outerWorksheet, worksheet} = createWorksheet(this.outerWorkbook, this.common, config);
 		this.common.addWorksheet(worksheet);
 		this.relations.add(worksheet, 'worksheet');
@@ -38,9 +47,8 @@ Workbook.prototype = {
 	 */
 	save(options) {
 		const zip = new JSZip();
-		const canStream = !!Readable;
 
-		this.generateFiles(zip, canStream);
+		this.generateFiles(zip);
 		return zip.generateAsync(_.defaults(options, {
 			compression: 'DEFLATE',
 			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -49,23 +57,22 @@ Workbook.prototype = {
 	},
 	saveAsNodeStream(options) {
 		const zip = new JSZip();
-		const canStream = !!Readable;
 
-		this.generateFiles(zip, canStream);
+		this.generateFiles(zip);
 		return zip.generateNodeStream(_.defaults(options, {
 			compression: 'DEFLATE'
 		}));
 	},
 
-	generateFiles(zip, canStream) {
+	generateFiles(zip) {
 		this.prepareWorksheets();
 
-		this.saveWorksheets(zip, canStream);
+		this.saveWorksheets(zip);
 		this.saveTables(zip);
 		this.saveImages(zip);
 		this.saveDrawings(zip);
 		this.saveStyles(zip);
-		this.saveStrings(zip, canStream);
+		this.saveStrings(zip);
 		zip.file('[Content_Types].xml', this.createContentTypes());
 		zip.file('_rels/.rels', this.createWorkbookRelationship());
 		zip.file('xl/workbook.xml', this.saveWorkbook());
@@ -86,31 +93,21 @@ Workbook.prototype = {
 		});
 	},
 	bookViewsXML() {
-		const activeTab = this.common.getActiveWorksheetIndex();
-
 		return toXMLString({
 			name: 'bookViews',
 			children: [
 				toXMLString({
 					name: 'workbookView',
 					attributes: [
-						['activeTab', activeTab]
+						['activeTab', this.common.getActiveWorksheetIndex()]
 					]
 				})
 			]
 		});
 	},
 	sheetsXML() {
-		const maxWorksheetNameLength = 31;
-		const children = this.common.worksheets.map((worksheet, index) => {
-			// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
-			// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
-			if (worksheet.name.length > maxWorksheetNameLength) {
-				throw 'Microsoft Excel requires work sheet names to be less than ' + (maxWorksheetNameLength + 1) +
-				' characters long, work sheet name "' + worksheet.name + '" is ' + worksheet.name.length + ' characters long';
-			}
-
-			return toXMLString({
+		const children = this.common.worksheets.map(
+			(worksheet, index) => toXMLString({
 				name: 'sheet',
 				attributes: [
 					['name', worksheet.name],
@@ -118,8 +115,8 @@ Workbook.prototype = {
 					['r:id', this.relations.getId(worksheet)],
 					['state', worksheet.getState()]
 				]
-			});
-		});
+			})
+		);
 
 		return toXMLString({
 			name: 'sheets',
@@ -127,31 +124,15 @@ Workbook.prototype = {
 		});
 	},
 	definedNamesXML() {
-		const isPrintTitles = this.common.worksheets.some(
-			worksheet => worksheet.printTitles && (worksheet.printTitles.topTo >= 0 || worksheet.printTitles.leftTo >= 0)
-		);
+		const isPrintTitles = this.common.worksheets.some(worksheet => worksheet.isPrintTitle());
 
 		if (isPrintTitles) {
 			const children = [];
 
 			this.common.worksheets.forEach((worksheet, index) => {
-				const entry = worksheet.printTitles;
+				const value = worksheet.savePrintTitle();
 
-				if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
-					const name = worksheet.name;
-					let value = '';
-
-					if (entry.topTo >= 0) {
-						value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
-						if (entry.leftTo >= 0) {
-							value += ',';
-						}
-					}
-					if (entry.leftTo >= 0) {
-						value += name + '!$' + util.positionToLetter(entry.leftFrom + 1) +
-							':$' + util.positionToLetter(entry.leftTo + 1);
-					}
-
+				if (value) {
 					children.push(toXMLString({
 						name: 'definedName',
 						value,
@@ -175,9 +156,9 @@ Workbook.prototype = {
 			worksheet.prepare();
 		});
 	},
-	saveWorksheets(zip, canStream) {
+	saveWorksheets(zip) {
 		this.common.worksheets.forEach(worksheet => {
-			zip.file(worksheet.path, worksheet.save(canStream));
+			zip.file(worksheet.path, worksheet.save());
 			zip.file(worksheet.relationsPath, worksheet.relations.save());
 		});
 	},
@@ -202,10 +183,10 @@ Workbook.prototype = {
 	saveStyles(zip) {
 		zip.file('xl/styles.xml', this.styles.save());
 	},
-	saveStrings(zip, canStream) {
+	saveStrings(zip) {
 		if (this.common.strings.isStrings()) {
 			this.relations.add(this.common.strings, 'sharedStrings');
-			zip.file('xl/sharedStrings.xml', this.common.strings.save(canStream));
+			zip.file('xl/sharedStrings.xml', this.common.strings.save());
 		}
 	},
 	createContentTypes() {

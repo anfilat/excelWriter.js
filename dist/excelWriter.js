@@ -69,7 +69,7 @@ function Images(common) {
 }
 
 Images.prototype = {
-	addImage: function addImage(data) {
+	add: function add(data) {
 		var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 		var name = arguments[2];
 
@@ -99,7 +99,7 @@ Images.prototype = {
 		}
 		return image.name;
 	},
-	getImage: function getImage(name) {
+	get: function get(name) {
 		return this.imageByNames[name];
 	},
 	getImages: function getImages() {
@@ -259,7 +259,9 @@ SharedStrings.prototype = {
 	isStrings: function isStrings() {
 		return this.count > 0;
 	},
-	save: function save(canStream) {
+	save: function save() {
+		var canStream = !!Readable;
+
 		this.strings = null;
 
 		if (canStream) {
@@ -566,8 +568,8 @@ function Drawings(common) {
 }
 
 Drawings.prototype = {
-	addImage: function addImage(name, config, anchorType) {
-		var image = this.common.images.getImage(name);
+	add: function add(name, config, anchorType) {
+		var image = this.common.images.get(name);
 		var imageRelationId = this.relations.add(image, 'image');
 		var picture = new Picture(this.common, {
 			image: image,
@@ -714,7 +716,7 @@ function createWorkbook() {
 			return this;
 		},
 		addImage: function addImage(data, type, name) {
-			return images.addImage(data, type, name);
+			return images.add(data, type, name);
 		},
 		save: function save(options) {
 			return workbook.save(options);
@@ -2470,7 +2472,6 @@ module.exports = {
 (function (global){
 'use strict';
 
-var Readable = require('stream').Readable;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var JSZip = typeof window !== "undefined" ? window['JSZip'] : typeof global !== "undefined" ? global['JSZip'] : null;
 var util = require('./util');
@@ -2478,6 +2479,8 @@ var Common = require('./common');
 var Relations = require('./relations');
 var createWorksheet = require('./worksheet');
 var toXMLString = require('./XMLString');
+
+var maxWorksheetNameLength = 31;
 
 // inner workbook
 function Workbook(outerWorkbook) {
@@ -2496,6 +2499,12 @@ Workbook.prototype = {
 			name: this.common.getNewWorksheetDefaultName()
 		});
 
+		// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
+		// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
+		if (config.name.length > maxWorksheetNameLength) {
+			throw 'Microsoft Excel requires work sheet names to be less than ' + (maxWorksheetNameLength + 1) + ' characters long, work sheet name "' + config.name + '" is ' + config.name.length + ' characters long';
+		}
+
 		var _createWorksheet = createWorksheet(this.outerWorkbook, this.common, config),
 		    outerWorksheet = _createWorksheet.outerWorksheet,
 		    worksheet = _createWorksheet.worksheet;
@@ -2513,9 +2522,8 @@ Workbook.prototype = {
   */
 	save: function save(options) {
 		var zip = new JSZip();
-		var canStream = !!Readable;
 
-		this.generateFiles(zip, canStream);
+		this.generateFiles(zip);
 		return zip.generateAsync(_.defaults(options, {
 			compression: 'DEFLATE',
 			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2524,22 +2532,21 @@ Workbook.prototype = {
 	},
 	saveAsNodeStream: function saveAsNodeStream(options) {
 		var zip = new JSZip();
-		var canStream = !!Readable;
 
-		this.generateFiles(zip, canStream);
+		this.generateFiles(zip);
 		return zip.generateNodeStream(_.defaults(options, {
 			compression: 'DEFLATE'
 		}));
 	},
-	generateFiles: function generateFiles(zip, canStream) {
+	generateFiles: function generateFiles(zip) {
 		this.prepareWorksheets();
 
-		this.saveWorksheets(zip, canStream);
+		this.saveWorksheets(zip);
 		this.saveTables(zip);
 		this.saveImages(zip);
 		this.saveDrawings(zip);
 		this.saveStyles(zip);
-		this.saveStrings(zip, canStream);
+		this.saveStrings(zip);
 		zip.file('[Content_Types].xml', this.createContentTypes());
 		zip.file('_rels/.rels', this.createWorkbookRelationship());
 		zip.file('xl/workbook.xml', this.saveWorkbook());
@@ -2554,27 +2561,18 @@ Workbook.prototype = {
 		});
 	},
 	bookViewsXML: function bookViewsXML() {
-		var activeTab = this.common.getActiveWorksheetIndex();
-
 		return toXMLString({
 			name: 'bookViews',
 			children: [toXMLString({
 				name: 'workbookView',
-				attributes: [['activeTab', activeTab]]
+				attributes: [['activeTab', this.common.getActiveWorksheetIndex()]]
 			})]
 		});
 	},
 	sheetsXML: function sheetsXML() {
 		var _this = this;
 
-		var maxWorksheetNameLength = 31;
 		var children = this.common.worksheets.map(function (worksheet, index) {
-			// Microsoft Excel (2007, 2013) do not allow worksheet names longer than 31 characters
-			// if the worksheet name is longer, Excel displays an 'Excel found unreadable content...' popup when opening the file
-			if (worksheet.name.length > maxWorksheetNameLength) {
-				throw 'Microsoft Excel requires work sheet names to be less than ' + (maxWorksheetNameLength + 1) + ' characters long, work sheet name "' + worksheet.name + '" is ' + worksheet.name.length + ' characters long';
-			}
-
 			return toXMLString({
 				name: 'sheet',
 				attributes: [['name', worksheet.name], ['sheetId', index + 1], ['r:id', _this.relations.getId(worksheet)], ['state', worksheet.getState()]]
@@ -2588,29 +2586,16 @@ Workbook.prototype = {
 	},
 	definedNamesXML: function definedNamesXML() {
 		var isPrintTitles = this.common.worksheets.some(function (worksheet) {
-			return worksheet.printTitles && (worksheet.printTitles.topTo >= 0 || worksheet.printTitles.leftTo >= 0);
+			return worksheet.isPrintTitle();
 		});
 
 		if (isPrintTitles) {
 			var children = [];
 
 			this.common.worksheets.forEach(function (worksheet, index) {
-				var entry = worksheet.printTitles;
+				var value = worksheet.savePrintTitle();
 
-				if (entry && (entry.topTo >= 0 || entry.leftTo >= 0)) {
-					var name = worksheet.name;
-					var value = '';
-
-					if (entry.topTo >= 0) {
-						value = name + '!$' + (entry.topFrom + 1) + ':$' + (entry.topTo + 1);
-						if (entry.leftTo >= 0) {
-							value += ',';
-						}
-					}
-					if (entry.leftTo >= 0) {
-						value += name + '!$' + util.positionToLetter(entry.leftFrom + 1) + ':$' + util.positionToLetter(entry.leftTo + 1);
-					}
-
+				if (value) {
 					children.push(toXMLString({
 						name: 'definedName',
 						value: value,
@@ -2631,9 +2616,9 @@ Workbook.prototype = {
 			worksheet.prepare();
 		});
 	},
-	saveWorksheets: function saveWorksheets(zip, canStream) {
+	saveWorksheets: function saveWorksheets(zip) {
 		this.common.worksheets.forEach(function (worksheet) {
-			zip.file(worksheet.path, worksheet.save(canStream));
+			zip.file(worksheet.path, worksheet.save());
 			zip.file(worksheet.relationsPath, worksheet.relations.save());
 		});
 	},
@@ -2658,10 +2643,10 @@ Workbook.prototype = {
 	saveStyles: function saveStyles(zip) {
 		zip.file('xl/styles.xml', this.styles.save());
 	},
-	saveStrings: function saveStrings(zip, canStream) {
+	saveStrings: function saveStrings(zip) {
 		if (this.common.strings.isStrings()) {
 			this.relations.add(this.common.strings, 'sharedStrings');
-			zip.file('xl/sharedStrings.xml', this.common.strings.save(canStream));
+			zip.file('xl/sharedStrings.xml', this.common.strings.save());
 		}
 	},
 	createContentTypes: function createContentTypes() {
@@ -2736,7 +2721,7 @@ Workbook.prototype = {
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":4,"./relations":12,"./util":27,"./worksheet":31,"stream":1}],29:[function(require,module,exports){
+},{"./XMLString":2,"./common":4,"./relations":12,"./util":27,"./worksheet":31}],29:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2760,18 +2745,6 @@ WorksheetDrawings.prototype = {
 	setImageAbsolute: function setImageAbsolute(image, config) {
 		this.setDrawing(image, config, 'absolute');
 	},
-	setDrawing: function setDrawing(image, config, anchorType) {
-		if (!this.drawings) {
-			this.drawings = new Drawings(this.common);
-
-			this.common.addDrawings(this.drawings);
-			this.relations.add(this.drawings, 'drawingRelationship');
-		}
-
-		var name = _.isObject(image) ? this.common.images.addImage(image.data, image.type) : image;
-
-		this.drawings.addImage(name, config, anchorType);
-	},
 	insert: function insert(colIndex, rowIndex, image) {
 		if (image) {
 			var cell = { c: colIndex + 1, r: rowIndex + 1 };
@@ -2785,6 +2758,18 @@ WorksheetDrawings.prototype = {
 				this.setDrawing(image.image, config, 'anchor');
 			}
 		}
+	},
+	setDrawing: function setDrawing(image, config, anchorType) {
+		if (!this.drawings) {
+			this.drawings = new Drawings(this.common);
+
+			this.common.addDrawings(this.drawings);
+			this.relations.add(this.drawings, 'drawingRelationship');
+		}
+
+		var name = _.isObject(image) ? this.common.images.add(image.data, image.type) : image;
+
+		this.drawings.add(name, config, anchorType);
 	},
 	save: function save() {
 		if (this.drawings) {
@@ -2813,7 +2798,7 @@ function Hyperlinks(common, relations) {
 }
 
 Hyperlinks.prototype = {
-	setHyperlink: function setHyperlink(hyperlink) {
+	add: function add(hyperlink) {
 		hyperlink.objectId = this.common.uniqueId('hyperlink');
 		this.relations.add({
 			objectId: hyperlink.objectId,
@@ -2827,12 +2812,12 @@ Hyperlinks.prototype = {
 			var cell = { c: colIndex + 1, r: rowIndex + 1 };
 
 			if (typeof hyperlink === 'string') {
-				this.setHyperlink({
+				this.add({
 					cell: cell,
 					location: hyperlink
 				});
 			} else {
-				this.setHyperlink({
+				this.add({
 					cell: cell,
 					location: hyperlink.location,
 					targetMode: hyperlink.targetMode,
@@ -2844,7 +2829,7 @@ Hyperlinks.prototype = {
 	save: function save() {
 		var _this = this;
 
-		if (this.hyperlinks.length > 0) {
+		if (this.hyperlinks.length) {
 			var children = this.hyperlinks.map(function (hyperlink) {
 				var attributes = [['ref', util.canonCell(hyperlink.cell)], ['r:id', _this.relations.getId(hyperlink)]];
 
@@ -2874,8 +2859,6 @@ module.exports = Hyperlinks;
 var Worksheet = require('./worksheet');
 
 function createWorksheet(outerWorkbook, common, config) {
-	var worksheet = new Worksheet(common, config);
-
 	var outerWorksheet = {
 		end: function end() {
 			return outerWorkbook;
@@ -2937,7 +2920,7 @@ function createWorksheet(outerWorkbook, common, config) {
 			return this;
 		},
 		setHyperlink: function setHyperlink(hyperlink) {
-			worksheet.hyperlinks.setHyperlink(hyperlink);
+			worksheet.hyperlinks.add(hyperlink);
 			return this;
 		},
 		mergeCells: function mergeCells(cell1, cell2) {
@@ -2957,7 +2940,7 @@ function createWorksheet(outerWorkbook, common, config) {
 			return this;
 		},
 		addTable: function addTable(config) {
-			return worksheet.tables.addTable(config);
+			return worksheet.tables.add(config);
 		},
 		setHeader: function setHeader(headers) {
 			worksheet.setHeader(headers);
@@ -2984,7 +2967,8 @@ function createWorksheet(outerWorkbook, common, config) {
 			return this;
 		}
 	};
-	worksheet.outerWorksheet = outerWorksheet;
+	var worksheet = new Worksheet(outerWorksheet, common, config);
+
 	return {
 		outerWorksheet: outerWorksheet,
 		worksheet: worksheet
@@ -3040,7 +3024,7 @@ MergedCells.prototype = {
 		return dataRow;
 	},
 	save: function save() {
-		if (this.mergedCells.length > 0) {
+		if (this.mergedCells.length) {
 			var children = this.mergedCells.map(function (mergeCell) {
 				return toXMLString({
 					name: 'mergeCell',
@@ -3383,6 +3367,7 @@ module.exports = { methods: methods };
 'use strict';
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
+var util = require('../util');
 var toXMLString = require('../XMLString');
 
 var methods = {
@@ -3465,6 +3450,28 @@ var methods = {
 			this.printTitles.leftFrom = 0;
 			this.printTitles.leftTo = params - 1;
 		}
+	},
+	isPrintTitle: function isPrintTitle() {
+		return this.printTitles && (this.printTitles.topTo >= 0 || this.printTitles.leftTo >= 0);
+	},
+	savePrintTitle: function savePrintTitle() {
+		if (this.isPrintTitle()) {
+			var printTitles = this.printTitles;
+			var value = '';
+
+			if (printTitles.topTo >= 0) {
+				value = this.name + '!$' + (printTitles.topFrom + 1) + ':$' + (printTitles.topTo + 1);
+
+				if (printTitles.leftTo >= 0) {
+					value += ',';
+				}
+			}
+			if (printTitles.leftTo >= 0) {
+				value += this.name + '!$' + util.positionToLetter(printTitles.leftFrom + 1) + ':$' + util.positionToLetter(printTitles.leftTo + 1);
+			}
+			return value;
+		}
+		return '';
 	},
 	savePrint: function savePrint() {
 		return this.savePageMargins() + this.savePageSetup() + this.saveHeaderFooter();
@@ -3561,7 +3568,7 @@ function compilePageDetailPiece(data) {
 module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],35:[function(require,module,exports){
+},{"../XMLString":2,"../util":27}],35:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3579,7 +3586,9 @@ var util = require('../util');
 var toXMLString = require('../XMLString');
 
 var methods = {
-	save: function save(canStream) {
+	save: function save() {
+		var canStream = !!Readable;
+
 		if (canStream) {
 			return new WorksheetStream({
 				worksheet: this
@@ -3973,7 +3982,7 @@ function Tables(worksheet, common, relations) {
 }
 
 Tables.prototype = {
-	addTable: function addTable(config) {
+	add: function add(config) {
 		var _createTable = createTable(this.worksheet.outerWorksheet, this.common, config),
 		    outerTable = _createTable.outerTable,
 		    table = _createTable.table;
@@ -3994,7 +4003,7 @@ Tables.prototype = {
 	save: function save() {
 		var _this2 = this;
 
-		if (this.tables.length > 0) {
+		if (this.tables.length) {
 			var children = this.tables.map(function (table) {
 				return toXMLString({
 					name: 'tablePart',
@@ -4015,8 +4024,10 @@ Tables.prototype = {
 module.exports = Tables;
 
 },{"../XMLString":2,"../table":25}],38:[function(require,module,exports){
+(function (global){
 'use strict';
 
+var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var Tables = require('./tables');
 var WorksheetDrawings = require('./drawing');
 var Hyperlinks = require('./hyperlinks');
@@ -4027,9 +4038,10 @@ var prepareSave = require('./prepareSave');
 var save = require('./save');
 var Relations = require('../relations');
 
-function Worksheet(common) {
-	var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+function Worksheet(outerWorksheet, common) {
+	var config = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
+	this.outerWorksheet = outerWorksheet;
 	this.common = common;
 	this.styles = this.common.styles;
 
@@ -4053,7 +4065,7 @@ function Worksheet(common) {
 	this.sheetView = new SheetView(config);
 }
 
-Worksheet.prototype = {
+Worksheet.prototype = _.assign({
 	setRows: function setRows(startRow, rows) {
 		var _this = this;
 
@@ -4110,13 +4122,10 @@ Worksheet.prototype = {
 	getState: function getState() {
 		return this.state;
 	}
-};
-
-Object.assign(Worksheet.prototype, print.methods);
-Object.assign(Worksheet.prototype, prepareSave.methods);
-Object.assign(Worksheet.prototype, save.methods);
+}, print.methods, prepareSave.methods, save.methods);
 
 module.exports = Worksheet;
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../relations":12,"./drawing":29,"./hyperlinks":30,"./mergedCells":32,"./prepareSave":33,"./print":34,"./save":35,"./sheetView":36,"./tables":37}]},{},[11])(11)
 });

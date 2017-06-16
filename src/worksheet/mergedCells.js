@@ -43,7 +43,7 @@ MergedCells.prototype = {
 		return dataRow;
 	},
 	save() {
-		if (this.mergedCells.length > 0) {
+		if (this.mergedCells.length) {
 			const children = this.mergedCells.map(
 				mergeCell => toXMLString({
 					name: 'mergeCell',

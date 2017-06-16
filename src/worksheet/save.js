@@ -6,7 +6,9 @@ const util = require('../util');
 const toXMLString = require('../XMLString');
 
 const methods = {
-	save(canStream) {
+	save() {
+		const canStream = !!Readable;
+
 		if (canStream) {
 			return new WorksheetStream({
 				worksheet: this

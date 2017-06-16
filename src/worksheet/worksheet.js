@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const Tables = require('./tables');
 const WorksheetDrawings = require('./drawing');
 const Hyperlinks = require('./hyperlinks');
@@ -10,7 +11,8 @@ const prepareSave = require('./prepareSave');
 const save = require('./save');
 const Relations = require('../relations');
 
-function Worksheet(common, config = {}) {
+function Worksheet(outerWorksheet, common, config = {}) {
+	this.outerWorksheet = outerWorksheet;
 	this.common = common;
 	this.styles = this.common.styles;
 
@@ -34,7 +36,7 @@ function Worksheet(common, config = {}) {
 	this.sheetView = new SheetView(config);
 }
 
-Worksheet.prototype = {
+Worksheet.prototype = _.assign({
 	setRows(startRow, rows) {
 		if (!rows) {
 			rows = startRow;
@@ -84,10 +86,6 @@ Worksheet.prototype = {
 	getState() {
 		return this.state;
 	}
-};
-
-Object.assign(Worksheet.prototype, print.methods);
-Object.assign(Worksheet.prototype, prepareSave.methods);
-Object.assign(Worksheet.prototype, save.methods);
+}, print.methods, prepareSave.methods, save.methods);
 
 module.exports = Worksheet;

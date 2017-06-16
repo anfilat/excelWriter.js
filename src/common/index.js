@@ -63,6 +63,7 @@ Common.prototype = {
 		}
 		return 0;
 	},
+
 	addTable(table) {
 		const index = this.tables.length + 1;
 		const path = 'xl/tables/table' + index + '.xml';
@@ -71,6 +72,7 @@ Common.prototype = {
 		this.tables.push(table);
 		this.addPath(table, '/' + path);
 	},
+
 	addDrawings(drawings) {
 		const index = this.drawings.length + 1;
 		const path = 'xl/drawings/drawing' + index + '.xml';

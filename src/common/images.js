@@ -8,7 +8,7 @@ function Images(common) {
 }
 
 Images.prototype = {
-	addImage(data, type = '', name) {
+	add(data, type = '', name) {
 		let image = this.images[data];
 
 		if (!image) {
@@ -35,7 +35,7 @@ Images.prototype = {
 		}
 		return image.name;
 	},
-	getImage(name) {
+	get(name) {
 		return this.imageByNames[name];
 	},
 	getImages() {

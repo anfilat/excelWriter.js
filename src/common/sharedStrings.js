@@ -29,7 +29,9 @@ SharedStrings.prototype = {
 	isStrings() {
 		return this.count > 0;
 	},
-	save(canStream) {
+	save() {
+		const canStream = !!Readable;
+
 		this.strings = null;
 
 		if (canStream) {

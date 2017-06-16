@@ -10,7 +10,7 @@ function Hyperlinks(common, relations) {
 }
 
 Hyperlinks.prototype = {
-	setHyperlink(hyperlink) {
+	add(hyperlink) {
 		hyperlink.objectId = this.common.uniqueId('hyperlink');
 		this.relations.add({
 			objectId: hyperlink.objectId,
@@ -24,12 +24,12 @@ Hyperlinks.prototype = {
 			const cell = {c: colIndex + 1, r: rowIndex + 1};
 
 			if (typeof hyperlink === 'string') {
-				this.setHyperlink({
+				this.add({
 					cell,
 					location: hyperlink
 				});
 			} else {
-				this.setHyperlink({
+				this.add({
 					cell,
 					location: hyperlink.location,
 					targetMode: hyperlink.targetMode,
@@ -39,7 +39,7 @@ Hyperlinks.prototype = {
 		}
 	},
 	save() {
-		if (this.hyperlinks.length > 0) {
+		if (this.hyperlinks.length) {
 			const children = this.hyperlinks.map(hyperlink => {
 				const attributes = [
 					['ref', util.canonCell(hyperlink.cell)],

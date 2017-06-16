@@ -11,7 +11,7 @@ function Tables(worksheet, common, relations) {
 }
 
 Tables.prototype = {
-	addTable(config) {
+	add(config) {
 		const {outerTable, table} = createTable(this.worksheet.outerWorksheet, this.common, config);
 
 		this.common.addTable(table);
@@ -26,7 +26,7 @@ Tables.prototype = {
 		});
 	},
 	save() {
-		if (this.tables.length > 0) {
+		if (this.tables.length) {
 			const children = this.tables.map(
 				table => toXMLString({
 					name: 'tablePart',
