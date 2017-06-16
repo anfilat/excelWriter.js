@@ -1,11 +1,12 @@
 'use strict';
 
 const _ = require('lodash');
+
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const LETTER_REFS = {};
+const letterRefs = {};
 
 function positionToLetter(x, y) {
-	let result = LETTER_REFS[x];
+	let result = letterRefs[x];
 
 	if (!result) {
 		let string = '';
@@ -18,7 +19,7 @@ function positionToLetter(x, y) {
 			num = (num - (index + 1)) / 26;
 		} while (num > 0);
 
-		LETTER_REFS[x] = string;
+		letterRefs[x] = string;
 		result = string;
 	}
 	return result + (y || '');
@@ -43,20 +44,22 @@ function letterToPosition(cell) {
 	};
 }
 
+function pixelsToEMUs(pixels) {
+	return Math.round(pixels * 914400 / 96);
+}
+
+function canonCell(cell) {
+	if (_.isObject(cell)) {
+		return positionToLetter(cell.c || 1, cell.r || 1);
+	}
+	return cell;
+}
+
 module.exports = {
-	pixelsToEMUs(pixels) {
-		return Math.round(pixels * 914400 / 96);
-	},
-
-	canonCell(cell) {
-		if (_.isObject(cell)) {
-			return positionToLetter(cell.c || 1, cell.r || 1);
-		}
-		return cell;
-	},
-
 	positionToLetter,
 	letterToPosition,
+	pixelsToEMUs,
+	canonCell,
 
 	xmlPrefix: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',
 

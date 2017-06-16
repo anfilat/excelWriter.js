@@ -25,7 +25,7 @@ WorksheetDrawings.prototype = {
 			this.drawings = new Drawings(this.common);
 
 			this.common.addDrawings(this.drawings);
-			this.relations.addRelation(this.drawings, 'drawingRelationship');
+			this.relations.add(this.drawings, 'drawingRelationship');
 		}
 
 		const name = _.isObject(image)
@@ -53,7 +53,7 @@ WorksheetDrawings.prototype = {
 			return toXMLString({
 				name: 'drawing',
 				attributes: [
-					['r:id', this.relations.getRelationshipId(this.drawings)]
+					['r:id', this.relations.getId(this.drawings)]
 				]
 			});
 		}

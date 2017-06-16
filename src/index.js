@@ -1,29 +1,12 @@
 'use strict';
 
-const Readable = require('stream').Readable;
-const _ = require('lodash');
-const JSZip = require('jszip');
 const Workbook = require('./workbook');
-const createWorksheet = require('./worksheet');
 
-// Excel workbook API. Outer workbook
+// Excel workbook API
 function createWorkbook() {
-	const workbook = new Workbook();
-	const common = workbook.common;
-	const styles = common.styles;
-	const images = common.images;
-	const relations = workbook.relations;
-
-	return {
+	const outerWorkbook = {
 		addWorksheet(config) {
-			config = _.defaults(config, {
-				name: common.getNewWorksheetDefaultName()
-			});
-			const {outerWorksheet, worksheet} = createWorksheet(this, common, config);
-			common.addWorksheet(worksheet);
-			relations.addRelation(worksheet, 'worksheet');
-
-			return outerWorksheet;
+			return workbook.addWorksheet(config);
 		},
 
 		addFormat(format, name) {
@@ -59,32 +42,19 @@ function createWorkbook() {
 			return images.addImage(data, type, name);
 		},
 
-		/**
-		 * Turns a workbook into a downloadable file.
-		 * options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
-		 */
 		save(options) {
-			const zip = new JSZip();
-			const canStream = !!Readable;
-
-			workbook.generateFiles(zip, canStream);
-			return zip.generateAsync(_.defaults(options, {
-				compression: 'DEFLATE',
-				mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-				type: 'base64'
-			}));
+			return workbook.save(options);
 		},
 
 		saveAsNodeStream(options) {
-			const zip = new JSZip();
-			const canStream = !!Readable;
-
-			workbook.generateFiles(zip, canStream);
-			return zip.generateNodeStream(_.defaults(options, {
-				compression: 'DEFLATE'
-			}));
+			return workbook.saveAsNodeStream(options);
 		}
 	};
+	const workbook = new Workbook(outerWorkbook);
+	const styles = workbook.styles;
+	const images = workbook.images;
+
+	return outerWorkbook;
 }
 
 module.exports = {createWorkbook};

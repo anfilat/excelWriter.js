@@ -55,6 +55,14 @@ Common.prototype = {
 	setActiveWorksheet(worksheet) {
 		this.activeWorksheet = worksheet;
 	},
+	getActiveWorksheetIndex() {
+		if (this.activeWorksheet) {
+			const activeWorksheetId = this.activeWorksheet.objectId;
+
+			return Math.max(0, this.worksheets.findIndex(worksheet => worksheet.objectId === activeWorksheetId));
+		}
+		return 0;
+	},
 	addTable(table) {
 		const index = this.tables.length + 1;
 		const path = 'xl/tables/table' + index + '.xml';

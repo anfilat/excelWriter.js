@@ -12,7 +12,7 @@ function RelationshipManager(common) {
 }
 
 RelationshipManager.prototype = {
-	addRelation(object, type) {
+	add(object, type) {
 		const relation = this.relations[object.objectId];
 
 		if (relation) {
@@ -27,18 +27,17 @@ RelationshipManager.prototype = {
 		};
 		return relationId;
 	},
-	getRelationshipId(object) {
+	getId(object) {
 		const relation = this.relations[object.objectId];
 
 		return relation ? relation.relationId : null;
 	},
 	save() {
-		const common = this.common;
 		const children = _.map(this.relations, relation => {
 			const attributes = [
 				['Id', relation.relationId],
 				['Type', relation.schema],
-				['Target', relation.object.target || common.getPath(relation.object)]
+				['Target', relation.object.target || this.common.getPath(relation.object)]
 			];
 
 			if (relation.object.targetMode) {

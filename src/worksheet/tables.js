@@ -15,7 +15,7 @@ Tables.prototype = {
 		const {outerTable, table} = createTable(this.worksheet.outerWorksheet, this.common, config);
 
 		this.common.addTable(table);
-		this.relations.addRelation(table, 'table');
+		this.relations.add(table, 'table');
 		this.tables.push(table);
 
 		return outerTable;
@@ -31,7 +31,7 @@ Tables.prototype = {
 				table => toXMLString({
 					name: 'tablePart',
 					attributes: [
-						['r:id', this.relations.getRelationshipId(table)]
+						['r:id', this.relations.getId(table)]
 					]
 				})
 			);

@@ -1,48 +1,8 @@
 'use strict';
 
 const _ = require('lodash');
-const util = require('./util');
-const toXMLString = require('./XMLString');
-
-function createTable(outerWorksheet, common, config) {
-	const table = new Table(config, common);
-
-	const outerTable = {
-		end() {
-			return outerWorksheet;
-		},
-		setReferenceRange(beginCell, endCell) {
-			table.beginCell = util.canonCell(beginCell);
-			table.endCell = util.canonCell(endCell);
-			return this;
-		},
-		addTotalRow(totalRow) {
-			table.totalRow = totalRow;
-			table.totalsRowCount = 1;
-			return this;
-		},
-		setTheme(theme) {
-			table.themeStyle = theme;
-			return this;
-		},
-		/**
-		 * Expects an object with the following properties:
-		 * caseSensitive (boolean)
-		 * dataRange
-		 * columnSort (assumes true)
-		 * sortDirection
-		 * sortRange (defaults to dataRange)
-		 */
-		setSortState(state) {
-			table.sortState = state;
-			return this;
-		}
-	};
-	return {
-		outerTable,
-		table
-	};
-}
+const util = require('../util');
+const toXMLString = require('../XMLString');
 
 function Table(config, common) {
 	this.common = common;
@@ -65,6 +25,21 @@ const SUB_TOTAL_FUNCTIONS = ['average', 'countNums', 'count', 'max', 'min', 'std
 const SUB_TOTAL_NUMS = [101, 102, 103, 104, 105, 107, 109, 110];
 
 Table.prototype = {
+	setReferenceRange(beginCell, endCell) {
+		this.beginCell = util.canonCell(beginCell);
+		this.endCell = util.canonCell(endCell);
+	},
+	addTotalRow(totalRow) {
+		this.totalRow = totalRow;
+		this.totalsRowCount = 1;
+	},
+	setTheme(theme) {
+		this.themeStyle = theme;
+	},
+	setSortState(state) {
+		this.sortState = state;
+	},
+
 	prepare(worksheetData) {
 		if (this.totalRow) {
 			const tableName = this.name;
@@ -198,4 +173,4 @@ Table.prototype = {
 	}
 };
 
-module.exports = createTable;
+module.exports = Table;

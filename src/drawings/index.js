@@ -16,7 +16,7 @@ function Drawings(common) {
 Drawings.prototype = {
 	addImage(name, config, anchorType) {
 		const image = this.common.images.getImage(name);
-		const imageRelationId = this.relations.addRelation(image, 'image');
+		const imageRelationId = this.relations.add(image, 'image');
 		const picture = new Picture(this.common, {
 			image,
 			imageRelationId,

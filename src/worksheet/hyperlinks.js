@@ -12,7 +12,7 @@ function Hyperlinks(common, relations) {
 Hyperlinks.prototype = {
 	setHyperlink(hyperlink) {
 		hyperlink.objectId = this.common.uniqueId('hyperlink');
-		this.relations.addRelation({
+		this.relations.add({
 			objectId: hyperlink.objectId,
 			target: hyperlink.location,
 			targetMode: hyperlink.targetMode || 'External'
@@ -43,7 +43,7 @@ Hyperlinks.prototype = {
 			const children = this.hyperlinks.map(hyperlink => {
 				const attributes = [
 					['ref', util.canonCell(hyperlink.cell)],
-					['r:id', this.relations.getRelationshipId(hyperlink)]
+					['r:id', this.relations.getId(hyperlink)]
 				];
 
 				if (hyperlink.tooltip) {

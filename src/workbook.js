@@ -1,22 +1,62 @@
 'use strict';
 
+const Readable = require('stream').Readable;
 const _ = require('lodash');
+const JSZip = require('jszip');
 const util = require('./util');
 const Common = require('./common');
 const Relations = require('./relations');
+const createWorksheet = require('./worksheet');
 const toXMLString = require('./XMLString');
 
 // inner workbook
-function Workbook() {
+function Workbook(outerWorkbook) {
+	this.outerWorkbook = outerWorkbook;
 	this.common = new Common();
 	this.styles = this.common.styles;
 	this.images = this.common.images;
 
 	this.relations = new Relations(this.common);
-	this.relations.addRelation(this.common.styles, 'stylesheet');
+	this.relations.add(this.styles, 'stylesheet');
 }
 
 Workbook.prototype = {
+	addWorksheet(config) {
+		config = _.defaults(config, {
+			name: this.common.getNewWorksheetDefaultName()
+		});
+		const {outerWorksheet, worksheet} = createWorksheet(this.outerWorkbook, this.common, config);
+		this.common.addWorksheet(worksheet);
+		this.relations.add(worksheet, 'worksheet');
+
+		return outerWorksheet;
+	},
+
+	/**
+	 * Turns a workbook into a downloadable file.
+	 * options - options to modify how the zip is created. See http://stuk.github.io/jszip/#doc_generate_options
+	 */
+	save(options) {
+		const zip = new JSZip();
+		const canStream = !!Readable;
+
+		this.generateFiles(zip, canStream);
+		return zip.generateAsync(_.defaults(options, {
+			compression: 'DEFLATE',
+			mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			type: 'base64'
+		}));
+	},
+	saveAsNodeStream(options) {
+		const zip = new JSZip();
+		const canStream = !!Readable;
+
+		this.generateFiles(zip, canStream);
+		return zip.generateNodeStream(_.defaults(options, {
+			compression: 'DEFLATE'
+		}));
+	},
+
 	generateFiles(zip, canStream) {
 		this.prepareWorksheets();
 
@@ -28,10 +68,10 @@ Workbook.prototype = {
 		this.saveStrings(zip, canStream);
 		zip.file('[Content_Types].xml', this.createContentTypes());
 		zip.file('_rels/.rels', this.createWorkbookRelationship());
-		zip.file('xl/workbook.xml', this.save());
+		zip.file('xl/workbook.xml', this.saveWorkbook());
 		zip.file('xl/_rels/workbook.xml.rels', this.relations.save());
 	},
-	save() {
+	saveWorkbook() {
 		return toXMLString({
 			name: 'workbook',
 			ns: 'spreadsheetml',
@@ -46,14 +86,7 @@ Workbook.prototype = {
 		});
 	},
 	bookViewsXML() {
-		let activeTab = 0;
-
-		if (this.common.activeWorksheet) {
-			const activeWorksheetId = this.common.activeWorksheet.objectId;
-
-			activeTab = Math.max(activeTab,
-				this.common.worksheets.findIndex(worksheet => worksheet.objectId === activeWorksheetId));
-		}
+		const activeTab = this.common.getActiveWorksheetIndex();
 
 		return toXMLString({
 			name: 'bookViews',
@@ -82,7 +115,7 @@ Workbook.prototype = {
 				attributes: [
 					['name', worksheet.name],
 					['sheetId', index + 1],
-					['r:id', this.relations.getRelationshipId(worksheet)],
+					['r:id', this.relations.getId(worksheet)],
 					['state', worksheet.getState()]
 				]
 			});
@@ -171,7 +204,7 @@ Workbook.prototype = {
 	},
 	saveStrings(zip, canStream) {
 		if (this.common.strings.isStrings()) {
-			this.relations.addRelation(this.common.strings, 'sharedStrings');
+			this.relations.add(this.common.strings, 'sharedStrings');
 			zip.file('xl/sharedStrings.xml', this.common.strings.save(canStream));
 		}
 	},
