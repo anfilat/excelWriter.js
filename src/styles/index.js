@@ -43,56 +43,27 @@ Styles.prototype = {
 			return this.addFormat(style);
 		}
 	},
-	merge(format1, format2, format3) {
-		const count = Boolean(format1) + Boolean(format2) + Boolean(format3);
+	merge(...formats) {
+		formats = _.compact(formats);
 
-		if (count === 0) {
+		if (formats.length === 0) {
 			return null;
-		} else if (count === 1) {
-			return this.addFormat(format1 || format2 || format3);
-		} else if (count === 2) {
-			let f1;
-			let f2;
-
-			if (format1) {
-				f1 = format1;
-				f2 = format2 ? format2 : format3;
-			} else {
-				f1 = format2;
-				f2 = format3;
-			}
-
-			return this.merge2(f1, f2);
+		} else if (formats.length === 1) {
+			return this.addFormat(formats[0]);
 		} else {
-			return this.merge3(format1, format2, format3);
-		}
-	},
-	merge2(format1, format2) {
-		const id = JSON.stringify(format1) + '#' + JSON.stringify(format2);
-		let merged = this.mergeCache[id];
+			const id = formats.reduce((result, format) => result + JSON.stringify(format), '');
+			let merged = this.mergeCache[id];
 
-		if (!merged) {
-			let format = {};
-			format = this.cells.merge(format, this.cells.fullGet(format1));
-			format = this.cells.merge(format, this.cells.fullGet(format2));
-			merged = this.cells.add(format, null, {merge: true});
-			this.mergeCache[id] = merged;
+			if (!merged) {
+				let newFormat = {};
+				formats.forEach(format => {
+					newFormat = this.cells.merge(newFormat, this.cells.fullGet(format));
+				});
+				merged = this.cells.add(newFormat, null, {merge: true});
+				this.mergeCache[id] = merged;
+			}
+			return merged;
 		}
-		return merged;
-	},
-	merge3(format1, format2, format3) {
-		const id = JSON.stringify(format1) + '#' + JSON.stringify(format2) + '#' + JSON.stringify(format3);
-		let merged = this.mergeCache[id];
-
-		if (!merged) {
-			let format = {};
-			format = this.cells.merge(format, this.cells.fullGet(format1));
-			format = this.cells.merge(format, this.cells.fullGet(format2));
-			format = this.cells.merge(format, this.cells.fullGet(format3));
-			merged = this.cells.add(format, null, {merge: true});
-			this.mergeCache[id] = merged;
-		}
-		return merged;
 	},
 	addFontFormat(format, name) {
 		return this.fonts.add(format, name);

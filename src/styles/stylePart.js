@@ -13,6 +13,7 @@ function StylePart(styles, saveName, formatName) {
 	this.formats = [];
 	this.formatsByData = Object.create(null);
 	this.formatsByNames = Object.create(null);
+	this.predefined = {};
 }
 
 StylePart.prototype = {
@@ -29,8 +30,12 @@ StylePart.prototype = {
 		}
 
 		//first argument is format name
-		if (!name && _.isString(format) && this.formatsByNames[format]) {
-			return format;
+		if (!name && _.isString(format)) {
+			if (this.formatsByNames[format]) {
+				return format;
+			} else if (this.predefined[format]) {
+				return this.add(this.predefined[format], format);
+			}
 		}
 
 		const canonFormat = this.canon(format, flags);
@@ -75,7 +80,13 @@ StylePart.prototype = {
 	getId(name) {
 		const styleFormat = this.formatsByNames[name];
 
-		return styleFormat ? styleFormat.formatId : null;
+		return styleFormat ? styleFormat.formatId : this.getPredefinedId(name);
+	},
+	getPredefinedId(name) {
+		if (this.predefined[name]) {
+			return this.getId(this.add(this.predefined[name], name));
+		}
+		return null;
 	},
 	save() {
 		if (this.saveEmpty !== false || this.formats.length) {

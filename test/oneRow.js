@@ -92,6 +92,9 @@ module.exports = function (excel) {
 			style: {format: 'date', horizontal: 'right', indent: 1},
 			type: 'date'
 		})
+		.setColumn(6, {
+			width: 15
+		})
 		.setRow(2, {height: 25})
 		.setRows(3, [{height: 20}, {height: 15}]);
 

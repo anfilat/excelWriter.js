@@ -91,6 +91,9 @@ const methods = {
 				}
 
 				const {cellValue, cellType, cellStyle, isObject} = this.readCellValue(value);
+				const cellType2 = this.defineCellType(cellType, cellValue, row, column);
+				const cellStyle2 = this.styles.getId(this.styles.merge(this.dataTimeStyle(cellType2),
+					columnStyle, rowStyle, cellStyle));
 
 				if (isObject) {
 					this.hyperlinks.insert(colIndex, rowIndex, value.hyperlink);
@@ -98,11 +101,7 @@ const methods = {
 					dataRow = this.mergeCells(dataRow, colIndex, rowIndex, value);
 				}
 
-				preparedDataRow[colIndex] = this.getPreparedCell(
-					this.styles.getId(this.styles.merge(columnStyle, rowStyle, cellStyle)),
-					this.getCellType(cellType, cellValue, row, column),
-					cellValue
-				);
+				preparedDataRow[colIndex] = this.getPreparedCell(cellStyle2, cellType2, cellValue);
 			}
 		}
 
@@ -201,7 +200,7 @@ const methods = {
 
 		if (_.isDate(value)) {
 			cellValue = value;
-			cellType = 'date';
+			cellType = 'dateOrTime';
 		} else if (value && typeof value === 'object') {
 			isObject = true;
 
@@ -251,8 +250,13 @@ const methods = {
 		}
 		return dataRow;
 	},
-	getCellType(cellType, cellValue, row, column) {
+	defineCellType(cellType, cellValue, row, column) {
 		if (cellType) {
+			if (cellType === 'dateOrTime') {
+				const type = row && row.type || column && column.type;
+
+				return type === 'date' || type === 'time' ? type : 'date';
+			}
 			return cellType;
 		} else if (row && row.type) {
 			return row.type;
@@ -263,6 +267,9 @@ const methods = {
 		} else if (typeof cellValue === 'string') {
 			return 'string';
 		}
+	},
+	dataTimeStyle(cellType) {
+		return cellType === 'date' || cellType === 'time' ? cellType : null;
 	},
 	getPreparedCell(styleId, cellType, cellValue) {
 		const result = {

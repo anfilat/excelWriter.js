@@ -2,12 +2,8 @@
 
 const _ = require('lodash');
 const StylePart = require('./stylePart');
+const PREDEFINED = require('./predeinedFormats');
 const toXMLString = require('../XMLString');
-
-const PREDEFINED = {
-	date: 14, //mm-dd-yy
-	time: 21  //h:mm:ss
-};
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.numberingformats.aspx
 function NumberFormats(styles) {

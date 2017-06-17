@@ -4,6 +4,7 @@ const _ = require('lodash');
 const StylePart = require('./stylePart');
 const alignment = require('./alignment');
 const protection = require('./protection');
+const PREDEFINED = require('./predeinedFormats');
 const toXMLString = require('../XMLString');
 
 const ALLOWED_PARTS = ['format', 'fill', 'border', 'font'];
@@ -22,6 +23,10 @@ Cells.prototype = _.merge({}, StylePart.prototype, {
 		this.formats.push(
 			{format: this.canon({})}
 		);
+
+		_.keys(PREDEFINED).forEach(name => {
+			this.predefined[name] = {format: name};
+		});
 	},
 	canon(format, flags) {
 		const result = {};

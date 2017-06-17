@@ -52,7 +52,6 @@ function generateData() {
 
 function run(testData) {
 	const workbook = excel.createWorkbook();
-	workbook.addFormat({format: 'date'}, 'date');
 	const columns = [
 		{type: 'number', width: 10},
 		{type: 'string', width: 60},
@@ -68,8 +67,8 @@ function run(testData) {
 			style: {font: {color: '#f56606'}},
 			width: 20
 		},
-		{type: 'date', style: 'date', width: 12},
-		{type: 'date', style: 'date', width: 12}
+		{type: 'date', width: 12},
+		{type: 'time', width: 12}
 	];
 	const worksheetData = [
 		{
@@ -89,7 +88,7 @@ function run(testData) {
 					hyperlink: {location: 'http://ya.ru', tooltip: 'yandex'}
 				},
 				'Start Date',
-				'End Date'
+				'Start Time'
 			]
 		}
 	].concat(testData);
