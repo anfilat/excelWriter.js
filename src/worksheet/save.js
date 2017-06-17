@@ -103,11 +103,9 @@ function saveData(worksheet) {
 }
 
 function saveRow(dataRow, row, rowIndex) {
-	let rowChildren = [];
-
 	if (dataRow) {
 		const rowLen = dataRow.length;
-		rowChildren = new Array(rowLen);
+		const rowChildren = new Array(rowLen);
 
 		for (let colIndex = 0; colIndex < rowLen; colIndex++) {
 			const value = dataRow[colIndex];
@@ -132,9 +130,9 @@ function saveRow(dataRow, row, rowIndex) {
 				rowChildren[colIndex] = '<c' + attrs + '/>';
 			}
 		}
+		return '<row' + getRowAttributes(row, rowIndex) + '>' + rowChildren.join('') + '</row>';
 	}
-
-	return '<row' + getRowAttributes(row, rowIndex) + '>' + rowChildren.join('') + '</row>';
+	return '<row' + getRowAttributes(row, rowIndex) + '></row>';
 }
 
 function getRowAttributes(row, rowIndex) {
@@ -144,8 +142,8 @@ function getRowAttributes(row, rowIndex) {
 		if (row.height !== undefined) {
 			attributes += ' customHeight="1" ht="' + row.height + '"';
 		}
-		if (row.styleId) {
-			attributes += ' customFormat="1" s="' + row.styleId + '"';
+		if (row.selfStyleId) {
+			attributes += ' customFormat="1" s="' + row.selfStyleId + '"';
 		}
 		if (row.outlineLevel) {
 			attributes += ' outlineLevel="' + row.outlineLevel + '"';
@@ -197,8 +195,8 @@ function saveColumns(columns) {
 			} else {
 				attributes.push(['width', 9.140625]);
 			}
-			if (column.styleId) {
-				attributes.push(['style', column.styleId]);
+			if (column.selfStyleId) {
+				attributes.push(['style', column.selfStyleId]);
 			}
 
 			return toXMLString({

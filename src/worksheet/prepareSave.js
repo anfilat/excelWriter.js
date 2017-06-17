@@ -18,8 +18,8 @@ const methods = {
 					const style = this.styles.addFormat(column.style);
 					preparedColumn.style = style;
 
-					const columnStyle = this.styles._addFillOutFormat(style);
-					preparedColumn.styleId = this.styles._getId(columnStyle);
+					const columnStyle = this.styles.addFillOutFormat(style);
+					preparedColumn.selfStyleId = this.styles.getId(columnStyle);
 				}
 				return preparedColumn;
 			}
@@ -99,7 +99,7 @@ const methods = {
 				}
 
 				preparedDataRow[colIndex] = this.getPreparedCell(
-					this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)),
+					this.styles.getId(this.styles.merge(columnStyle, rowStyle, cellStyle)),
 					this.getCellType(cellType, cellValue, row, column),
 					cellValue
 				);
@@ -123,13 +123,13 @@ const methods = {
 		return row;
 	},
 	splitDataRow(row = {}, dataRow, rowIndex) {
-		const count = this.calcDataRowHeight(dataRow);
+		const count = this.calcDataRowNestingCount(dataRow);
 
 		if (count === 0) {
 			return dataRow;
 		}
 
-		const newRows = _.times(count, () => {
+		const newDataRows = _.times(count, () => {
 			const result = _.clone(row);
 			result.data = [];
 			return result;
@@ -149,7 +149,7 @@ const methods = {
 				_(list)
 					.initial()
 					.forEach((value, index) => {
-						newRows[index].data.push({value, style});
+						newDataRows[index].data.push({value, style});
 					});
 
 				const lastValue = {value: _.last(list), style};
@@ -157,16 +157,16 @@ const methods = {
 				const value = listLength < count
 					? this.addRowspan(lastValue, count - listLength + 1)
 					: lastValue;
-				newRows[list.length - 1].data.push(value);
+				newDataRows[list.length - 1].data.push(value);
 			} else {
-				newRows[0].data.push(this.addRowspan(value, count));
+				newDataRows[0].data.push(this.addRowspan(value, count));
 			}
 		});
-		this.data.splice(rowIndex, 1, ...newRows);
+		this.data.splice(rowIndex, 1, ...newDataRows);
 
-		return newRows[0].data;
+		return newDataRows[0].data;
 	},
-	calcDataRowHeight(dataRow) {
+	calcDataRowNestingCount(dataRow) {
 		let count = 0;
 		_.forEach(dataRow, value => {
 			if (_.isArray(value)) {
@@ -178,17 +178,20 @@ const methods = {
 		return count;
 	},
 	addRowspan(value, rowspan) {
-		if (_.isObject(value) && !_.isDate(value)) {
-			value = _.clone(value);
-			value.rowspan = rowspan;
-			value.style = this.styles._merge({vertical: 'top'}, value.style);
-			return value;
+		if (rowspan > 1) {
+			if (_.isObject(value) && !_.isDate(value)) {
+				value = _.clone(value);
+				value.rowspan = rowspan;
+				value.style = this.styles.merge({vertical: 'top'}, value.style);
+				return value;
+			}
+			return {
+				value,
+				rowspan,
+				style: {vertical: 'top'}
+			};
 		}
-		return {
-			value,
-			rowspan,
-			style: {vertical: 'top'}
-		};
+		return value;
 	},
 	readCellValue(value) {
 		let cellValue;
@@ -292,8 +295,8 @@ const methods = {
 	},
 	setRowStyleId(row) {
 		if (row.style) {
-			const rowStyle = this.styles._addFillOutFormat(row.style);
-			row.styleId = this.styles._getId(rowStyle);
+			const rowStyle = this.styles.addFillOutFormat(row.style);
+			row.selfStyleId = this.styles.getId(rowStyle);
 		}
 	}
 };

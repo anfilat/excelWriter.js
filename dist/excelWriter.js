@@ -1536,10 +1536,6 @@ module.exports = Fonts;
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var NumberFormats = require('./numberFormats');
 var Fonts = require('./fonts');
@@ -1550,125 +1546,122 @@ var Tables = require('./tables');
 var TableElements = require('./tableElements');
 var toXMLString = require('../XMLString');
 
-var Styles = function () {
-	function Styles(common) {
-		_classCallCheck(this, Styles);
+function Styles(common) {
+	this.objectId = common.uniqueId('Styles');
+	this.numberFormats = new NumberFormats(this);
+	this.fonts = new Fonts(this);
+	this.fills = new Fills(this);
+	this.borders = new Borders(this);
+	this.cells = new Cells(this);
+	this.tableElements = new TableElements(this);
+	this.tables = new Tables(this);
+	this.defaultTableStyle = '';
+	this.mergeCache = Object.create(null);
+}
 
-		this.objectId = common.uniqueId('Styles');
-		this.numberFormats = new NumberFormats(this);
-		this.fonts = new Fonts(this);
-		this.fills = new Fills(this);
-		this.borders = new Borders(this);
-		this.cells = new Cells(this);
-		this.tableElements = new TableElements(this);
-		this.tables = new Tables(this);
-		this.defaultTableStyle = '';
-	}
+Styles.prototype = {
+	addFormat: function addFormat(format, name) {
+		return this.cells.add(format, name);
+	},
+	get: function get(name) {
+		return this.cells.get(name);
+	},
+	getId: function getId(name) {
+		return this.cells.getId(name);
+	},
+	addFillOutFormat: function addFillOutFormat(format) {
+		if (this.get(format).fillOut) {
+			return format;
+		}
+		var style = this.cells.cutVisible(this.cells.fullGet(format));
 
-	_createClass(Styles, [{
-		key: 'addFormat',
-		value: function addFormat(format, name) {
-			return this.cells.add(format, name);
+		if (!_.isEmpty(style)) {
+			return this.addFormat(style);
 		}
-	}, {
-		key: '_get',
-		value: function _get(name) {
-			return this.cells.get(name);
-		}
-	}, {
-		key: '_getId',
-		value: function _getId(name) {
-			return this.cells.getId(name);
-		}
-	}, {
-		key: '_addFillOutFormat',
-		value: function _addFillOutFormat(format) {
-			if (this._get(format).fillOut) {
-				return format;
-			}
-			var style = this.cells.cutVisible(this.cells.fullGet(format));
+	},
+	merge: function merge(format1, format2, format3) {
+		var count = Boolean(format1) + Boolean(format2) + Boolean(format3);
 
-			if (!_.isEmpty(style)) {
-				return this.addFormat(style);
-			}
-		}
-	}, {
-		key: '_merge',
-		value: function _merge(format1, format2, format3) {
-			var count = Number(Boolean(format1)) + Number(Boolean(format2)) + Number(Boolean(format3));
+		if (count === 0) {
+			return null;
+		} else if (count === 1) {
+			return this.addFormat(format1 || format2 || format3);
+		} else if (count === 2) {
+			var f1 = void 0;
+			var f2 = void 0;
 
-			if (count === 0) {
-				return null;
-			} else if (count === 1) {
-				return this.cells.add(format1 || format2 || format3);
+			if (format1) {
+				f1 = format1;
+				f2 = format2 ? format2 : format3;
 			} else {
-				var format = {};
-
-				if (format1) {
-					format = this.cells.merge(format, this.cells.fullGet(format1));
-				}
-				if (format2) {
-					format = this.cells.merge(format, this.cells.fullGet(format2));
-				}
-				if (format3) {
-					format = this.cells.merge(format, this.cells.fullGet(format3));
-				}
-				return this.cells.add(format, null, { merge: true });
+				f1 = format2;
+				f2 = format3;
 			}
-		}
-	}, {
-		key: 'addFontFormat',
-		value: function addFontFormat(format, name) {
-			return this.fonts.add(format, name);
-		}
-	}, {
-		key: 'addBorderFormat',
-		value: function addBorderFormat(format, name) {
-			return this.borders.add(format, name);
-		}
-	}, {
-		key: 'addPatternFormat',
-		value: function addPatternFormat(format, name) {
-			return this.fills.add(format, name, { fillType: 'pattern' });
-		}
-	}, {
-		key: 'addGradientFormat',
-		value: function addGradientFormat(format, name) {
-			return this.fills.add(format, name, { fillType: 'gradient' });
-		}
-	}, {
-		key: 'addNumberFormat',
-		value: function addNumberFormat(format, name) {
-			return this.numberFormats.add(format, name);
-		}
-	}, {
-		key: 'addTableFormat',
-		value: function addTableFormat(format, name) {
-			return this.tables.add(format, name);
-		}
-	}, {
-		key: 'addTableElementFormat',
-		value: function addTableElementFormat(format, name) {
-			return this.tableElements.add(format, name);
-		}
-	}, {
-		key: 'setDefaultTableStyle',
-		value: function setDefaultTableStyle(name) {
-			this.tables.defaultTableStyle = name;
-		}
-	}, {
-		key: 'save',
-		value: function save() {
-			return toXMLString({
-				name: 'styleSheet',
-				ns: 'spreadsheetml',
-				children: [this.numberFormats.save(), this.fonts.save(), this.fills.save(), this.borders.save(), this.cells.save(), this.tableElements.save(), this.tables.save()]
-			});
-		}
-	}]);
 
-	return Styles;
-}();
+			return this.merge2(f1, f2);
+		} else {
+			return this.merge3(format1, format2, format3);
+		}
+	},
+	merge2: function merge2(format1, format2) {
+		var id = JSON.stringify(format1) + '#' + JSON.stringify(format2);
+		var merged = this.mergeCache[id];
+
+		if (!merged) {
+			var format = {};
+			format = this.cells.merge(format, this.cells.fullGet(format1));
+			format = this.cells.merge(format, this.cells.fullGet(format2));
+			merged = this.cells.add(format, null, { merge: true });
+			this.mergeCache[id] = merged;
+		}
+		return merged;
+	},
+	merge3: function merge3(format1, format2, format3) {
+		var id = JSON.stringify(format1) + '#' + JSON.stringify(format2) + '#' + JSON.stringify(format3);
+		var merged = this.mergeCache[id];
+
+		if (!merged) {
+			var format = {};
+			format = this.cells.merge(format, this.cells.fullGet(format1));
+			format = this.cells.merge(format, this.cells.fullGet(format2));
+			format = this.cells.merge(format, this.cells.fullGet(format3));
+			merged = this.cells.add(format, null, { merge: true });
+			this.mergeCache[id] = merged;
+		}
+		return merged;
+	},
+	addFontFormat: function addFontFormat(format, name) {
+		return this.fonts.add(format, name);
+	},
+	addBorderFormat: function addBorderFormat(format, name) {
+		return this.borders.add(format, name);
+	},
+	addPatternFormat: function addPatternFormat(format, name) {
+		return this.fills.add(format, name, { fillType: 'pattern' });
+	},
+	addGradientFormat: function addGradientFormat(format, name) {
+		return this.fills.add(format, name, { fillType: 'gradient' });
+	},
+	addNumberFormat: function addNumberFormat(format, name) {
+		return this.numberFormats.add(format, name);
+	},
+	addTableFormat: function addTableFormat(format, name) {
+		return this.tables.add(format, name);
+	},
+	addTableElementFormat: function addTableElementFormat(format, name) {
+		return this.tableElements.add(format, name);
+	},
+	setDefaultTableStyle: function setDefaultTableStyle(name) {
+		this.tables.defaultTableStyle = name;
+	},
+	save: function save() {
+		return toXMLString({
+			name: 'styleSheet',
+			ns: 'spreadsheetml',
+			children: [this.numberFormats.save(), this.fonts.save(), this.fills.save(), this.borders.save(), this.cells.save(), this.tableElements.save(), this.tables.save()]
+		});
+	}
+};
 
 module.exports = Styles;
 
@@ -3073,8 +3066,8 @@ var methods = {
 					var style = _this.styles.addFormat(column.style);
 					preparedColumn.style = style;
 
-					var columnStyle = _this.styles._addFillOutFormat(style);
-					preparedColumn.styleId = _this.styles._getId(columnStyle);
+					var columnStyle = _this.styles.addFillOutFormat(style);
+					preparedColumn.selfStyleId = _this.styles.getId(columnStyle);
 				}
 				return preparedColumn;
 			}
@@ -3159,7 +3152,7 @@ var methods = {
 					dataRow = this.mergeCells(dataRow, colIndex, rowIndex, value);
 				}
 
-				preparedDataRow[colIndex] = this.getPreparedCell(this.styles._getId(this.styles._merge(columnStyle, rowStyle, cellStyle)), this.getCellType(cellType, cellValue, row, column), cellValue);
+				preparedDataRow[colIndex] = this.getPreparedCell(this.styles.getId(this.styles.merge(columnStyle, rowStyle, cellStyle)), this.getCellType(cellType, cellValue, row, column), cellValue);
 			}
 		}
 
@@ -3191,13 +3184,13 @@ var methods = {
 		var dataRow = arguments[1];
 		var rowIndex = arguments[2];
 
-		var count = this.calcDataRowHeight(dataRow);
+		var count = this.calcDataRowNestingCount(dataRow);
 
 		if (count === 0) {
 			return dataRow;
 		}
 
-		var newRows = _.times(count, function () {
+		var newDataRows = _.times(count, function () {
 			var result = _.clone(row);
 			result.data = [];
 			return result;
@@ -3215,22 +3208,22 @@ var methods = {
 
 			if (list) {
 				_(list).initial().forEach(function (value, index) {
-					newRows[index].data.push({ value: value, style: style });
+					newDataRows[index].data.push({ value: value, style: style });
 				});
 
 				var lastValue = { value: _.last(list), style: style };
 				var listLength = list.length;
 				var _value = listLength < count ? _this3.addRowspan(lastValue, count - listLength + 1) : lastValue;
-				newRows[list.length - 1].data.push(_value);
+				newDataRows[list.length - 1].data.push(_value);
 			} else {
-				newRows[0].data.push(_this3.addRowspan(value, count));
+				newDataRows[0].data.push(_this3.addRowspan(value, count));
 			}
 		});
-		(_data = this.data).splice.apply(_data, [rowIndex, 1].concat(_toConsumableArray(newRows)));
+		(_data = this.data).splice.apply(_data, [rowIndex, 1].concat(_toConsumableArray(newDataRows)));
 
-		return newRows[0].data;
+		return newDataRows[0].data;
 	},
-	calcDataRowHeight: function calcDataRowHeight(dataRow) {
+	calcDataRowNestingCount: function calcDataRowNestingCount(dataRow) {
 		var count = 0;
 		_.forEach(dataRow, function (value) {
 			if (_.isArray(value)) {
@@ -3242,17 +3235,20 @@ var methods = {
 		return count;
 	},
 	addRowspan: function addRowspan(value, rowspan) {
-		if (_.isObject(value) && !_.isDate(value)) {
-			value = _.clone(value);
-			value.rowspan = rowspan;
-			value.style = this.styles._merge({ vertical: 'top' }, value.style);
-			return value;
+		if (rowspan > 1) {
+			if (_.isObject(value) && !_.isDate(value)) {
+				value = _.clone(value);
+				value.rowspan = rowspan;
+				value.style = this.styles.merge({ vertical: 'top' }, value.style);
+				return value;
+			}
+			return {
+				value: value,
+				rowspan: rowspan,
+				style: { vertical: 'top' }
+			};
 		}
-		return {
-			value: value,
-			rowspan: rowspan,
-			style: { vertical: 'top' }
-		};
+		return value;
 	},
 	readCellValue: function readCellValue(value) {
 		var cellValue = void 0;
@@ -3353,8 +3349,8 @@ var methods = {
 	},
 	setRowStyleId: function setRowStyleId(row) {
 		if (row.style) {
-			var rowStyle = this.styles._addFillOutFormat(row.style);
-			row.styleId = this.styles._getId(rowStyle);
+			var rowStyle = this.styles.addFillOutFormat(row.style);
+			row.selfStyleId = this.styles.getId(rowStyle);
 		}
 	}
 };
@@ -3688,11 +3684,9 @@ function saveData(worksheet) {
 }
 
 function saveRow(dataRow, row, rowIndex) {
-	var rowChildren = [];
-
 	if (dataRow) {
 		var rowLen = dataRow.length;
-		rowChildren = new Array(rowLen);
+		var rowChildren = new Array(rowLen);
 
 		for (var colIndex = 0; colIndex < rowLen; colIndex++) {
 			var value = dataRow[colIndex];
@@ -3717,9 +3711,9 @@ function saveRow(dataRow, row, rowIndex) {
 				rowChildren[colIndex] = '<c' + attrs + '/>';
 			}
 		}
+		return '<row' + getRowAttributes(row, rowIndex) + '>' + rowChildren.join('') + '</row>';
 	}
-
-	return '<row' + getRowAttributes(row, rowIndex) + '>' + rowChildren.join('') + '</row>';
+	return '<row' + getRowAttributes(row, rowIndex) + '></row>';
 }
 
 function getRowAttributes(row, rowIndex) {
@@ -3729,8 +3723,8 @@ function getRowAttributes(row, rowIndex) {
 		if (row.height !== undefined) {
 			attributes += ' customHeight="1" ht="' + row.height + '"';
 		}
-		if (row.styleId) {
-			attributes += ' customFormat="1" s="' + row.styleId + '"';
+		if (row.selfStyleId) {
+			attributes += ' customFormat="1" s="' + row.selfStyleId + '"';
 		}
 		if (row.outlineLevel) {
 			attributes += ' outlineLevel="' + row.outlineLevel + '"';
@@ -3775,8 +3769,8 @@ function saveColumns(columns) {
 			} else {
 				attributes.push(['width', 9.140625]);
 			}
-			if (column.styleId) {
-				attributes.push(['style', column.styleId]);
+			if (column.selfStyleId) {
+				attributes.push(['style', column.selfStyleId]);
 			}
 
 			return toXMLString({

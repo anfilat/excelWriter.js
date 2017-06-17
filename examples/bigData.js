@@ -63,7 +63,11 @@ function run(testData) {
 				font: {color: '#E90AF5'}
 			}
 		},
-		{type: 'string', width: 20},
+		{
+			type: 'string',
+			style: {font: {color: '#f56606'}},
+			width: 20
+		},
 		{type: 'date', style: 'date', width: 12},
 		{type: 'date', style: 'date', width: 12}
 	];
