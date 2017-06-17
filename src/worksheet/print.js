@@ -8,6 +8,7 @@ const methods = {
 	/**
 	 * Expects an array length of three.
 	 * @param {Array} headers [left, center, right]
+	 * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.evenheader.aspx
 	 */
 	setHeader(headers) {
 		if (!_.isArray(headers)) {
@@ -46,7 +47,9 @@ const methods = {
 	 * @param {String} orientation
 	 */
 	setPageOrientation(orientation) {
-		this.orientation = orientation;
+		if (orientation === 'portrait' || orientation === 'landscape') {
+			this.orientation = orientation;
+		}
 	},
 	/**
 	 * Set rows to repeat for print
@@ -90,7 +93,7 @@ const methods = {
 			let value = '';
 
 			if (printTitles.topTo >= 0) {
-				value = this.name +
+				value = '\'' + this.name + '\'' +
 					'!$' + (printTitles.topFrom + 1) +
 					':$' + (printTitles.topTo + 1);
 
@@ -99,7 +102,7 @@ const methods = {
 				}
 			}
 			if (printTitles.leftTo >= 0) {
-				value += this.name +
+				value += '\'' + this.name + '\'' +
 					'!$' + util.positionToLetter(printTitles.leftFrom + 1) +
 					':$' + util.positionToLetter(printTitles.leftTo + 1);
 			}
@@ -132,27 +135,25 @@ const methods = {
 		return '';
 	},
 	savePageSetup() {
-		const orientation = this.orientation;
-
-		if (orientation) {
+		if (this.orientation) {
 			return toXMLString({
 				name: 'pageSetup',
 				attributes: [
-					['orientation', orientation]
+					['orientation', this.orientation]
 				]
 			});
 		}
 		return '';
 	},
 	saveHeaderFooter() {
-		if (this.headers.length > 0 || this.footers.length > 0) {
+		if (this.headers.length || this.footers.length) {
 			const children = [];
 
-			if (this.headers.length > 0) {
+			if (this.headers.length) {
 				children.push(this.saveHeader());
 			}
-			if (this.footers.length > 0) {
-				children.push(this.saveFooter(this.footers));
+			if (this.footers.length) {
+				children.push(this.saveFooter());
 			}
 
 			return toXMLString({
@@ -177,8 +178,6 @@ const methods = {
 };
 
 function compilePageDetailPackage(data) {
-	data = data || '';
-
 	return [
 		'&L', compilePageDetailPiece(data[0] || ''),
 		'&C', compilePageDetailPiece(data[1] || ''),
@@ -188,17 +187,20 @@ function compilePageDetailPackage(data) {
 
 function compilePageDetailPiece(data) {
 	if (_.isString(data)) {
-		return '&"-,Regular"'.concat(data);
+		return '&"-,Regular"' + data;
 	} else if (_.isObject(data) && !_.isArray(data)) {
-		let string = '';
+		let string = '&"' + (data.font || '-') + ',';
 
-		if (data.font || data.bold) {
-			const weighting = data.bold ? 'Bold' : 'Regular';
-
-			string += '&"' + (data.font || '-') + ',' + weighting + '"';
+		if (data.bold && data.italic) {
+			string += 'Bold Italic';
+		} else if (data.bold) {
+			string += 'Bold';
+		} else if (data.italic) {
+			string += 'Italic';
 		} else {
-			string += '&"-,Regular"';
+			string += 'Regular';
 		}
+		string += '"';
 		if (data.underline) {
 			string += '&U';
 		}
@@ -209,9 +211,7 @@ function compilePageDetailPiece(data) {
 
 		return string;
 	} else if (_.isArray(data)) {
-		return _.reduce(data, function (result, value) {
-			return result.concat(compilePageDetailPiece(value));
-		}, '');
+		return _.reduce(data, (result, value) => result + compilePageDetailPiece(value), '');
 	}
 }
 

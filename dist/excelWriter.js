@@ -3374,6 +3374,7 @@ var methods = {
 	/**
   * Expects an array length of three.
   * @param {Array} headers [left, center, right]
+  * https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.evenheader.aspx
   */
 	setHeader: function setHeader(headers) {
 		if (!_.isArray(headers)) {
@@ -3415,7 +3416,9 @@ var methods = {
   * @param {String} orientation
   */
 	setPageOrientation: function setPageOrientation(orientation) {
-		this.orientation = orientation;
+		if (orientation === 'portrait' || orientation === 'landscape') {
+			this.orientation = orientation;
+		}
 	},
 
 	/**
@@ -3460,14 +3463,14 @@ var methods = {
 			var value = '';
 
 			if (printTitles.topTo >= 0) {
-				value = this.name + '!$' + (printTitles.topFrom + 1) + ':$' + (printTitles.topTo + 1);
+				value = '\'' + this.name + '\'' + '!$' + (printTitles.topFrom + 1) + ':$' + (printTitles.topTo + 1);
 
 				if (printTitles.leftTo >= 0) {
 					value += ',';
 				}
 			}
 			if (printTitles.leftTo >= 0) {
-				value += this.name + '!$' + util.positionToLetter(printTitles.leftFrom + 1) + ':$' + util.positionToLetter(printTitles.leftTo + 1);
+				value += '\'' + this.name + '\'' + '!$' + util.positionToLetter(printTitles.leftFrom + 1) + ':$' + util.positionToLetter(printTitles.leftTo + 1);
 			}
 			return value;
 		}
@@ -3488,25 +3491,23 @@ var methods = {
 		return '';
 	},
 	savePageSetup: function savePageSetup() {
-		var orientation = this.orientation;
-
-		if (orientation) {
+		if (this.orientation) {
 			return toXMLString({
 				name: 'pageSetup',
-				attributes: [['orientation', orientation]]
+				attributes: [['orientation', this.orientation]]
 			});
 		}
 		return '';
 	},
 	saveHeaderFooter: function saveHeaderFooter() {
-		if (this.headers.length > 0 || this.footers.length > 0) {
+		if (this.headers.length || this.footers.length) {
 			var children = [];
 
-			if (this.headers.length > 0) {
+			if (this.headers.length) {
 				children.push(this.saveHeader());
 			}
-			if (this.footers.length > 0) {
-				children.push(this.saveFooter(this.footers));
+			if (this.footers.length) {
+				children.push(this.saveFooter());
 			}
 
 			return toXMLString({
@@ -3531,24 +3532,25 @@ var methods = {
 };
 
 function compilePageDetailPackage(data) {
-	data = data || '';
-
 	return ['&L', compilePageDetailPiece(data[0] || ''), '&C', compilePageDetailPiece(data[1] || ''), '&R', compilePageDetailPiece(data[2] || '')].join('');
 }
 
 function compilePageDetailPiece(data) {
 	if (_.isString(data)) {
-		return '&"-,Regular"'.concat(data);
+		return '&"-,Regular"' + data;
 	} else if (_.isObject(data) && !_.isArray(data)) {
-		var string = '';
+		var string = '&"' + (data.font || '-') + ',';
 
-		if (data.font || data.bold) {
-			var weighting = data.bold ? 'Bold' : 'Regular';
-
-			string += '&"' + (data.font || '-') + ',' + weighting + '"';
+		if (data.bold && data.italic) {
+			string += 'Bold Italic';
+		} else if (data.bold) {
+			string += 'Bold';
+		} else if (data.italic) {
+			string += 'Italic';
 		} else {
-			string += '&"-,Regular"';
+			string += 'Regular';
 		}
+		string += '"';
 		if (data.underline) {
 			string += '&U';
 		}
@@ -3560,7 +3562,7 @@ function compilePageDetailPiece(data) {
 		return string;
 	} else if (_.isArray(data)) {
 		return _.reduce(data, function (result, value) {
-			return result.concat(compilePageDetailPiece(value));
+			return result + compilePageDetailPiece(value);
 		}, '');
 	}
 }
