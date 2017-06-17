@@ -10,71 +10,70 @@ const PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', '
 	'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp',	'lightGrid', 'lightTrellis'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fills.aspx
-class Fills extends StylePart {
-	constructor(styles) {
-		super(styles, 'fills', 'fill');
+function Fills(styles) {
+	StylePart.call(this, styles, 'fills', 'fill');
 
-		this.init();
-		this.lastId = this.formats.length;
+	this.init();
+	this.lastId = this.formats.length;
+}
+
+Fills.canon = function (format, flags) {
+	const result = {
+		fillType: flags.merge ? format.fillType : flags.fillType
+	};
+
+	if (result.fillType === 'pattern') {
+		const fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
+		const bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
+		const patternType = flags.merge ? format.patternType : format.type;
+
+		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
+		if (flags.isTable && result.patternType === 'solid') {
+			result.fgColor = bgColor;
+			result.bgColor = fgColor;
+		} else {
+			result.fgColor = fgColor;
+			result.bgColor = bgColor;
+		}
+	} else {
+		if (_.has(format, 'left')) {
+			result.left = format.left || 0;
+			result.right = format.right || 0;
+			result.top = format.top || 0;
+			result.bottom = format.bottom || 0;
+		} else {
+			result.degree = format.degree || 0;
+		}
+		result.start = format.start || 'FFFFFFFF';
+		result.end = format.end || 'FFFFFFFF';
 	}
+	return result;
+};
+
+Fills.saveFormat = function (format) {
+	const children = format.fillType === 'pattern'
+		? [savePatternFill(format)]
+		: [saveGradientFill(format)];
+
+	return toXMLString({
+		name: 'fill',
+		children
+	});
+};
+
+Fills.prototype = _.merge({}, StylePart.prototype, {
 	init() {
 		this.formats.push(
 			{format: this.canon({type: 'none'}, {fillType: 'pattern'})},
 			{format: this.canon({type: 'gray125'}, {fillType: 'pattern'})}
 		);
-	}
-	static canon(format, flags) {
-		const result = {
-			fillType: flags.merge ? format.fillType : flags.fillType
-		};
-
-		if (result.fillType === 'pattern') {
-			const fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
-			const bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
-			const patternType = flags.merge ? format.patternType : format.type;
-
-			result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
-			if (flags.isTable && result.patternType === 'solid') {
-				result.fgColor = bgColor;
-				result.bgColor = fgColor;
-			} else {
-				result.fgColor = fgColor;
-				result.bgColor = bgColor;
-			}
-		} else {
-			if (_.has(format, 'left')) {
-				result.left = format.left || 0;
-				result.right = format.right || 0;
-				result.top = format.top || 0;
-				result.bottom = format.bottom || 0;
-			} else {
-				result.degree = format.degree || 0;
-			}
-			result.start = format.start || 'FFFFFFFF';
-			result.end = format.end || 'FFFFFFFF';
-		}
-		return result;
-	}
-	static saveFormat(format) {
-		const children = format.fillType === 'pattern'
-			? [savePatternFill(format)]
-			: [saveGradientFill(format)];
-
-		return toXMLString({
-			name: 'fill',
-			children
-		});
-	}
-	canon(format, flags) {
-		return Fills.canon(format, flags);
-	}
+	},
+	canon: Fills.canon,
+	saveFormat: Fills.saveFormat,
 	merge(formatTo, formatFrom) {
 		return formatFrom || formatTo;
 	}
-	saveFormat(format) {
-		return Fills.saveFormat(format);
-	}
-}
+});
 
 function savePatternFill(format) {
 	const attributes = [

@@ -9,19 +9,20 @@ const toXMLString = require('../XMLString');
 const ALLOWED_PARTS = ['format', 'fill', 'border', 'font'];
 const XLS_NAMES = ['numFmtId', 'fillId', 'borderId', 'fontId'];
 
-class Cells extends StylePart {
-	constructor(styles) {
-		super(styles, 'cellXfs', 'format');
+function Cells(styles) {
+	StylePart.call(this, styles, 'cellXfs', 'format');
 
-		this.init();
-		this.lastId = this.formats.length;
-		this.saveEmpty = false;
-	}
+	this.init();
+	this.lastId = this.formats.length;
+	this.saveEmpty = false;
+}
+
+Cells.prototype = _.merge({}, StylePart.prototype, {
 	init() {
 		this.formats.push(
 			{format: this.canon({})}
 		);
-	}
+	},
 	canon(format, flags) {
 		const result = {};
 
@@ -53,7 +54,7 @@ class Cells extends StylePart {
 			result.fillOut = format.fillOut;
 		}
 		return result;
-	}
+	},
 	fullGet(format) {
 		if (this.getId(format)) {
 			format = this.get(format);
@@ -81,7 +82,7 @@ class Cells extends StylePart {
 			result.protection = _.clone(format.protection);
 		}
 		return result;
-	}
+	},
 	cutVisible(format) {
 		const result = {};
 
@@ -98,7 +99,7 @@ class Cells extends StylePart {
 			result.protection = format.protection;
 		}
 		return result;
-	}
+	},
 	merge(formatTo, formatFrom) {
 		if (formatTo.format || formatFrom.format) {
 			formatTo.format = this.styles.numberFormats.merge(formatTo.format, formatFrom.format);
@@ -119,7 +120,7 @@ class Cells extends StylePart {
 			formatTo.protection = protection.merge(formatTo.protection, formatFrom.protection);
 		}
 		return formatTo;
-	}
+	},
 	saveFormat(format) {
 		const styles = this.styles;
 		const attributes = [];
@@ -160,6 +161,6 @@ class Cells extends StylePart {
 			children
 		});
 	}
-}
+});
 
 module.exports = Cells;

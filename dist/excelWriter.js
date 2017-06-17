@@ -866,14 +866,6 @@ module.exports = {
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
 
@@ -886,115 +878,93 @@ var MAIN_BORDERS = ['left', 'right', 'top', 'bottom'];
 var BORDERS = ['left', 'right', 'top', 'bottom', 'diagonal'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.borders.aspx
+function Borders(styles) {
+	StylePart.call(this, styles, 'borders', 'border');
 
-var Borders = function (_StylePart) {
-	_inherits(Borders, _StylePart);
+	this.init();
+	this.lastId = this.formats.length;
+}
 
-	function Borders(styles) {
-		_classCallCheck(this, Borders);
+Borders.canon = function (format) {
+	var result = {};
 
-		var _this = _possibleConstructorReturn(this, (Borders.__proto__ || Object.getPrototypeOf(Borders)).call(this, styles, 'borders', 'border'));
+	if (_.has(format, 'style') || _.has(format, 'color')) {
+		MAIN_BORDERS.forEach(function (name) {
+			result[name] = {
+				style: format.style,
+				color: format.color
+			};
+		});
+	} else {
+		BORDERS.forEach(function (name) {
+			var border = format[name];
 
-		_this.init();
-		_this.lastId = _this.formats.length;
-		return _this;
-	}
-
-	_createClass(Borders, [{
-		key: 'init',
-		value: function init() {
-			this.formats.push({ format: this.canon({}) });
-		}
-	}, {
-		key: 'canon',
-		value: function canon(format) {
-			return Borders.canon(format);
-		}
-	}, {
-		key: 'merge',
-		value: function merge() {
-			var formatTo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Borders.canon({});
-			var formatFrom = arguments[1];
-
-			if (formatFrom) {
-				BORDERS.forEach(function (name) {
-					var borderFrom = formatFrom[name];
-
-					if (borderFrom && borderFrom.style) {
-						formatTo[name].style = borderFrom.style;
-					}
-					if (borderFrom && borderFrom.color) {
-						formatTo[name].color = borderFrom.color;
-					}
-				});
-			}
-			return formatTo;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format, styleFormat) {
-			return Borders.saveFormat(format, styleFormat);
-		}
-	}], [{
-		key: 'canon',
-		value: function canon(format) {
-			var result = {};
-
-			if (_.has(format, 'style') || _.has(format, 'color')) {
-				MAIN_BORDERS.forEach(function (name) {
-					result[name] = {
-						style: format.style,
-						color: format.color
-					};
-				});
+			if (border) {
+				result[name] = {
+					style: border.style,
+					color: border.color
+				};
 			} else {
-				BORDERS.forEach(function (name) {
-					var border = format[name];
-
-					if (border) {
-						result[name] = {
-							style: border.style,
-							color: border.color
-						};
-					} else {
-						result[name] = {};
-					}
-				});
+				result[name] = {};
 			}
-			return result;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format) {
-			var children = BORDERS.map(function (name) {
-				var border = format[name];
-				var attributes = void 0;
-				var children = void 0;
+		});
+	}
+	return result;
+};
 
-				if (border) {
-					if (border.style) {
-						attributes = [['style', border.style]];
-					}
-					if (border.color) {
-						children = [saveColor(border.color)];
-					}
+Borders.saveFormat = function (format) {
+	var children = BORDERS.map(function (name) {
+		var border = format[name];
+		var attributes = void 0;
+		var children = void 0;
+
+		if (border) {
+			if (border.style) {
+				attributes = [['style', border.style]];
+			}
+			if (border.color) {
+				children = [saveColor(border.color)];
+			}
+		}
+		return toXMLString({
+			name: name,
+			attributes: attributes,
+			children: children
+		});
+	});
+
+	return toXMLString({
+		name: 'border',
+		children: children
+	});
+};
+
+Borders.prototype = _.merge({}, StylePart.prototype, {
+	init: function init() {
+		this.formats.push({ format: this.canon({}) });
+	},
+
+	canon: Borders.canon,
+	saveFormat: Borders.saveFormat,
+	merge: function merge() {
+		var formatTo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Borders.canon({});
+		var formatFrom = arguments[1];
+
+		if (formatFrom) {
+			BORDERS.forEach(function (name) {
+				var borderFrom = formatFrom[name];
+
+				if (borderFrom && borderFrom.style) {
+					formatTo[name].style = borderFrom.style;
 				}
-				return toXMLString({
-					name: name,
-					attributes: attributes,
-					children: children
-				});
-			});
-
-			return toXMLString({
-				name: 'border',
-				children: children
+				if (borderFrom && borderFrom.color) {
+					formatTo[name].color = borderFrom.color;
+				}
 			});
 		}
-	}]);
-
-	return Borders;
-}(StylePart);
+		return formatTo;
+	}
+});
 
 module.exports = Borders;
 
@@ -1002,14 +972,6 @@ module.exports = Borders;
 },{"../XMLString":2,"./stylePart":21,"./utils":24}],15:[function(require,module,exports){
 (function (global){
 'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
@@ -1020,177 +982,157 @@ var toXMLString = require('../XMLString');
 var ALLOWED_PARTS = ['format', 'fill', 'border', 'font'];
 var XLS_NAMES = ['numFmtId', 'fillId', 'borderId', 'fontId'];
 
-var Cells = function (_StylePart) {
-	_inherits(Cells, _StylePart);
+function Cells(styles) {
+	StylePart.call(this, styles, 'cellXfs', 'format');
 
-	function Cells(styles) {
-		_classCallCheck(this, Cells);
+	this.init();
+	this.lastId = this.formats.length;
+	this.saveEmpty = false;
+}
 
-		var _this = _possibleConstructorReturn(this, (Cells.__proto__ || Object.getPrototypeOf(Cells)).call(this, styles, 'cellXfs', 'format'));
+Cells.prototype = _.merge({}, StylePart.prototype, {
+	init: function init() {
+		this.formats.push({ format: this.canon({}) });
+	},
+	canon: function canon(format, flags) {
+		var result = {};
 
-		_this.init();
-		_this.lastId = _this.formats.length;
-		_this.saveEmpty = false;
-		return _this;
-	}
-
-	_createClass(Cells, [{
-		key: 'init',
-		value: function init() {
-			this.formats.push({ format: this.canon({}) });
+		if (format.format) {
+			result.format = this.styles.numberFormats.add(format.format);
 		}
-	}, {
-		key: 'canon',
-		value: function canon(format, flags) {
-			var result = {};
-
-			if (format.format) {
-				result.format = this.styles.numberFormats.add(format.format);
-			}
-			if (format.font) {
-				result.font = this.styles.fonts.add(format.font);
-			}
-			if (format.pattern) {
-				result.fill = this.styles.fills.add(format.pattern, null, { fillType: 'pattern' });
-			} else if (format.gradient) {
-				result.fill = this.styles.fills.add(format.gradient, null, { fillType: 'gradient' });
-			} else if (flags && flags.merge && format.fill) {
-				result.fill = this.styles.fills.add(format.fill, null, flags);
-			}
-			if (format.border) {
-				result.border = this.styles.borders.add(format.border);
-			}
-			var alignmentValue = flags && flags.merge ? alignment.canon(format.alignment) : alignment.canon(format);
-			if (alignmentValue) {
-				result.alignment = alignmentValue;
-			}
-			var protectionValue = flags && flags.merge ? protection.canon(format.protection) : protection.canon(format);
-			if (protectionValue) {
-				result.protection = protectionValue;
-			}
-			if (format.fillOut) {
-				result.fillOut = format.fillOut;
-			}
-			return result;
+		if (format.font) {
+			result.font = this.styles.fonts.add(format.font);
 		}
-	}, {
-		key: 'fullGet',
-		value: function fullGet(format) {
-			if (this.getId(format)) {
-				format = this.get(format);
-			} else {
-				format = this.canon(format);
-			}
-
-			var result = {};
-			if (format.format) {
-				result.format = this.styles.numberFormats.get(format.format);
-			}
-			if (format.font) {
-				result.font = _.clone(this.styles.fonts.get(format.font));
-			}
-			if (format.fill) {
-				result.fill = _.clone(this.styles.fills.get(format.fill));
-			}
-			if (format.border) {
-				result.border = _.clone(this.styles.borders.get(format.border));
-			}
-			if (format.alignment) {
-				result.alignment = _.clone(format.alignment);
-			}
-			if (format.protection) {
-				result.protection = _.clone(format.protection);
-			}
-			return result;
+		if (format.pattern) {
+			result.fill = this.styles.fills.add(format.pattern, null, { fillType: 'pattern' });
+		} else if (format.gradient) {
+			result.fill = this.styles.fills.add(format.gradient, null, { fillType: 'gradient' });
+		} else if (flags && flags.merge && format.fill) {
+			result.fill = this.styles.fills.add(format.fill, null, flags);
 		}
-	}, {
-		key: 'cutVisible',
-		value: function cutVisible(format) {
-			var result = {};
-
-			if (format.format) {
-				result.format = format.format;
-			}
-			if (format.font) {
-				result.font = format.font;
-			}
-			if (format.alignment) {
-				result.alignment = format.alignment;
-			}
-			if (format.protection) {
-				result.protection = format.protection;
-			}
-			return result;
+		if (format.border) {
+			result.border = this.styles.borders.add(format.border);
 		}
-	}, {
-		key: 'merge',
-		value: function merge(formatTo, formatFrom) {
-			if (formatTo.format || formatFrom.format) {
-				formatTo.format = this.styles.numberFormats.merge(formatTo.format, formatFrom.format);
-			}
-			if (formatTo.font || formatFrom.font) {
-				formatTo.font = this.styles.fonts.merge(formatTo.font, formatFrom.font);
-			}
-			if (formatTo.fill || formatFrom.fill) {
-				formatTo.fill = this.styles.fills.merge(formatTo.fill, formatFrom.fill);
-			}
-			if (formatTo.border || formatFrom.border) {
-				formatTo.border = this.styles.borders.merge(formatTo.border, formatFrom.border);
-			}
-			if (formatTo.alignment || formatFrom.alignment) {
-				formatTo.alignment = alignment.merge(formatTo.alignment, formatFrom.alignment);
-			}
-			if (formatTo.protection || formatFrom.protection) {
-				formatTo.protection = protection.merge(formatTo.protection, formatFrom.protection);
-			}
-			return formatTo;
+		var alignmentValue = flags && flags.merge ? alignment.canon(format.alignment) : alignment.canon(format);
+		if (alignmentValue) {
+			result.alignment = alignmentValue;
 		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format) {
-			var styles = this.styles;
-			var attributes = [];
-			var children = [];
+		var protectionValue = flags && flags.merge ? protection.canon(format.protection) : protection.canon(format);
+		if (protectionValue) {
+			result.protection = protectionValue;
+		}
+		if (format.fillOut) {
+			result.fillOut = format.fillOut;
+		}
+		return result;
+	},
+	fullGet: function fullGet(format) {
+		if (this.getId(format)) {
+			format = this.get(format);
+		} else {
+			format = this.canon(format);
+		}
 
-			if (format.alignment) {
-				children.push(alignment.saveFormat(format.alignment));
-				attributes.push(['applyAlignment', 'true']);
-			}
-			if (format.protection) {
-				children.push(protection.saveFormat(format.protection));
-				attributes.push(['applyProtection', 'true']);
-			}
+		var result = {};
+		if (format.format) {
+			result.format = this.styles.numberFormats.get(format.format);
+		}
+		if (format.font) {
+			result.font = _.clone(this.styles.fonts.get(format.font));
+		}
+		if (format.fill) {
+			result.fill = _.clone(this.styles.fills.get(format.fill));
+		}
+		if (format.border) {
+			result.border = _.clone(this.styles.borders.get(format.border));
+		}
+		if (format.alignment) {
+			result.alignment = _.clone(format.alignment);
+		}
+		if (format.protection) {
+			result.protection = _.clone(format.protection);
+		}
+		return result;
+	},
+	cutVisible: function cutVisible(format) {
+		var result = {};
 
-			_.forEach(format, function (value, key) {
-				if (_.includes(ALLOWED_PARTS, key)) {
-					var xlsName = XLS_NAMES[_.indexOf(ALLOWED_PARTS, key)];
+		if (format.format) {
+			result.format = format.format;
+		}
+		if (format.font) {
+			result.font = format.font;
+		}
+		if (format.alignment) {
+			result.alignment = format.alignment;
+		}
+		if (format.protection) {
+			result.protection = format.protection;
+		}
+		return result;
+	},
+	merge: function merge(formatTo, formatFrom) {
+		if (formatTo.format || formatFrom.format) {
+			formatTo.format = this.styles.numberFormats.merge(formatTo.format, formatFrom.format);
+		}
+		if (formatTo.font || formatFrom.font) {
+			formatTo.font = this.styles.fonts.merge(formatTo.font, formatFrom.font);
+		}
+		if (formatTo.fill || formatFrom.fill) {
+			formatTo.fill = this.styles.fills.merge(formatTo.fill, formatFrom.fill);
+		}
+		if (formatTo.border || formatFrom.border) {
+			formatTo.border = this.styles.borders.merge(formatTo.border, formatFrom.border);
+		}
+		if (formatTo.alignment || formatFrom.alignment) {
+			formatTo.alignment = alignment.merge(formatTo.alignment, formatFrom.alignment);
+		}
+		if (formatTo.protection || formatFrom.protection) {
+			formatTo.protection = protection.merge(formatTo.protection, formatFrom.protection);
+		}
+		return formatTo;
+	},
+	saveFormat: function saveFormat(format) {
+		var styles = this.styles;
+		var attributes = [];
+		var children = [];
 
-					if (key === 'format') {
-						attributes.push([xlsName, styles.numberFormats.getId(value)]);
-						attributes.push(['applyNumberFormat', 'true']);
-					} else if (key === 'fill') {
-						attributes.push([xlsName, styles.fills.getId(value)]);
-						attributes.push(['applyFill', 'true']);
-					} else if (key === 'border') {
-						attributes.push([xlsName, styles.borders.getId(value)]);
-						attributes.push(['applyBorder', 'true']);
-					} else if (key === 'font') {
-						attributes.push([xlsName, styles.fonts.getId(value)]);
-						attributes.push(['applyFont', 'true']);
-					}
+		if (format.alignment) {
+			children.push(alignment.saveFormat(format.alignment));
+			attributes.push(['applyAlignment', 'true']);
+		}
+		if (format.protection) {
+			children.push(protection.saveFormat(format.protection));
+			attributes.push(['applyProtection', 'true']);
+		}
+
+		_.forEach(format, function (value, key) {
+			if (_.includes(ALLOWED_PARTS, key)) {
+				var xlsName = XLS_NAMES[_.indexOf(ALLOWED_PARTS, key)];
+
+				if (key === 'format') {
+					attributes.push([xlsName, styles.numberFormats.getId(value)]);
+					attributes.push(['applyNumberFormat', 'true']);
+				} else if (key === 'fill') {
+					attributes.push([xlsName, styles.fills.getId(value)]);
+					attributes.push(['applyFill', 'true']);
+				} else if (key === 'border') {
+					attributes.push([xlsName, styles.borders.getId(value)]);
+					attributes.push(['applyBorder', 'true']);
+				} else if (key === 'font') {
+					attributes.push([xlsName, styles.fonts.getId(value)]);
+					attributes.push(['applyFont', 'true']);
 				}
-			});
+			}
+		});
 
-			return toXMLString({
-				name: 'xf',
-				attributes: attributes,
-				children: children
-			});
-		}
-	}]);
-
-	return Cells;
-}(StylePart);
+		return toXMLString({
+			name: 'xf',
+			attributes: attributes,
+			children: children
+		});
+	}
+});
 
 module.exports = Cells;
 
@@ -1198,14 +1140,6 @@ module.exports = Cells;
 },{"../XMLString":2,"./alignment":13,"./protection":20,"./stylePart":21}],16:[function(require,module,exports){
 (function (global){
 'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
@@ -1219,88 +1153,66 @@ var toXMLString = require('../XMLString');
 var PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gray125', 'gray0625', 'darkHorizontal', 'darkVertical', 'darkDown', 'darkUp', 'darkGrid', 'darkTrellis', 'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp', 'lightGrid', 'lightTrellis'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fills.aspx
+function Fills(styles) {
+	StylePart.call(this, styles, 'fills', 'fill');
 
-var Fills = function (_StylePart) {
-	_inherits(Fills, _StylePart);
+	this.init();
+	this.lastId = this.formats.length;
+}
 
-	function Fills(styles) {
-		_classCallCheck(this, Fills);
+Fills.canon = function (format, flags) {
+	var result = {
+		fillType: flags.merge ? format.fillType : flags.fillType
+	};
 
-		var _this = _possibleConstructorReturn(this, (Fills.__proto__ || Object.getPrototypeOf(Fills)).call(this, styles, 'fills', 'fill'));
+	if (result.fillType === 'pattern') {
+		var fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
+		var bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
+		var patternType = flags.merge ? format.patternType : format.type;
 
-		_this.init();
-		_this.lastId = _this.formats.length;
-		return _this;
+		result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
+		if (flags.isTable && result.patternType === 'solid') {
+			result.fgColor = bgColor;
+			result.bgColor = fgColor;
+		} else {
+			result.fgColor = fgColor;
+			result.bgColor = bgColor;
+		}
+	} else {
+		if (_.has(format, 'left')) {
+			result.left = format.left || 0;
+			result.right = format.right || 0;
+			result.top = format.top || 0;
+			result.bottom = format.bottom || 0;
+		} else {
+			result.degree = format.degree || 0;
+		}
+		result.start = format.start || 'FFFFFFFF';
+		result.end = format.end || 'FFFFFFFF';
 	}
+	return result;
+};
 
-	_createClass(Fills, [{
-		key: 'init',
-		value: function init() {
-			this.formats.push({ format: this.canon({ type: 'none' }, { fillType: 'pattern' }) }, { format: this.canon({ type: 'gray125' }, { fillType: 'pattern' }) });
-		}
-	}, {
-		key: 'canon',
-		value: function canon(format, flags) {
-			return Fills.canon(format, flags);
-		}
-	}, {
-		key: 'merge',
-		value: function merge(formatTo, formatFrom) {
-			return formatFrom || formatTo;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format) {
-			return Fills.saveFormat(format);
-		}
-	}], [{
-		key: 'canon',
-		value: function canon(format, flags) {
-			var result = {
-				fillType: flags.merge ? format.fillType : flags.fillType
-			};
+Fills.saveFormat = function (format) {
+	var children = format.fillType === 'pattern' ? [savePatternFill(format)] : [saveGradientFill(format)];
 
-			if (result.fillType === 'pattern') {
-				var fgColor = (flags.merge ? format.fgColor : format.color) || 'FFFFFFFF';
-				var bgColor = (flags.merge ? format.bgColor : format.backColor) || 'FFFFFFFF';
-				var patternType = flags.merge ? format.patternType : format.type;
+	return toXMLString({
+		name: 'fill',
+		children: children
+	});
+};
 
-				result.patternType = _.includes(PATTERN_TYPES, patternType) ? patternType : 'solid';
-				if (flags.isTable && result.patternType === 'solid') {
-					result.fgColor = bgColor;
-					result.bgColor = fgColor;
-				} else {
-					result.fgColor = fgColor;
-					result.bgColor = bgColor;
-				}
-			} else {
-				if (_.has(format, 'left')) {
-					result.left = format.left || 0;
-					result.right = format.right || 0;
-					result.top = format.top || 0;
-					result.bottom = format.bottom || 0;
-				} else {
-					result.degree = format.degree || 0;
-				}
-				result.start = format.start || 'FFFFFFFF';
-				result.end = format.end || 'FFFFFFFF';
-			}
-			return result;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format) {
-			var children = format.fillType === 'pattern' ? [savePatternFill(format)] : [saveGradientFill(format)];
+Fills.prototype = _.merge({}, StylePart.prototype, {
+	init: function init() {
+		this.formats.push({ format: this.canon({ type: 'none' }, { fillType: 'pattern' }) }, { format: this.canon({ type: 'gray125' }, { fillType: 'pattern' }) });
+	},
 
-			return toXMLString({
-				name: 'fill',
-				children: children
-			});
-		}
-	}]);
-
-	return Fills;
-}(StylePart);
+	canon: Fills.canon,
+	saveFormat: Fills.saveFormat,
+	merge: function merge(formatTo, formatFrom) {
+		return formatFrom || formatTo;
+	}
+});
 
 function savePatternFill(format) {
 	var attributes = [['patternType', format.patternType]];
@@ -1356,14 +1268,6 @@ module.exports = Fills;
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
 
@@ -1373,161 +1277,139 @@ var _require = require('./utils'),
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.fonts.aspx
+function Fonts(styles) {
+	StylePart.call(this, styles, 'fonts', 'font');
 
-var Fonts = function (_StylePart) {
-	_inherits(Fonts, _StylePart);
+	this.init();
+	this.lastId = this.formats.length;
+}
 
-	function Fonts(styles) {
-		_classCallCheck(this, Fonts);
+Fonts.canon = function (format) {
+	var result = {};
 
-		var _this = _possibleConstructorReturn(this, (Fonts.__proto__ || Object.getPrototypeOf(Fonts)).call(this, styles, 'fonts', 'font'));
+	if (_.has(format, 'bold')) {
+		result.bold = !!format.bold;
+	}
+	if (_.has(format, 'italic')) {
+		result.italic = !!format.italic;
+	}
+	if (format.superscript) {
+		result.vertAlign = 'superscript';
+	}
+	if (format.subscript) {
+		result.vertAlign = 'subscript';
+	}
+	if (format.underline) {
+		if (_.indexOf(['double', 'singleAccounting', 'doubleAccounting'], format.underline) !== -1) {
+			result.underline = format.underline;
+		} else {
+			result.underline = true;
+		}
+	}
+	if (_.has(format, 'strike')) {
+		result.strike = !!format.strike;
+	}
+	if (format.outline) {
+		result.outline = true;
+	}
+	if (format.shadow) {
+		result.shadow = true;
+	}
+	if (format.size) {
+		result.size = format.size;
+	}
+	if (format.color) {
+		result.color = format.color;
+	}
+	if (format.fontName) {
+		result.fontName = format.fontName;
+	}
+	return result;
+};
 
-		_this.init();
-		_this.lastId = _this.formats.length;
-		return _this;
+Fonts.saveFormat = function (format) {
+	var children = [];
+
+	if (format.size) {
+		children.push(toXMLString({
+			name: 'sz',
+			attributes: [['val', format.size]]
+		}));
+	}
+	if (format.fontName) {
+		children.push(toXMLString({
+			name: 'name',
+			attributes: [['val', format.fontName]]
+		}));
+	}
+	if (_.has(format, 'bold')) {
+		if (format.bold) {
+			children.push(toXMLString({ name: 'b' }));
+		} else {
+			children.push(toXMLString({ name: 'b', attributes: [['val', 0]] }));
+		}
+	}
+	if (_.has(format, 'italic')) {
+		if (format.italic) {
+			children.push(toXMLString({ name: 'i' }));
+		} else {
+			children.push(toXMLString({ name: 'i', attributes: [['val', 0]] }));
+		}
+	}
+	if (format.vertAlign) {
+		children.push(toXMLString({
+			name: 'vertAlign',
+			attributes: [['val', format.vertAlign]]
+		}));
+	}
+	if (format.underline) {
+		var attrs = null;
+
+		if (format.underline !== true) {
+			attrs = [['val', format.underline]];
+		}
+		children.push(toXMLString({
+			name: 'u',
+			attributes: attrs
+		}));
+	}
+	if (_.has(format, 'strike')) {
+		if (format.strike) {
+			children.push(toXMLString({ name: 'strike' }));
+		} else {
+			children.push(toXMLString({ name: 'strike', attributes: [['val', 0]] }));
+		}
+	}
+	if (format.shadow) {
+		children.push(toXMLString({ name: 'shadow' }));
+	}
+	if (format.outline) {
+		children.push(toXMLString({ name: 'outline' }));
+	}
+	if (format.color) {
+		children.push(saveColor(format.color));
 	}
 
-	_createClass(Fonts, [{
-		key: 'init',
-		value: function init() {
-			this.formats.push({ format: this.canon({}) });
-		}
-	}, {
-		key: 'canon',
-		value: function canon(format) {
-			return Fonts.canon(format);
-		}
-	}, {
-		key: 'merge',
-		value: function merge(formatTo, formatFrom) {
-			var result = _.assign(formatTo, formatFrom);
+	return toXMLString({
+		name: 'font',
+		children: children
+	});
+};
 
-			result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
-			return result;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format, styleFormat) {
-			return Fonts.saveFormat(format, styleFormat);
-		}
-	}], [{
-		key: 'canon',
-		value: function canon(format) {
-			var result = {};
+Fonts.prototype = _.merge({}, StylePart.prototype, {
+	init: function init() {
+		this.formats.push({ format: this.canon({}) });
+	},
 
-			if (_.has(format, 'bold')) {
-				result.bold = !!format.bold;
-			}
-			if (_.has(format, 'italic')) {
-				result.italic = !!format.italic;
-			}
-			if (format.superscript) {
-				result.vertAlign = 'superscript';
-			}
-			if (format.subscript) {
-				result.vertAlign = 'subscript';
-			}
-			if (format.underline) {
-				if (_.indexOf(['double', 'singleAccounting', 'doubleAccounting'], format.underline) !== -1) {
-					result.underline = format.underline;
-				} else {
-					result.underline = true;
-				}
-			}
-			if (_.has(format, 'strike')) {
-				result.strike = !!format.strike;
-			}
-			if (format.outline) {
-				result.outline = true;
-			}
-			if (format.shadow) {
-				result.shadow = true;
-			}
-			if (format.size) {
-				result.size = format.size;
-			}
-			if (format.color) {
-				result.color = format.color;
-			}
-			if (format.fontName) {
-				result.fontName = format.fontName;
-			}
-			return result;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format) {
-			var children = [];
+	canon: Fonts.canon,
+	saveFormat: Fonts.saveFormat,
+	merge: function merge(formatTo, formatFrom) {
+		var result = _.assign(formatTo, formatFrom);
 
-			if (format.size) {
-				children.push(toXMLString({
-					name: 'sz',
-					attributes: [['val', format.size]]
-				}));
-			}
-			if (format.fontName) {
-				children.push(toXMLString({
-					name: 'name',
-					attributes: [['val', format.fontName]]
-				}));
-			}
-			if (_.has(format, 'bold')) {
-				if (format.bold) {
-					children.push(toXMLString({ name: 'b' }));
-				} else {
-					children.push(toXMLString({ name: 'b', attributes: [['val', 0]] }));
-				}
-			}
-			if (_.has(format, 'italic')) {
-				if (format.italic) {
-					children.push(toXMLString({ name: 'i' }));
-				} else {
-					children.push(toXMLString({ name: 'i', attributes: [['val', 0]] }));
-				}
-			}
-			if (format.vertAlign) {
-				children.push(toXMLString({
-					name: 'vertAlign',
-					attributes: [['val', format.vertAlign]]
-				}));
-			}
-			if (format.underline) {
-				var attrs = null;
-
-				if (format.underline !== true) {
-					attrs = [['val', format.underline]];
-				}
-				children.push(toXMLString({
-					name: 'u',
-					attributes: attrs
-				}));
-			}
-			if (_.has(format, 'strike')) {
-				if (format.strike) {
-					children.push(toXMLString({ name: 'strike' }));
-				} else {
-					children.push(toXMLString({ name: 'strike', attributes: [['val', 0]] }));
-				}
-			}
-			if (format.shadow) {
-				children.push(toXMLString({ name: 'shadow' }));
-			}
-			if (format.outline) {
-				children.push(toXMLString({ name: 'outline' }));
-			}
-			if (format.color) {
-				children.push(saveColor(format.color));
-			}
-
-			return toXMLString({
-				name: 'font',
-				children: children
-			});
-		}
-	}]);
-
-	return Fonts;
-}(StylePart);
+		result.color = formatFrom && formatFrom.color || formatTo && formatTo.color;
+		return result;
+	}
+});
 
 module.exports = Fonts;
 
@@ -1670,14 +1552,6 @@ module.exports = Styles;
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
 var toXMLString = require('../XMLString');
@@ -1688,66 +1562,44 @@ var PREDEFINED = {
 };
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.numberingformats.aspx
+function NumberFormats(styles) {
+	StylePart.call(this, styles, 'numFmts', 'numberFormat');
 
-var NumberFormats = function (_StylePart) {
-	_inherits(NumberFormats, _StylePart);
+	this.init();
+	this.lastId = 164;
+}
 
-	function NumberFormats(styles) {
-		_classCallCheck(this, NumberFormats);
+NumberFormats.canon = function (format) {
+	return format;
+};
 
-		var _this = _possibleConstructorReturn(this, (NumberFormats.__proto__ || Object.getPrototypeOf(NumberFormats)).call(this, styles, 'numFmts', 'numberFormat'));
+NumberFormats.saveFormat = function (format, styleFormat) {
+	var attributes = [['numFmtId', styleFormat.formatId], ['formatCode', format]];
 
-		_this.init();
-		_this.lastId = 164;
-		return _this;
+	return toXMLString({
+		name: 'numFmt',
+		attributes: attributes
+	});
+};
+
+NumberFormats.prototype = _.merge({}, StylePart.prototype, {
+	init: function init() {
+		var _this = this;
+
+		_.forEach(PREDEFINED, function (formatId, format) {
+			_this.formatsByNames[format] = {
+				formatId: formatId,
+				format: format
+			};
+		});
+	},
+
+	canon: NumberFormats.canon,
+	saveFormat: NumberFormats.saveFormat,
+	merge: function merge(formatTo, formatFrom) {
+		return formatFrom || formatTo;
 	}
-
-	_createClass(NumberFormats, [{
-		key: 'init',
-		value: function init() {
-			var _this2 = this;
-
-			_.forEach(PREDEFINED, function (formatId, format) {
-				_this2.formatsByNames[format] = {
-					formatId: formatId,
-					format: format
-				};
-			});
-		}
-	}, {
-		key: 'canon',
-		value: function canon(format) {
-			return NumberFormats.canon(format);
-		}
-	}, {
-		key: 'merge',
-		value: function merge(formatTo, formatFrom) {
-			return formatFrom || formatTo;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format, styleFormat) {
-			return NumberFormats.saveFormat(format, styleFormat);
-		}
-	}], [{
-		key: 'canon',
-		value: function canon(format) {
-			return format;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format, styleFormat) {
-			var attributes = [['numFmtId', styleFormat.formatId], ['formatCode', format]];
-
-			return toXMLString({
-				name: 'numFmt',
-				attributes: attributes
-			});
-		}
-	}]);
-
-	return NumberFormats;
-}(StylePart);
+});
 
 module.exports = NumberFormats;
 
@@ -1796,146 +1648,116 @@ module.exports = {
 (function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var toXMLString = require('../XMLString');
 
-var StylePart = function () {
-	function StylePart(styles, saveName, formatName) {
-		_classCallCheck(this, StylePart);
+function StylePart(styles, saveName, formatName) {
+	this.styles = styles;
+	this.saveName = saveName;
+	this.formatName = formatName;
+	this.lastName = 1;
+	this.lastId = 0;
+	this.saveEmpty = true;
+	this.formats = [];
+	this.formatsByData = Object.create(null);
+	this.formatsByNames = Object.create(null);
+}
 
-		this.styles = styles;
-		this.saveName = saveName;
-		this.formatName = formatName;
-		this.lastName = 1;
-		this.lastId = 0;
-		this.saveEmpty = true;
-		this.formats = [];
-		this.formatsByData = Object.create(null);
-		this.formatsByNames = Object.create(null);
-	}
+StylePart.prototype = {
+	init: function init() {},
+	add: function add(format, name, flags) {
+		if (name && this.formatsByNames[name]) {
+			var _canonFormat = this.canon(format, flags);
+			var _stringFormat = _.isObject(_canonFormat) ? JSON.stringify(_canonFormat) : _canonFormat;
 
-	_createClass(StylePart, [{
-		key: 'add',
-		value: function add(format, name, flags) {
-			if (name && this.formatsByNames[name]) {
-				var _canonFormat = this.canon(format, flags);
-				var _stringFormat = _.isObject(_canonFormat) ? JSON.stringify(_canonFormat) : _canonFormat;
-
-				if (_stringFormat !== this.formatsByNames[name].stringFormat) {
-					this._add(_canonFormat, _stringFormat, name);
-				}
-				return name;
+			if (_stringFormat !== this.formatsByNames[name].stringFormat) {
+				this.addNew(_canonFormat, _stringFormat, name);
 			}
-
-			//first argument is format name
-			if (!name && _.isString(format) && this.formatsByNames[format]) {
-				return format;
-			}
-
-			var canonFormat = this.canon(format, flags);
-			var stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
-			var styleFormat = this.formatsByData[stringFormat];
-
-			if (!styleFormat) {
-				styleFormat = this._add(canonFormat, stringFormat, name);
-			} else if (name && !this.formatsByNames[name]) {
-				styleFormat.name = name;
-				this.formatsByNames[name] = styleFormat;
-			}
-			return styleFormat.name;
+			return name;
 		}
-	}, {
-		key: '_add',
-		value: function _add(canonFormat, stringFormat, name) {
-			name = name || this.formatName + this.lastName++;
 
-			var styleFormat = {
-				name: name,
-				formatId: this.lastId++,
-				format: canonFormat,
-				stringFormat: stringFormat
-			};
+		//first argument is format name
+		if (!name && _.isString(format) && this.formatsByNames[format]) {
+			return format;
+		}
 
-			this.formats.push(styleFormat);
-			this.formatsByData[stringFormat] = styleFormat;
+		var canonFormat = this.canon(format, flags);
+		var stringFormat = _.isObject(canonFormat) ? JSON.stringify(canonFormat) : canonFormat;
+		var styleFormat = this.formatsByData[stringFormat];
+
+		if (!styleFormat) {
+			styleFormat = this.addNew(canonFormat, stringFormat, name);
+		} else if (name && !this.formatsByNames[name]) {
+			styleFormat.name = name;
 			this.formatsByNames[name] = styleFormat;
-
-			return styleFormat;
 		}
-	}, {
-		key: 'canon',
-		value: function canon(format) {
-			return format;
+		return styleFormat.name;
+	},
+	addNew: function addNew(canonFormat, stringFormat, name) {
+		name = name || this.formatName + this.lastName++;
+
+		var styleFormat = {
+			name: name,
+			formatId: this.lastId++,
+			format: canonFormat,
+			stringFormat: stringFormat
+		};
+
+		this.formats.push(styleFormat);
+		this.formatsByData[stringFormat] = styleFormat;
+		this.formatsByNames[name] = styleFormat;
+
+		return styleFormat;
+	},
+	canon: function canon(format) {
+		return format;
+	},
+	get: function get(format) {
+		if (_.isString(format)) {
+			var styleFormat = this.formatsByNames[format];
+
+			return styleFormat ? styleFormat.format : format;
 		}
-	}, {
-		key: 'get',
-		value: function get(format) {
-			if (_.isString(format)) {
-				var styleFormat = this.formatsByNames[format];
+		return format;
+	},
+	getId: function getId(name) {
+		var styleFormat = this.formatsByNames[name];
 
-				return styleFormat ? styleFormat.format : format;
-			}
-			return format;
+		return styleFormat ? styleFormat.formatId : null;
+	},
+	save: function save() {
+		var _this = this;
+
+		if (this.saveEmpty !== false || this.formats.length) {
+			var attributes = [['count', this.formats.length]];
+			var children = this.formats.map(function (format) {
+				return _this.saveFormat(format.format, format);
+			});
+
+			this.saveCollectionExt(attributes, children);
+
+			return toXMLString({
+				name: this.saveName,
+				attributes: attributes,
+				children: children
+			});
 		}
-	}, {
-		key: 'getId',
-		value: function getId(name) {
-			var styleFormat = this.formatsByNames[name];
-
-			return styleFormat ? styleFormat.formatId : null;
-		}
-	}, {
-		key: 'save',
-		value: function save() {
-			var _this = this;
-
-			if (this.saveEmpty !== false || this.formats.length) {
-				var attributes = [['count', this.formats.length]];
-				var children = this.formats.map(function (format) {
-					return _this.saveFormat(format.format, format);
-				});
-
-				this.saveCollectionExt(attributes, children);
-
-				return toXMLString({
-					name: this.saveName,
-					attributes: attributes,
-					children: children
-				});
-			}
-			return '';
-		}
-	}, {
-		key: 'saveCollectionExt',
-		value: function saveCollectionExt() {}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat() {
-			return '';
-		}
-	}]);
-
-	return StylePart;
-}();
+		return '';
+	},
+	saveCollectionExt: function saveCollectionExt() {},
+	saveFormat: function saveFormat() {
+		return '';
+	}
+};
 
 module.exports = StylePart;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2}],22:[function(require,module,exports){
+(function (global){
 'use strict';
 
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
+var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
 var NumberFormats = require('./numberFormats');
 var Fonts = require('./fonts');
@@ -1945,82 +1767,63 @@ var alignment = require('./alignment');
 var toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.differentialformats.aspx
+function TableElements(styles) {
+	StylePart.call(this, styles, 'dxfs', 'tableElement');
+}
 
-var TableElements = function (_StylePart) {
-	_inherits(TableElements, _StylePart);
+TableElements.prototype = _.merge({}, StylePart.prototype, {
+	canon: function canon(format) {
+		var result = {};
 
-	function TableElements(styles) {
-		_classCallCheck(this, TableElements);
+		if (format.format) {
+			result.format = NumberFormats.canon(format.format);
+		}
+		if (format.font) {
+			result.font = Fonts.canon(format.font);
+		}
+		if (format.pattern) {
+			result.fill = Fills.canon(format.pattern, { fillType: 'pattern', isTable: true });
+		} else if (format.gradient) {
+			result.fill = Fills.canon(format.gradient, { fillType: 'gradient' });
+		}
+		if (format.border) {
+			result.border = Borders.canon(format.border);
+		}
+		result.alignment = alignment.canon(format);
+		return result;
+	},
+	saveFormat: function saveFormat(format) {
+		var children = [];
 
-		return _possibleConstructorReturn(this, (TableElements.__proto__ || Object.getPrototypeOf(TableElements)).call(this, styles, 'dxfs', 'tableElement'));
+		if (format.font) {
+			children.push(Fonts.saveFormat(format.font));
+		}
+		if (format.fill) {
+			children.push(Fills.saveFormat(format.fill));
+		}
+		if (format.border) {
+			children.push(Borders.saveFormat(format.border));
+		}
+		if (format.format) {
+			children.push(NumberFormats.saveFormat(format.format));
+		}
+		if (format.alignment && format.alignment.length) {
+			children.push(alignment.save(format.alignment));
+		}
+
+		return toXMLString({
+			name: 'dxf',
+			children: children
+		});
 	}
-
-	_createClass(TableElements, [{
-		key: 'canon',
-		value: function canon(format) {
-			var result = {};
-
-			if (format.format) {
-				result.format = NumberFormats.canon(format.format);
-			}
-			if (format.font) {
-				result.font = Fonts.canon(format.font);
-			}
-			if (format.pattern) {
-				result.fill = Fills.canon(format.pattern, { fillType: 'pattern', isTable: true });
-			} else if (format.gradient) {
-				result.fill = Fills.canon(format.gradient, { fillType: 'gradient' });
-			}
-			if (format.border) {
-				result.border = Borders.canon(format.border);
-			}
-			result.alignment = alignment.canon(format);
-			return result;
-		}
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format) {
-			var children = [];
-
-			if (format.font) {
-				children.push(Fonts.saveFormat(format.font));
-			}
-			if (format.fill) {
-				children.push(Fills.saveFormat(format.fill));
-			}
-			if (format.border) {
-				children.push(Borders.saveFormat(format.border));
-			}
-			if (format.format) {
-				children.push(NumberFormats.saveFormat(format.format));
-			}
-			if (format.alignment && format.alignment.length) {
-				children.push(alignment.save(format.alignment));
-			}
-
-			return toXMLString({
-				name: 'dxf',
-				children: children
-			});
-		}
-	}]);
-
-	return TableElements;
-}(StylePart);
+});
 
 module.exports = TableElements;
 
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"./alignment":13,"./borders":14,"./fills":16,"./fonts":17,"./numberFormats":19,"./stylePart":21}],23:[function(require,module,exports){
 (function (global){
 'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
@@ -2031,89 +1834,74 @@ var ELEMENTS = ['wholeTable', 'headerRow', 'totalRow', 'firstColumn', 'lastColum
 var SIZED_ELEMENTS = ['firstRowStripe', 'secondRowStripe', 'firstColumnStripe', 'secondColumnStripe'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyles.aspx
+function Tables(styles) {
+	StylePart.call(this, styles, 'tableStyles', 'table');
 
-var Tables = function (_StylePart) {
-	_inherits(Tables, _StylePart);
+	this.saveEmpty = false;
+}
 
-	function Tables(styles) {
-		_classCallCheck(this, Tables);
+Tables.prototype = _.merge({}, StylePart.prototype, {
+	canon: function canon(format) {
+		var result = {};
+		var styles = this.styles;
 
-		var _this = _possibleConstructorReturn(this, (Tables.__proto__ || Object.getPrototypeOf(Tables)).call(this, styles, 'tableStyles', 'table'));
+		_.forEach(format, function (value, key) {
+			if (_.includes(ELEMENTS, key)) {
+				var style = void 0;
+				var size = null;
 
-		_this.saveEmpty = false;
-		return _this;
-	}
-
-	_createClass(Tables, [{
-		key: 'canon',
-		value: function canon(format) {
-			var result = {};
-			var styles = this.styles;
-
-			_.forEach(format, function (value, key) {
-				if (_.includes(ELEMENTS, key)) {
-					var style = void 0;
-					var size = null;
-
-					if (value.style) {
-						style = styles.tableElements.add(value.style);
-						if (value.size > 1 && _.includes(SIZED_ELEMENTS, key)) {
-							size = value.size;
-						}
-					} else {
-						style = styles.tableElements.add(value);
+				if (value.style) {
+					style = styles.tableElements.add(value.style);
+					if (value.size > 1 && _.includes(SIZED_ELEMENTS, key)) {
+						size = value.size;
 					}
-					result[key] = {
-						style: style,
-						size: size
-					};
+				} else {
+					style = styles.tableElements.add(value);
 				}
-			});
-
-			return result;
-		}
-	}, {
-		key: 'saveCollectionExt',
-		value: function saveCollectionExt(attributes) {
-			if (this.styles.defaultTableStyle) {
-				attributes.push(['defaultTableStyle', this.styles.defaultTableStyle]);
+				result[key] = {
+					style: style,
+					size: size
+				};
 			}
+		});
+
+		return result;
+	},
+	saveCollectionExt: function saveCollectionExt(attributes) {
+		if (this.styles.defaultTableStyle) {
+			attributes.push(['defaultTableStyle', this.styles.defaultTableStyle]);
 		}
-		//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
+	},
 
-	}, {
-		key: 'saveFormat',
-		value: function saveFormat(format, styleFormat) {
-			var styles = this.styles;
-			var attributes = [['name', styleFormat.name], ['pivot', 0]];
-			var children = [];
+	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
+	saveFormat: function saveFormat(format, styleFormat) {
+		var styles = this.styles;
+		var attributes = [['name', styleFormat.name], ['pivot', 0]];
+		var children = [];
 
-			_.forEach(format, function (value, key) {
-				var style = value.style;
-				var size = value.size;
-				var attributes = [['type', key], ['dxfId', styles.tableElements.getId(style)]];
+		_.forEach(format, function (value, key) {
+			var style = value.style;
+			var size = value.size;
+			var attributes = [['type', key], ['dxfId', styles.tableElements.getId(style)]];
 
-				if (size) {
-					attributes.push(['size', size]);
-				}
+			if (size) {
+				attributes.push(['size', size]);
+			}
 
-				children.push(toXMLString({
-					name: 'tableStyleElement',
-					attributes: attributes
-				}));
-			});
-			attributes.push(['count', children.length]);
+			children.push(toXMLString({
+				name: 'tableStyleElement',
+				attributes: attributes
+			}));
+		});
+		attributes.push(['count', children.length]);
 
-			return toXMLString({
-				name: 'tableStyle',
-				attributes: attributes,
-				children: children
-			});
-		}
-	}]);
-
-	return Tables;
-}(StylePart);
+		return toXMLString({
+			name: 'tableStyle',
+			attributes: attributes,
+			children: children
+		});
+	}
+});
 
 module.exports = Tables;
 

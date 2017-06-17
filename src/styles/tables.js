@@ -11,11 +11,13 @@ const ELEMENTS = ['wholeTable', 'headerRow', 'totalRow', 'firstColumn', 'lastCol
 const SIZED_ELEMENTS = ['firstRowStripe', 'secondRowStripe', 'firstColumnStripe', 'secondColumnStripe'];
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyles.aspx
-class Tables extends StylePart {
-	constructor(styles) {
-		super(styles, 'tableStyles', 'table');
-		this.saveEmpty = false;
-	}
+function Tables(styles) {
+	StylePart.call(this, styles, 'tableStyles', 'table');
+
+	this.saveEmpty = false;
+}
+
+Tables.prototype = _.merge({}, StylePart.prototype, {
 	canon(format) {
 		const result = {};
 		const styles = this.styles;
@@ -41,12 +43,12 @@ class Tables extends StylePart {
 		});
 
 		return result;
-	}
+	},
 	saveCollectionExt(attributes) {
 		if (this.styles.defaultTableStyle) {
 			attributes.push(['defaultTableStyle', this.styles.defaultTableStyle]);
 		}
-	}
+	},
 	//https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.tablestyleelement.aspx
 	saveFormat(format, styleFormat) {
 		const styles = this.styles;
@@ -81,6 +83,6 @@ class Tables extends StylePart {
 			children
 		});
 	}
-}
+});
 
 module.exports = Tables;

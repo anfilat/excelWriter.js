@@ -10,13 +10,30 @@ const PREDEFINED = {
 };
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.numberingformats.aspx
-class NumberFormats extends StylePart {
-	constructor(styles) {
-		super(styles, 'numFmts', 'numberFormat');
+function NumberFormats(styles) {
+	StylePart.call(this, styles, 'numFmts', 'numberFormat');
 
-		this.init();
-		this.lastId = 164;
-	}
+	this.init();
+	this.lastId = 164;
+}
+
+NumberFormats.canon = function (format) {
+	return format;
+};
+
+NumberFormats.saveFormat = function (format, styleFormat) {
+	const attributes = [
+		['numFmtId', styleFormat.formatId],
+		['formatCode', format]
+	];
+
+	return toXMLString({
+		name: 'numFmt',
+		attributes
+	});
+};
+
+NumberFormats.prototype = _.merge({}, StylePart.prototype, {
 	init() {
 		_.forEach(PREDEFINED, (formatId, format) => {
 			this.formatsByNames[format] = {
@@ -24,30 +41,12 @@ class NumberFormats extends StylePart {
 				format: format
 			};
 		});
-	}
-	static canon(format) {
-		return format;
-	}
-	static saveFormat(format, styleFormat) {
-		const attributes = [
-			['numFmtId', styleFormat.formatId],
-			['formatCode', format]
-		];
-
-		return toXMLString({
-			name: 'numFmt',
-			attributes
-		});
-	}
-	canon(format) {
-		return NumberFormats.canon(format);
-	}
+	},
+	canon: NumberFormats.canon,
+	saveFormat: NumberFormats.saveFormat,
 	merge(formatTo, formatFrom) {
 		return formatFrom || formatTo;
 	}
-	saveFormat(format, styleFormat) {
-		return NumberFormats.saveFormat(format, styleFormat);
-	}
-}
+});
 
 module.exports = NumberFormats;

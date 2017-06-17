@@ -1,5 +1,6 @@
 'use strict';
 
+const _ = require('lodash');
 const StylePart = require('./stylePart');
 const NumberFormats = require('./numberFormats');
 const Fonts = require('./fonts');
@@ -9,10 +10,11 @@ const alignment = require('./alignment');
 const toXMLString = require('../XMLString');
 
 //https://msdn.microsoft.com/en-us/library/documentformat.openxml.spreadsheet.differentialformats.aspx
-class TableElements extends StylePart {
-	constructor(styles) {
-		super(styles, 'dxfs', 'tableElement');
-	}
+function TableElements(styles) {
+	StylePart.call(this, styles, 'dxfs', 'tableElement');
+}
+
+TableElements.prototype = _.merge({}, StylePart.prototype, {
 	canon(format) {
 		const result = {};
 
@@ -32,7 +34,7 @@ class TableElements extends StylePart {
 		}
 		result.alignment = alignment.canon(format);
 		return result;
-	}
+	},
 	saveFormat(format) {
 		const children = [];
 
@@ -57,6 +59,6 @@ class TableElements extends StylePart {
 			children
 		});
 	}
-}
+});
 
 module.exports = TableElements;
