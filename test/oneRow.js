@@ -3,7 +3,7 @@
 module.exports = function (excel) {
 	const workbook = excel.createWorkbook();
 	workbook.addFontFormat({bold: true, underline: true, color: {theme: 3}}, 'font');
-	const headerBorder = workbook.addBorderFormat({color: '#FF0000', style: 'thin'});
+	const headerBorder = workbook.addBorderFormat({color: '#FF0000', style: excel.borderStyle.thin});
 	const greenFill = workbook.addPatternFormat({color: '#00FF00'});
 	const currency = workbook.addNumberFormat('$ #,##0.00;$ #,##0.00;-', 'currency');
 	const header = workbook.addFormat({
@@ -19,7 +19,7 @@ module.exports = function (excel) {
 			color: '#FF0000'
 		},
 		border: {
-			right: {color: 'FF8888FF', style: 'thin'}
+			right: {color: 'FF8888FF', style: excel.borderStyle.thin}
 		},
 		pattern: {type: 'darkHorizontal', color: '#88FF88', backColor: '#8888F0'},
 		locked: false,

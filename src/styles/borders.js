@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('lodash');
+const {borderStyle} = require('../constants');
 const StylePart = require('./stylePart');
 const {saveColor} = require('./utils');
 const toXMLString = require('../XMLString');
@@ -20,17 +21,19 @@ Borders.canon = function (format) {
 	const result = {};
 
 	if (_.has(format, 'style') || _.has(format, 'color')) {
-		MAIN_BORDERS.forEach(name => {
-			result[name] = {
-				style: format.style,
-				color: format.color
-			};
-		});
+		if (!format.style || borderStyle[format.style]) {
+			MAIN_BORDERS.forEach(name => {
+				result[name] = {
+					style: format.style,
+					color: format.color
+				};
+			});
+		}
 	} else {
 		BORDERS.forEach(name => {
 			const border = format[name];
 
-			if (border) {
+			if (border && (!format.style || borderStyle[border.style])) {
 				result[name] = {
 					style: border.style,
 					color: border.color

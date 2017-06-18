@@ -1,6 +1,7 @@
 'use strict';
 
 const Workbook = require('./workbook');
+const constants = require('./constants');
 
 // Excel workbook API
 function createWorkbook() {
@@ -57,4 +58,5 @@ function createWorkbook() {
 	return outerWorkbook;
 }
 
-module.exports = {createWorkbook};
+module.exports = constants;
+module.exports.createWorkbook = createWorkbook;

@@ -58,7 +58,7 @@ function toXMLString(config) {
 module.exports = toXMLString;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./util":28}],3:[function(require,module,exports){
+},{"./util":29}],3:[function(require,module,exports){
 'use strict';
 
 function Images(common) {
@@ -218,7 +218,7 @@ Common.prototype = {
 
 module.exports = Common;
 
-},{"../styles":18,"./images":3,"./sharedStrings":5}],5:[function(require,module,exports){
+},{"../styles":19,"./images":3,"./sharedStrings":5}],5:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -357,9 +357,33 @@ function getXMLEnd() {
 module.exports = SharedStrings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../util":28,"stream":1}],6:[function(require,module,exports){
+},{"../util":29,"stream":1}],6:[function(require,module,exports){
+'use strict';
+
+var borderStyle = {
+	dashDot: 'dashDot',
+	dashDotDot: 'dashDotDot',
+	dashed: 'dashed',
+	dotted: 'dotted',
+	double: 'double',
+	hair: 'hair',
+	medium: 'medium',
+	mediumDashDot: 'mediumDashDot',
+	mediumDashDotDot: 'mediumDashDotDot',
+	mediumDashed: 'mediumDashed',
+	none: 'none',
+	slantDashDot: 'slantDashDot',
+	thick: 'thick',
+	thin: 'thin'
+};
+
+module.exports = { borderStyle: borderStyle };
+
+},{}],7:[function(require,module,exports){
 (function (global){
 'use strict';
+
+// https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.spreadsheet.twocellanchor.aspx
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
@@ -443,8 +467,10 @@ Anchor.prototype = {
 module.exports = Anchor;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28}],7:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],8:[function(require,module,exports){
 'use strict';
+
+// https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.spreadsheet.absoluteanchor.aspx
 
 var util = require('../util');
 var toXMLString = require('../XMLString');
@@ -485,9 +511,11 @@ AnchorAbsolute.prototype = {
 
 module.exports = AnchorAbsolute;
 
-},{"../XMLString":2,"../util":28}],8:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],9:[function(require,module,exports){
 (function (global){
 'use strict';
+
+// https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.spreadsheet.onecellanchor.aspx
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var util = require('../util');
@@ -551,7 +579,7 @@ AnchorOneCell.prototype = {
 module.exports = AnchorOneCell;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28}],9:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],10:[function(require,module,exports){
 'use strict';
 
 var Relations = require('../relations');
@@ -597,8 +625,10 @@ Drawings.prototype = {
 
 module.exports = Drawings;
 
-},{"../XMLString":2,"../relations":12,"../util":28,"./picture":10}],10:[function(require,module,exports){
+},{"../XMLString":2,"../relations":13,"../util":29,"./picture":11}],11:[function(require,module,exports){
 'use strict';
+
+// https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.spreadsheet.picture.aspx
 
 var util = require('../util');
 var toXMLString = require('../XMLString');
@@ -676,10 +706,11 @@ Picture.prototype = {
 
 module.exports = Picture;
 
-},{"../XMLString":2,"../util":28,"./anchor":6,"./anchorAbsolute":7,"./anchorOneCell":8}],11:[function(require,module,exports){
+},{"../XMLString":2,"../util":29,"./anchor":7,"./anchorAbsolute":8,"./anchorOneCell":9}],12:[function(require,module,exports){
 'use strict';
 
 var Workbook = require('./workbook');
+var constants = require('./constants');
 
 // Excel workbook API
 function createWorkbook() {
@@ -732,9 +763,10 @@ function createWorkbook() {
 	return outerWorkbook;
 }
 
-module.exports = { createWorkbook: createWorkbook };
+module.exports = constants;
+module.exports.createWorkbook = createWorkbook;
 
-},{"./workbook":29}],12:[function(require,module,exports){
+},{"./constants":6,"./workbook":30}],13:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -797,7 +829,7 @@ RelationshipManager.prototype = {
 module.exports = RelationshipManager;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./util":28}],13:[function(require,module,exports){
+},{"./XMLString":2,"./util":29}],14:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -862,15 +894,19 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],14:[function(require,module,exports){
+},{"../XMLString":2}],15:[function(require,module,exports){
 (function (global){
 'use strict';
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
+
+var _require = require('../constants'),
+    borderStyle = _require.borderStyle;
+
 var StylePart = require('./stylePart');
 
-var _require = require('./utils'),
-    saveColor = _require.saveColor;
+var _require2 = require('./utils'),
+    saveColor = _require2.saveColor;
 
 var toXMLString = require('../XMLString');
 
@@ -889,17 +925,19 @@ Borders.canon = function (format) {
 	var result = {};
 
 	if (_.has(format, 'style') || _.has(format, 'color')) {
-		MAIN_BORDERS.forEach(function (name) {
-			result[name] = {
-				style: format.style,
-				color: format.color
-			};
-		});
+		if (!format.style || borderStyle[format.style]) {
+			MAIN_BORDERS.forEach(function (name) {
+				result[name] = {
+					style: format.style,
+					color: format.color
+				};
+			});
+		}
 	} else {
 		BORDERS.forEach(function (name) {
 			var border = format[name];
 
-			if (border) {
+			if (border && (!format.style || borderStyle[border.style])) {
 				result[name] = {
 					style: border.style,
 					color: border.color
@@ -969,7 +1007,7 @@ Borders.prototype = _.merge({}, StylePart.prototype, {
 module.exports = Borders;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22,"./utils":25}],15:[function(require,module,exports){
+},{"../XMLString":2,"../constants":6,"./stylePart":23,"./utils":26}],16:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1144,7 +1182,7 @@ Cells.prototype = _.merge({}, StylePart.prototype, {
 module.exports = Cells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./alignment":13,"./predeinedFormats":20,"./protection":21,"./stylePart":22}],16:[function(require,module,exports){
+},{"../XMLString":2,"./alignment":14,"./predeinedFormats":21,"./protection":22,"./stylePart":23}],17:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1271,7 +1309,7 @@ function saveGradientFill(format) {
 module.exports = Fills;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22,"./utils":25}],17:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":23,"./utils":26}],18:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1421,7 +1459,7 @@ Fonts.prototype = _.merge({}, StylePart.prototype, {
 module.exports = Fonts;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22,"./utils":25}],18:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":23,"./utils":26}],19:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1534,7 +1572,7 @@ Styles.prototype = {
 module.exports = Styles;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./borders":14,"./cells":15,"./fills":16,"./fonts":17,"./numberFormats":19,"./tableElements":23,"./tables":24}],19:[function(require,module,exports){
+},{"../XMLString":2,"./borders":15,"./cells":16,"./fills":17,"./fonts":18,"./numberFormats":20,"./tableElements":24,"./tables":25}],20:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1586,7 +1624,7 @@ NumberFormats.prototype = _.merge({}, StylePart.prototype, {
 module.exports = NumberFormats;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./predeinedFormats":20,"./stylePart":22}],20:[function(require,module,exports){
+},{"../XMLString":2,"./predeinedFormats":21,"./stylePart":23}],21:[function(require,module,exports){
 'use strict';
 
 var PREDEFINED = {
@@ -1596,7 +1634,7 @@ var PREDEFINED = {
 
 module.exports = PREDEFINED;
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1636,7 +1674,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],22:[function(require,module,exports){
+},{"../XMLString":2}],23:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1756,7 +1794,7 @@ StylePart.prototype = {
 module.exports = StylePart;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],23:[function(require,module,exports){
+},{"../XMLString":2}],24:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1824,7 +1862,7 @@ TableElements.prototype = _.merge({}, StylePart.prototype, {
 module.exports = TableElements;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./alignment":13,"./borders":14,"./fills":16,"./fonts":17,"./numberFormats":19,"./stylePart":22}],24:[function(require,module,exports){
+},{"../XMLString":2,"./alignment":14,"./borders":15,"./fills":17,"./fonts":18,"./numberFormats":20,"./stylePart":23}],25:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1909,7 +1947,7 @@ Tables.prototype = _.merge({}, StylePart.prototype, {
 module.exports = Tables;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":22}],25:[function(require,module,exports){
+},{"../XMLString":2,"./stylePart":23}],26:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1951,7 +1989,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],26:[function(require,module,exports){
+},{"../XMLString":2}],27:[function(require,module,exports){
 'use strict';
 
 var Table = require('./table');
@@ -1996,7 +2034,7 @@ function createTable(outerWorksheet, common, config) {
 
 module.exports = createTable;
 
-},{"./table":27}],27:[function(require,module,exports){
+},{"./table":28}],28:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2162,7 +2200,7 @@ Table.prototype = {
 module.exports = Table;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28}],28:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],29:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2252,7 +2290,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2505,7 +2543,7 @@ Workbook.prototype = {
 module.exports = Workbook;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./XMLString":2,"./common":4,"./relations":12,"./util":28,"./worksheet":32}],30:[function(require,module,exports){
+},{"./XMLString":2,"./common":4,"./relations":13,"./util":29,"./worksheet":33}],31:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2569,7 +2607,7 @@ WorksheetDrawings.prototype = {
 module.exports = WorksheetDrawings;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../drawings":9}],31:[function(require,module,exports){
+},{"../XMLString":2,"../drawings":10}],32:[function(require,module,exports){
 'use strict';
 
 var util = require('../util');
@@ -2637,7 +2675,7 @@ Hyperlinks.prototype = {
 
 module.exports = Hyperlinks;
 
-},{"../XMLString":2,"../util":28}],32:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],33:[function(require,module,exports){
 'use strict';
 
 var Worksheet = require('./worksheet');
@@ -2761,7 +2799,7 @@ function createWorksheet(outerWorkbook, common, config) {
 
 module.exports = createWorksheet;
 
-},{"./worksheet":39}],33:[function(require,module,exports){
+},{"./worksheet":40}],34:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -2829,7 +2867,7 @@ MergedCells.prototype = {
 module.exports = MergedCells;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28}],34:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],35:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3160,7 +3198,7 @@ var methods = {
 module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3368,7 +3406,7 @@ function compilePageDetailPiece(data) {
 module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28}],36:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],37:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3563,10 +3601,8 @@ function saveColumns(columns) {
 			if (column.bestFit) {
 				attributes.push(['bestFit', 1]);
 			}
-			if (column.customWidth || column.width) {
-				attributes.push(['customWidth', 1]);
-			}
 			if (column.width) {
+				attributes.push(['customWidth', 1]);
 				attributes.push(['width', column.width]);
 			} else {
 				attributes.push(['width', 9.140625]);
@@ -3592,7 +3628,7 @@ function saveColumns(columns) {
 module.exports = { methods: methods };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28,"stream":1}],37:[function(require,module,exports){
+},{"../XMLString":2,"../util":29,"stream":1}],38:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3766,7 +3802,7 @@ SheetView.prototype = {
 module.exports = SheetView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"../util":28}],38:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],39:[function(require,module,exports){
 'use strict';
 
 var createTable = require('../table');
@@ -3821,7 +3857,7 @@ Tables.prototype = {
 
 module.exports = Tables;
 
-},{"../XMLString":2,"../table":26}],39:[function(require,module,exports){
+},{"../XMLString":2,"../table":27}],40:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3925,5 +3961,5 @@ Worksheet.prototype = _.assign({
 module.exports = Worksheet;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../relations":12,"./drawing":30,"./hyperlinks":31,"./mergedCells":33,"./prepareSave":34,"./print":35,"./save":36,"./sheetView":37,"./tables":38}]},{},[11])(11)
+},{"../relations":13,"./drawing":31,"./hyperlinks":32,"./mergedCells":34,"./prepareSave":35,"./print":36,"./save":37,"./sheetView":38,"./tables":39}]},{},[12])(12)
 });

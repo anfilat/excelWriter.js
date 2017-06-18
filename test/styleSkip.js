@@ -4,8 +4,14 @@ module.exports = function (excel) {
 	return excel.createWorkbook()
 		.addWorksheet()
 		.setColumns([
-			{width: 20, style: {border: {color: '#000000', style: 'thin'}, pattern: {color: '#b0ffff'}}},
-			{width: 20, style: {border: {color: '#000000', style: 'thin'}, pattern: {color: '#b0ffff'}, horizontal: 'right'}}
+			{
+				width: 20,
+				style: {border: {color: '#000000', style: excel.borderStyle.thin}, pattern: {color: '#b0ffff'}}
+			},
+			{
+				width: 20,
+				style: {border: {color: '#000000', style: excel.borderStyle.thin}, pattern: {color: '#b0ffff'}, horizontal: 'right'}
+			}
 		])
 		.setData([
 			{

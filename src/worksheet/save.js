@@ -187,10 +187,8 @@ function saveColumns(columns) {
 			if (column.bestFit) {
 				attributes.push(['bestFit', 1]);
 			}
-			if (column.customWidth || column.width) {
-				attributes.push(['customWidth', 1]);
-			}
 			if (column.width) {
+				attributes.push(['customWidth', 1]);
 				attributes.push(['width', column.width]);
 			} else {
 				attributes.push(['width', 9.140625]);

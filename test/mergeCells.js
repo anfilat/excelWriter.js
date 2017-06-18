@@ -28,7 +28,7 @@ module.exports = function (excel) {
 		])
 		.setData([
 			{
-				style: {pattern: {color: '#b0ffff'}, border: {color: '#000000', style: 'thin'}},
+				style: {pattern: {color: '#b0ffff'}, border: {color: '#000000', style: excel.borderStyle.thin}},
 				data: [
 					123,
 					['Officia deserunt elit', 'Pariatur elit duis', 'Sunt qui ipsum'],
@@ -37,7 +37,7 @@ module.exports = function (excel) {
 				]
 			},
 			{
-				style: {pattern: {color: '#b0ffb0'}, border: {color: '#000000', style: 'thin'}},
+				style: {pattern: {color: '#b0ffb0'}, border: {color: '#000000', style: excel.borderStyle.thin}},
 				data: [
 					245,
 					{value: ['Esse consectetur ex', 'Dolore id sint', 'Anim irure pariatur'], style: {pattern: {color: '#b0b0ff'}}},
@@ -55,7 +55,11 @@ module.exports = function (excel) {
 						value: 'Ea commodo nostrud incididunt incididunt qui in.',
 						colspan: 2,
 						rowspan: 2,
-						style: {pattern: {color: '#ffffb0'}, border: {color: '#000000', style: 'thin'}, vertical: 'top'}
+						style: {
+							pattern: {color: '#ffffb0'},
+							border: {color: '#000000', style: excel.borderStyle.thin},
+							vertical: 'top'
+						}
 					},
 					'ex magna'
 				]

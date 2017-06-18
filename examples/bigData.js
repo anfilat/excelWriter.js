@@ -75,7 +75,7 @@ function run(testData) {
 			style: {
 				font: {bold: true, underline: true, color: {theme: 3}},
 				horizontal: 'center',
-				border: {color: '#FF0000', style: 'thin'},
+				border: {color: '#FF0000', style: excel.borderStyle.thin},
 				pattern: {color: '#C0F0C0'}
 			},
 			type: 'string',

@@ -21,7 +21,7 @@
 			const workbook = excelWriter.createWorkbook();
 
 			workbook.addFontFormat({bold: true, underline: true, color: {theme: 3}}, 'font');
-			const headerBorder = workbook.addBorderFormat({color: '#FF0000', style: 'thin'});
+			const headerBorder = workbook.addBorderFormat({color: '#FF0000', style: excelWriter.borderStyle.thin});
 			const greenFill = workbook.addPatternFormat({color: '#00FF00'});
 			const currency = workbook.addNumberFormat('$ #,##0.00;$ #,##0.00;-', 'currency');
 			const header = workbook.addFormat({
@@ -37,7 +37,7 @@
 					color: '#FF0000'
 				},
 				border: {
-					right: {color: '#8888FF', style: 'thin'}
+					right: {color: '#8888FF', style: excelWriter.borderStyle.thin}
 				},
 				pattern: {type: 'darkHorizontal', color: '#88FF88', backColor: '#8888F0'},
 				locked: false,
