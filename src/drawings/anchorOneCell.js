@@ -1,5 +1,7 @@
 'use strict';
 
+// https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.spreadsheet.onecellanchor.aspx
+
 const _ = require('lodash');
 const util = require('../util');
 const toXMLString = require('../XMLString');

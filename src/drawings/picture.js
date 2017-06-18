@@ -1,5 +1,7 @@
 'use strict';
 
+// https://msdn.microsoft.com/en-us/library/documentformat.openxml.drawing.spreadsheet.picture.aspx
+
 const util = require('../util');
 const toXMLString = require('../XMLString');
 const Anchor = require('./anchor');
