@@ -108,6 +108,17 @@ function createWorksheet(outerWorkbook, common, config) {
 		setPrintTitleLeft(params) {
 			worksheet.setPrintTitleLeft(params);
 			return this;
+		},
+		addSparklineType(params, name) {
+			return worksheet.sparklines.addType(params, name);
+		},
+		setDefaultSparklineType(params) {
+			worksheet.sparklines.setDefaultType(params);
+			return this;
+		},
+		addSparkline(params) {
+			worksheet.sparklines.add(params);
+			return this;
 		}
 	};
 	const worksheet = new Worksheet(outerWorksheet, common, config);

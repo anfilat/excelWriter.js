@@ -87,6 +87,7 @@ function saveAfterRows(worksheet) {
 		// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 		// to issue with Microsoft Excel (2007, 2013)
 		worksheet.drawings.save() +
+		saveExtList(worksheet.sparklines) +
 		'</worksheet>';
 }
 
@@ -206,6 +207,20 @@ function saveColumns(columns) {
 		return toXMLString({
 			name: 'cols',
 			children
+		});
+	}
+	return '';
+}
+
+function saveExtList(sparklines) {
+	const sparklinesStr = sparklines.save();
+
+	if (sparklinesStr) {
+		return toXMLString({
+			name: 'extLst',
+			children: [
+				sparklinesStr
+			]
 		});
 	}
 	return '';

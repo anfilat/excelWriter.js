@@ -1,11 +1,8 @@
 'use strict';
 
 const _ = require('lodash');
+const {canonColor} = require('../util');
 const toXMLString = require('../XMLString');
-
-function canonColor(color) {
-	return color[0] === '#' ? 'FF' + color.substr(1) : color;
-}
 
 function saveColor(color) {
 	if (_.isString(color)) {

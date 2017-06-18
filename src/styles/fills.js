@@ -2,7 +2,8 @@
 
 const _ = require('lodash');
 const StylePart = require('./stylePart');
-const {canonColor, saveColor} = require('./utils');
+const {canonColor} = require('../util');
+const {saveColor} = require('./utils');
 const toXMLString = require('../XMLString');
 
 const PATTERN_TYPES = ['none', 'solid', 'darkGray', 'mediumGray', 'lightGray', 'gray125', 'gray0625',

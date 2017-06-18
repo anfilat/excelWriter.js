@@ -5,6 +5,7 @@ const Tables = require('./tables');
 const WorksheetDrawings = require('./drawing');
 const Hyperlinks = require('./hyperlinks');
 const MergedCells = require('./mergedCells');
+const Sparklines = require('./sparklines');
 const SheetView = require('./sheetView');
 const print = require('./print');
 const prepareSave = require('./prepareSave');
@@ -33,6 +34,7 @@ function Worksheet(outerWorksheet, common, config = {}) {
 	this.drawings = new WorksheetDrawings(this.common, this.relations);
 	this.hyperlinks = new Hyperlinks(this.common, this.relations);
 	this.mergedCells = new MergedCells(this);
+	this.sparklines = new Sparklines(this);
 	this.sheetView = new SheetView(config);
 }
 
@@ -85,6 +87,10 @@ Worksheet.prototype = _.assign({
 	},
 	getState() {
 		return this.state;
+	},
+
+	sheetName() {
+		return '\'' + this.name + '\'';
 	}
 }, print.methods, prepareSave.methods, save.methods);
 

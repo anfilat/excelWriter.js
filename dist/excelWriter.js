@@ -1189,9 +1189,11 @@ module.exports = Cells;
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
 var StylePart = require('./stylePart');
 
-var _require = require('./utils'),
-    canonColor = _require.canonColor,
-    saveColor = _require.saveColor;
+var _require = require('../util'),
+    canonColor = _require.canonColor;
+
+var _require2 = require('./utils'),
+    saveColor = _require2.saveColor;
 
 var toXMLString = require('../XMLString');
 
@@ -1309,7 +1311,7 @@ function saveGradientFill(format) {
 module.exports = Fills;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2,"./stylePart":23,"./utils":26}],18:[function(require,module,exports){
+},{"../XMLString":2,"../util":29,"./stylePart":23,"./utils":26}],18:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -1952,11 +1954,11 @@ module.exports = Tables;
 'use strict';
 
 var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
-var toXMLString = require('../XMLString');
 
-function canonColor(color) {
-	return color[0] === '#' ? 'FF' + color.substr(1) : color;
-}
+var _require = require('../util'),
+    canonColor = _require.canonColor;
+
+var toXMLString = require('../XMLString');
 
 function saveColor(color) {
 	if (_.isString(color)) {
@@ -1989,7 +1991,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../XMLString":2}],27:[function(require,module,exports){
+},{"../XMLString":2,"../util":29}],27:[function(require,module,exports){
 'use strict';
 
 var Table = require('./table');
@@ -2259,11 +2261,16 @@ function canonCell(cell) {
 	return cell;
 }
 
+function canonColor(color) {
+	return color[0] === '#' ? 'FF' + color.substr(1) : color;
+}
+
 module.exports = {
 	positionToLetter: positionToLetter,
 	letterToPosition: letterToPosition,
 	pixelsToEMUs: pixelsToEMUs,
 	canonCell: canonCell,
+	canonColor: canonColor,
 
 	xmlPrefix: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',
 
@@ -2787,6 +2794,17 @@ function createWorksheet(outerWorkbook, common, config) {
 		setPrintTitleLeft: function setPrintTitleLeft(params) {
 			worksheet.setPrintTitleLeft(params);
 			return this;
+		},
+		addSparklineType: function addSparklineType(params, name) {
+			return worksheet.sparklines.addType(params, name);
+		},
+		setDefaultSparklineType: function setDefaultSparklineType(params) {
+			worksheet.sparklines.setDefaultType(params);
+			return this;
+		},
+		addSparkline: function addSparkline(params) {
+			worksheet.sparklines.add(params);
+			return this;
 		}
 	};
 	var worksheet = new Worksheet(outerWorksheet, common, config);
@@ -2799,7 +2817,7 @@ function createWorksheet(outerWorkbook, common, config) {
 
 module.exports = createWorksheet;
 
-},{"./worksheet":40}],34:[function(require,module,exports){
+},{"./worksheet":41}],34:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3299,14 +3317,14 @@ var methods = {
 			var value = '';
 
 			if (printTitles.topTo >= 0) {
-				value = '\'' + this.name + '\'' + '!$' + (printTitles.topFrom + 1) + ':$' + (printTitles.topTo + 1);
+				value = this.sheetName() + '!$' + (printTitles.topFrom + 1) + ':$' + (printTitles.topTo + 1);
 
 				if (printTitles.leftTo >= 0) {
 					value += ',';
 				}
 			}
 			if (printTitles.leftTo >= 0) {
-				value += '\'' + this.name + '\'' + '!$' + util.positionToLetter(printTitles.leftFrom + 1) + ':$' + util.positionToLetter(printTitles.leftTo + 1);
+				value += this.sheetName() + '!$' + util.positionToLetter(printTitles.leftFrom + 1) + ':$' + util.positionToLetter(printTitles.leftTo + 1);
 			}
 			return value;
 		}
@@ -3508,7 +3526,7 @@ function saveAfterRows(worksheet) {
 	worksheet.mergedCells.save() + worksheet.hyperlinks.save() + worksheet.savePrint() + worksheet.tables.save() +
 	// the 'drawing' element should be written last, after 'headerFooter', 'mergeCells', etc. due
 	// to issue with Microsoft Excel (2007, 2013)
-	worksheet.drawings.save() + '</worksheet>';
+	worksheet.drawings.save() + saveExtList(worksheet.sparklines) + '</worksheet>';
 }
 
 function saveData(worksheet) {
@@ -3620,6 +3638,18 @@ function saveColumns(columns) {
 		return toXMLString({
 			name: 'cols',
 			children: children
+		});
+	}
+	return '';
+}
+
+function saveExtList(sparklines) {
+	var sparklinesStr = sparklines.save();
+
+	if (sparklinesStr) {
+		return toXMLString({
+			name: 'extLst',
+			children: [sparklinesStr]
 		});
 	}
 	return '';
@@ -3803,6 +3833,173 @@ module.exports = SheetView;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../XMLString":2,"../util":29}],39:[function(require,module,exports){
+(function (global){
+'use strict';
+
+var _ = typeof window !== "undefined" ? window['_'] : typeof global !== "undefined" ? global['_'] : null;
+var util = require('../util');
+var toXMLString = require('../XMLString');
+
+var defaultTypeAttrs = {
+	displayEmptyCellsAs: 'gap'
+};
+
+var defaultTypeColors = {
+	color: 'FF376092',
+	colorNegative: 'FFD00000',
+	colorAxis: 'FF000000',
+	colorMarkers: 'FFD00000',
+	colorFirst: 'FFD00000',
+	colorLast: 'FFD00000',
+	colorHigh: 'FFD00000',
+	colorLow: 'FFD00000'
+};
+
+function Sparklines(worksheet) {
+	this.worksheet = worksheet;
+	this.lines = Object.create(null);
+	this.defaultLines = {
+		type: null,
+		lines: []
+	};
+	this.typesByData = Object.create(null);
+	this.lastId = 1;
+}
+
+Sparklines.prototype = {
+	addType: function addType(params, name) {
+		var type = this.canonType(params);
+		var stringType = JSON.stringify(type);
+
+		if (!name && this.typesByData[stringType]) {
+			return this.typesByData[stringType];
+		}
+		return this.addNew(type, stringType, name);
+	},
+	setDefaultType: function setDefaultType(params) {
+		this.defaultLines.type = this.canonType(params);
+	},
+	add: function add() {
+		var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+		    cell = _ref.cell,
+		    beginCell = _ref.beginCell,
+		    endCell = _ref.endCell,
+		    type = _ref.type;
+
+		var line = {
+			cell: util.canonCell(cell),
+			beginCell: util.canonCell(beginCell),
+			endCell: util.canonCell(endCell)
+		};
+
+		if (type) {
+			this.lines(type).lines.push(line);
+		} else {
+			this.defaultLines.lines.push(line);
+		}
+	},
+	insert: function insert() {},
+	canonType: function canonType() {
+		var params = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+		var type = {};
+
+		_.keys(defaultTypeAttrs).forEach(function (property) {
+			type[property] = params[property] || defaultTypeAttrs[property];
+		});
+		_.keys(defaultTypeColors).forEach(function (property) {
+			type[property] = util.canonColor(params[property] || defaultTypeColors[property]);
+		});
+		return type;
+	},
+	addNew: function addNew(type, stringType, name) {
+		name = name || 'Sparklines' + this.lastId++;
+
+		this.typesByData[stringType] = name;
+		this.lines(type).type = type;
+
+		return name;
+	},
+	lines: function lines(type) {
+		this.lines[type] = this.lines[type] || {
+			type: null,
+			lines: []
+		};
+		return this.lines[type];
+	},
+	save: function save() {
+		var _this = this;
+
+		var children = [];
+
+		if (this.defaultLines.lines.length) {
+			var type = this.defaultLines.type || this.canonType();
+
+			children.push(this.saveType(type, this.defaultLines.lines));
+		}
+
+		_.forEach(this.lines, function (_ref2) {
+			var type = _ref2.type,
+			    lines = _ref2.lines;
+
+			if (type && lines.length) {
+				children.push(_this.saveType(type, lines));
+			}
+		});
+
+		if (children.length) {
+			return toXMLString({
+				name: 'ext',
+				attributes: [['uri', '{05C60535-1F16-4fd2-B633-F4F36F0B64E0}'], ['xmlns:x14', 'http://schemas.microsoft.com/office/spreadsheetml/2009/9/main']],
+				children: [toXMLString({
+					name: 'x14:sparklineGroups',
+					attributes: [['xmlns:xm', 'http://schemas.microsoft.com/office/excel/2006/main']],
+					children: children
+				})]
+			});
+		}
+		return '';
+	},
+	saveType: function saveType(type, lines) {
+		var attributes = [];
+		var children = [];
+
+		_.keys(defaultTypeAttrs).forEach(function (property) {
+			attributes.push([property, type[property]]);
+		});
+		_.keys(defaultTypeColors).forEach(function (property) {
+			var name = property === 'color' ? 'colorSeries' : property;
+			var value = type[property];
+
+			children.push('<x14:' + name + ' rgb="' + value + '"/>');
+		});
+		children.push(toXMLString({
+			name: 'x14:sparklines',
+			children: this.saveLines(lines)
+		}));
+
+		return toXMLString({
+			name: 'x14:sparklineGroup',
+			attributes: attributes,
+			children: children
+		});
+	},
+	saveLines: function saveLines(lines) {
+		var _this2 = this;
+
+		return lines.map(function (line) {
+			return toXMLString({
+				name: 'x14:sparkline',
+				children: ['<xm:f>' + _this2.worksheet.sheetName() + '!' + line.beginCell + ':' + line.endCell + '</xm:f>', '<xm:sqref>' + line.cell + '</xm:sqref>']
+			});
+		});
+	}
+};
+
+module.exports = Sparklines;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"../XMLString":2,"../util":29}],40:[function(require,module,exports){
 'use strict';
 
 var createTable = require('../table');
@@ -3857,7 +4054,7 @@ Tables.prototype = {
 
 module.exports = Tables;
 
-},{"../XMLString":2,"../table":27}],40:[function(require,module,exports){
+},{"../XMLString":2,"../table":27}],41:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -3866,6 +4063,7 @@ var Tables = require('./tables');
 var WorksheetDrawings = require('./drawing');
 var Hyperlinks = require('./hyperlinks');
 var MergedCells = require('./mergedCells');
+var Sparklines = require('./sparklines');
 var SheetView = require('./sheetView');
 var print = require('./print');
 var prepareSave = require('./prepareSave');
@@ -3896,6 +4094,7 @@ function Worksheet(outerWorksheet, common) {
 	this.drawings = new WorksheetDrawings(this.common, this.relations);
 	this.hyperlinks = new Hyperlinks(this.common, this.relations);
 	this.mergedCells = new MergedCells(this);
+	this.sparklines = new Sparklines(this);
 	this.sheetView = new SheetView(config);
 }
 
@@ -3955,11 +4154,14 @@ Worksheet.prototype = _.assign({
 	},
 	getState: function getState() {
 		return this.state;
+	},
+	sheetName: function sheetName() {
+		return '\'' + this.name + '\'';
 	}
 }, print.methods, prepareSave.methods, save.methods);
 
 module.exports = Worksheet;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../relations":13,"./drawing":31,"./hyperlinks":32,"./mergedCells":34,"./prepareSave":35,"./print":36,"./save":37,"./sheetView":38,"./tables":39}]},{},[12])(12)
+},{"../relations":13,"./drawing":31,"./hyperlinks":32,"./mergedCells":34,"./prepareSave":35,"./print":36,"./save":37,"./sheetView":38,"./sparklines":39,"./tables":40}]},{},[12])(12)
 });

@@ -93,7 +93,7 @@ const methods = {
 			let value = '';
 
 			if (printTitles.topTo >= 0) {
-				value = '\'' + this.name + '\'' +
+				value = this.sheetName() +
 					'!$' + (printTitles.topFrom + 1) +
 					':$' + (printTitles.topTo + 1);
 
@@ -102,7 +102,7 @@ const methods = {
 				}
 			}
 			if (printTitles.leftTo >= 0) {
-				value += '\'' + this.name + '\'' +
+				value += this.sheetName() +
 					'!$' + util.positionToLetter(printTitles.leftFrom + 1) +
 					':$' + util.positionToLetter(printTitles.leftTo + 1);
 			}

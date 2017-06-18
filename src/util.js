@@ -55,11 +55,16 @@ function canonCell(cell) {
 	return cell;
 }
 
+function canonColor(color) {
+	return color[0] === '#' ? 'FF' + color.substr(1) : color;
+}
+
 module.exports = {
 	positionToLetter,
 	letterToPosition,
 	pixelsToEMUs,
 	canonCell,
+	canonColor,
 
 	xmlPrefix: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n',
 
